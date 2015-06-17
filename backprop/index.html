@@ -1,0 +1,40 @@
+<!doctype html>
+<meta charset='utf-8'>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Backpropagation demo</title>
+<link rel='stylesheet' href='lib/bootstrap.min.css'>
+<style>
+	.tab-pane{margin-top:1em}
+</style>
+<div class="container">
+	<canvas width=400 height=400></canvas>
+	<div>
+		<button class="btn btn-default" onclick="reset()">Reset</button>
+		<ul class="nav nav-tabs">
+			<li class="active">
+				<a href="#auto" data-toggle="tab">Auto</a>
+			</li>
+			<li class="      ">
+				<a href="#manual" data-toggle="tab">Manual</a>
+			</li>
+		</ul>
+		<div class="tab-content">
+			<div class="form-inline tab-pane active" id="auto">
+				<button class="btn btn-primary" onclick="run()">Run</button>
+				<button class="btn btn-default" onclick="stop()">Stop</button>
+
+			</div>
+			<div class="form-inline tab-pane" id="manual">
+				<div class="form-group">
+					<label for="inpIterations">Iterations</label>
+					<input type=number min=0 max=10000 id=inpIterations value=1000>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+<script src="lib/jquery.min.js"></script>
+<script src="lib/bootstrap.min.js"></script>
+<script src="lib/convnet.min.js"></script>
+<script src="lib/react.min.js"></script>
+<script src="bin/backprop.js"></script>

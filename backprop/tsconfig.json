@@ -1,0 +1,9 @@
+{
+	"compilerOptions": {
+		"target": "ES5",
+		"outDir": "bin",
+		"watch": true,
+		"sourceMap": true,
+		"module": "amd"
+	}
+}
