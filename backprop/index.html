@@ -3,31 +3,82 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Backpropagation demo</title>
 <link rel='stylesheet' href='lib/bootstrap.min.css'>
+<link rel='stylesheet' href='lib/bootstrap-slider.min.css'>
 <style>
 	.tab-pane{margin-top:1em}
 </style>
 <div class="container">
-	<canvas width=400 height=400></canvas>
-	<div>
-		<button class="btn btn-default" onclick="reset()">Reset</button>
-		<ul class="nav nav-tabs">
-			<li class="active">
-				<a href="#auto" data-toggle="tab">Auto</a>
-			</li>
-			<li class="      ">
-				<a href="#manual" data-toggle="tab">Manual</a>
-			</li>
-		</ul>
-		<div class="tab-content">
-			<div class="form-inline tab-pane active" id="auto">
+	<h1>Neural Network demo</h1>
+	<hr>
+	<div class="row">
+		<div class="col-md-6">
+			<canvas class="center-block" width=400 height=400></canvas>
+			<div id='status'>
+				<h2>Iteration: <span id='statusIteration'></span></h2>
+				<h2>Correct: <span id='statusCorrect'></span></h2>
+			</div>
+		</div>
+		<div class="col-md-6">
+			<div class="form-horizontal">
+				<h3>Animated</h3>
 				<button class="btn btn-primary" onclick="run()">Run</button>
 				<button class="btn btn-default" onclick="stop()">Stop</button>
-
-			</div>
-			<div class="form-inline tab-pane" id="manual">
+				<button class="btn btn-warning" onclick="reset()">Reset / Reload</button>
+				<h3>Manual</h3>
 				<div class="form-group">
-					<label for="inpIterations">Iterations</label>
-					<input type=number min=0 max=10000 id=inpIterations value=1000>
+					<label for="iterations" class="col-sm-4 control-label">Iterations</label>
+					<div class="input-group col-sm-8">
+						<input class="form-control" type=number min=0 max=10000 id=iterations value=5000>
+						<span class="input-group-btn">
+							<button class="btn btn-default" onclick="iterations()">Step</button>
+						</span>
+					</div>
+				</div>
+				<hr>
+				<h3>Configuration</h3>
+				<div id='configuration'>
+					<h4>Animation</h4>
+					<div class="form-group">
+						<label for="stepsPerFrame" class="col-sm-6 control-label">Iterations per Frame</label>
+						<div class="col-sm-6">
+							<input class="form-control" type=number min=1 max=1000 id=stepsPerFrame value=20></input>
+						</div>
+					</div>
+					<div class="form-group">
+						<label for="showGradient" class="col-sm-6 control-label">Show class propabilities as gradient</label>
+						<div class="col-sm-6 form-control-static">
+							<input type=checkbox id="showGradient" onchange='loadConfig();draw();'>
+						</div>
+					</div>
+					<h4>Net</h4>
+					<div class="form-group">
+						<label for="activation" class="col-sm-6 control-label">Activation function</label>
+						<div class="col-sm-6">
+							<select class="form-control" id="activation">
+								<option selected>sigmoid</option>
+								<option>tanh</option>
+								<option>relu</option>
+							</select>
+						</div>
+					</div>
+					<div class="form-group">
+						<label for="learningRate" class="col-sm-6 control-label">Learning Rate</label>
+						<div class="col-sm-6 form-control-static">
+							<span id="learningRateVal" style='margin-right:2em;'>0.01</span>
+							<input class="form-control" type=number min=0.000 max=1 step=0.01 id=learningRate value=0.01 onchange="loadConfig();loadTrainer()"></input>
+						</div>
+					</div>
+					<div class="form-group">
+						<label for="lossType" class="col-sm-6 control-label">Loss Type</label>
+						<div class="col-sm-6 form-control-static">
+							<select id='lossType'>
+								<option>svm</option>
+								<option selected>softmax</option>
+							</select>
+						</div>
+					</div>
+					<br>
+					<button class="btn btn-default" onclick="loadConfig()">Load config</button>
 				</div>
 			</div>
 		</div>
@@ -35,6 +86,7 @@
 </div>
 <script src="lib/jquery.min.js"></script>
 <script src="lib/bootstrap.min.js"></script>
+<script src="lib/bootstrap-slider.min.js"></script>
 <script src="lib/convnet.min.js"></script>
 <script src="lib/react.min.js"></script>
 <script src="bin/backprop.js"></script>
