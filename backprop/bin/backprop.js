@@ -193,8 +193,8 @@ $(document).ready(function () {
     }).on('slide', function (e) { return $("#learningRateVal").text(e.value.toFixed(2)); });
     canvas.addEventListener('wheel', function (e) {
         var delta = e.deltaY / Math.abs(e.deltaY);
-        scalex *= 1 + delta / 10;
-        scaley *= 1 + delta / 10;
+        scalex *= 1 - delta / 10;
+        scaley *= 1 - delta / 10;
         if (!running)
             draw();
         return false;
