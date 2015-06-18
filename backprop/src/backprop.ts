@@ -244,6 +244,7 @@ function reset() {
 }
 
 function iterations() {
+	stop();
 	var count = +$("#iterations").val();
 	for (var i = 0; i < count; i++)
 		step();

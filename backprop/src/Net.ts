@@ -49,7 +49,7 @@ module Net {
 			var hidden = makeArray(counts[1], () => new Neuron(nid++));
 			this.outputs = makeArray(counts[2], () => new OutputNeuron(nid++));
 			this.layers = [this.inputs, hidden, this.outputs];
-			var onNeuron = new InputNeuron(nid++, "bias", 1);
+			var onNeuron = new InputNeuron(nid++, "1 (bias)", 1);
 			this.inputs.push(onNeuron);
 			var startWeight = () => Math.random();
 			for (let i = 0; i < this.layers.length - 1; i++) {
