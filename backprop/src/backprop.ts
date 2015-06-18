@@ -109,12 +109,9 @@ function step() {
 	document.getElementById('statusIteration').textContent = stepNum.toString();
 	document.getElementById('statusCorrect').textContent = `${correct}/${data.length}`;
 	if (correct == data.length) {
-		$("#status>h3").show();
 		if (running && restartTimeout == -1) {
 			restartTimeout = setTimeout(() => {
 				stop();
-				$("#status>h3").hide();
-				console.log('hidden');
 				restartTimeout = -1;
 				setTimeout(() => { reset(); run(); }, 1000);
 			}, 3000);
@@ -123,7 +120,6 @@ function step() {
 		if(restartTimeout != -1) {
 			clearTimeout(restartTimeout);
 			restartTimeout = -1;
-			$("#status>h3").hide();
 		}
 	}
 }
