@@ -1,59 +1,14 @@
-var inputs, outputs;
-var conns = [];
 var netx = new convnetjs.Vol(1, 1, 2, 0.0);
 var stepNum = 0;
 var running = false, runningId = -1;
 var restartTimeout = -1;
+var net;
 function loadTrainer() {
-    Net.learnRate = config.learningRate;
+    net.learnRate = config.learningRate;
 }
 function initializeNet() {
-    var startWeight = function () { return Math.random(); };
-    inputs = [new Net.InputNeuron(), new Net.InputNeuron()];
-    var hidden = [new Net.HiddenNeuron(), new Net.HiddenNeuron()];
-    outputs = [new Net.OutputNeuron()];
-    var onNeuron = new Net.InputNeuron(1);
-    for (var _i = 0, _a = inputs.concat([onNeuron]); _i < _a.length; _i++) {
-        var input = _a[_i];
-        for (var _b = 0; _b < hidden.length; _b++) {
-            var output = hidden[_b];
-            var conn = new Net.NeuronConnection(input, output, startWeight());
-            input.outputs.push(conn);
-            output.inputs.push(conn);
-            conns.push(conn);
-        }
-    }
-    for (var _c = 0; _c < hidden.length; _c++) {
-        var input = hidden[_c];
-        for (var _d = 0; _d < outputs.length; _d++) {
-            var output = outputs[_d];
-            var conn = new Net.NeuronConnection(input, output, startWeight());
-            input.outputs.push(conn);
-            output.inputs.push(conn);
-            conns.push(conn);
-        }
-    }
+    net = new Net.NeuralNet([2, 2, 1]);
     stepNum = 0;
-}
-function train(inputVals, expectedOutput) {
-    for (var i = 0; i < inputs.length; i++) {
-        inputs[i].input = inputVals[i];
-    }
-    for (var i = 0; i < outputs.length; i++)
-        outputs[i].targetOutput = expectedOutput[i];
-    for (var _i = 0; _i < conns.length; _i++) {
-        var conn = conns[_i];
-        conn._tmpw = conn.getDeltaWeight();
-    }
-    for (var _a = 0; _a < conns.length; _a++) {
-        var conn = conns[_a];
-        conn.weight += conn._tmpw;
-    }
-}
-function getOutput(inputVals) {
-    for (var i = 0; i < inputs.length; i++)
-        inputs[i].input = inputVals[i];
-    return outputs.map(function (output) { return output.getOutput(); });
 }
 var data = [
     { x: 0, y: 0, label: 0 },
@@ -65,12 +20,12 @@ function step() {
     stepNum++;
     for (var _i = 0; _i < data.length; _i++) {
         var val = data[_i];
-        var stats = train([val.x, val.y], [val.label]);
+        var stats = net.train([val.x, val.y], [val.label]);
     }
     var correct = 0;
     for (var _a = 0; _a < data.length; _a++) {
         var val = data[_a];
-        var res = getOutput([val.x, val.y]);
+        var res = net.getOutput([val.x, val.y]);
         var label = (res[0] > 0.5) ? 1 : 0;
         if (val.label == label)
             correct++;
@@ -126,7 +81,7 @@ function ytoc(c) {
 function drawBackground() {
     for (var x = 0; x < w; x += blocks)
         for (var y = 0; y < h; y += blocks) {
-            var res = getOutput([ctox(x), ctoy(y)]);
+            var res = net.getOutput([ctox(x), ctoy(y)]);
             if (config.showGradient) {
                 var red = (res[0] * 256) | 0;
                 var gre = ((1 - res[0]) * 256) | 0;

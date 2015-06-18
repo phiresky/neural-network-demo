@@ -5,55 +5,19 @@
 type int = number;
 type double = number;
 
-let inputs:Net.InputNeuron[], outputs:Net.OutputNeuron[];
-let conns:Net.NeuronConnection[] = [];
+
 let netx = new convnetjs.Vol(1, 1, 2, 0.0);
 let stepNum = 0;
 let running = false, runningId = -1;
 let restartTimeout = -1;
+let net:Net.NeuralNet;
+
 function loadTrainer() {
-	Net.learnRate = config.learningRate;
+	net.learnRate = config.learningRate;
 }
 function initializeNet() {
-	var startWeight = () => Math.random();
-	inputs = [new Net.InputNeuron(), new Net.InputNeuron()];
-	var hidden = [new Net.HiddenNeuron(), new Net.HiddenNeuron()];
-	outputs = [new Net.OutputNeuron()];
-	var onNeuron = new Net.InputNeuron(1);
-	for(let input of inputs.concat([onNeuron])) for(let output of hidden) {
-		var conn = new Net.NeuronConnection(input, output, startWeight());
-		input.outputs.push(conn);
-		output.inputs.push(conn);
-		conns.push(conn);
-	}
-	for(let input of hidden) for(let output of outputs) {
-		var conn = new Net.NeuronConnection(input, output, startWeight());
-		input.outputs.push(conn);
-		output.inputs.push(conn);
-		conns.push(conn);
-	}
-	
+	net = new Net.NeuralNet([2,2,1]);
 	stepNum = 0;
-}
-
-function train(inputVals:double[], expectedOutput:double[]) {
-	for(var i = 0; i < inputs.length; i++) {
-		inputs[i].input = inputVals[i];
-	}
-	for(var i = 0; i < outputs.length; i++)
-		outputs[i].targetOutput = expectedOutput[i];
-	for(let conn of conns) {
-		(<any>conn)._tmpw = conn.getDeltaWeight();
-	}
-	for(let conn of conns) {
-		conn.weight += (<any>conn)._tmpw;
-	}
-}
-
-function getOutput(inputVals:double[]) {
-	for(var i = 0; i < inputs.length; i++)
-		inputs[i].input = inputVals[i];
-	return outputs.map(output => output.getOutput());
 }
 interface Data {
 	x: double; y: double; label: int;
@@ -69,11 +33,11 @@ let data: Data[] = [
 function step() {
 	stepNum++;
 	for (let val of data) {
-		let stats = train([val.x,val.y], [val.label]);
+		let stats = net.train([val.x,val.y], [val.label]);
 	}
 	let correct = 0;
 	for (let val of data) {
-		let res = getOutput([val.x,val.y]);
+		let res = net.getOutput([val.x,val.y]);
 		let label = (res[0] > 0.5) ? 1 : 0;
 		if (val.label == label) correct++;
 	}
@@ -134,7 +98,7 @@ function drawBackground() {
 
 	for (let x = 0; x < w; x += blocks)
 		for (let y = 0; y < h; y += blocks) {
-			let res = getOutput([ctox(x),ctoy(y)]);
+			let res = net.getOutput([ctox(x),ctoy(y)]);
 
 			if (config.showGradient) {
 				let red = (res[0] * 256) | 0;
