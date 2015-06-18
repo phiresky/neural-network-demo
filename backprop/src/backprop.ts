@@ -101,8 +101,8 @@ function drawBackground() {
 			let res = net.getOutput([ctox(x),ctoy(y)]);
 
 			if (config.showGradient) {
-				let red = (res[0] * 256) | 0;
-				let gre = ((1-res[0]) * 256) | 0;
+				let gre = (res[0] * 256) | 0;
+				let red = ((1-res[0]) * 256) | 0;
 				ctx.fillStyle = "rgb(" + [red, gre, 0] + ")";
 			}
 			else ctx.fillStyle = color.bg[(res[0] + 0.5)|0];

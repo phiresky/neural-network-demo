@@ -28,7 +28,6 @@ module Net {
 			var onNeuron = new InputNeuron(1);
 			this.inputs.push(onNeuron);
 			var startWeight = () => Math.random() - 0.5;
-			console.log(this.layers);
 			for (let i = 0; i < this.layers.length - 1; i++) {
 				let inLayer = this.layers[i];
 				let outLayer = this.layers[i + 1];

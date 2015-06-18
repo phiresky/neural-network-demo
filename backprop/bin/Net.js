@@ -27,7 +27,6 @@ var Net;
             var onNeuron = new InputNeuron(1);
             this.inputs.push(onNeuron);
             var startWeight = function () { return Math.random() - 0.5; };
-            console.log(this.layers);
             for (var i = 0; i < this.layers.length - 1; i++) {
                 var inLayer = this.layers[i];
                 var outLayer = this.layers[i + 1];

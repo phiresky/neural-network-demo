@@ -83,8 +83,8 @@ function drawBackground() {
         for (var y = 0; y < h; y += blocks) {
             var res = net.getOutput([ctox(x), ctoy(y)]);
             if (config.showGradient) {
-                var red = (res[0] * 256) | 0;
-                var gre = ((1 - res[0]) * 256) | 0;
+                var gre = (res[0] * 256) | 0;
+                var red = ((1 - res[0]) * 256) | 0;
                 ctx.fillStyle = "rgb(" + [red, gre, 0] + ")";
             }
             else
