@@ -9,8 +9,18 @@ let stepNum = 0;
 let running = false, runningId = -1;
 let restartTimeout = -1;
 let net: Net.NeuralNet;
-let graph, graphData;
+let graph:any, graphData:any;
 declare var vis: any;
+interface Data {
+	x: double; y: double; label: int;
+}
+let data: Data[] = [
+	{ x: 0, y: 0, label: 0 },
+	{ x: 0, y: 1, label: 1 },
+	{ x: 1, y: 0, label: 1 },
+	{ x: 1, y: 1, label: 0 }
+];
+
 function loadTrainer() {
 	net.learnRate = config.learningRate;
 }
@@ -84,16 +94,6 @@ function drawGraph() {
 		})
 	}
 }
-interface Data {
-	x: double; y: double; label: int;
-}
-let data: Data[] = [
-	{ x: 0, y: 0, label: 0 },
-	{ x: 0, y: 1, label: 1 },
-	{ x: 1, y: 0, label: 1 },
-	{ x: 1, y: 1, label: 0 }
-];
-
 
 function step() {
 	stepNum++;
@@ -118,6 +118,12 @@ function step() {
 				restartTimeout = -1;
 				setTimeout(() => { reset(); run(); }, 1000);
 			}, 3000);
+		}
+	} else {
+		if(restartTimeout != -1) {
+			clearTimeout(restartTimeout);
+			restartTimeout = -1;
+			$("#status>h3").hide();
 		}
 	}
 }
@@ -160,7 +166,6 @@ function ytoc(c: double) {
 }
 
 function drawBackground() {
-
 	for (let x = 0; x < w; x += blocks)
 		for (let y = 0; y < h; y += blocks) {
 			let res = net.getOutput([ctox(x), ctoy(y)]);
@@ -262,7 +267,7 @@ function resizeCanvas() {
 $(document).ready(function() {
 	resizeCanvas();
 	(<any>$("#learningRate")).slider({
-		tooltip: 'always', min: 0.01, max: 1, step: 0.005, scale: "logarithmic", value: 0.01
+		min: 0.01, max: 1, step: 0.005, scale: "logarithmic", value: 0.05
 	}).on('slide', (e: any) => $("#learningRateVal").text(e.value.toFixed(2)));
 	canvas.addEventListener('wheel', e => {
 		var delta = e.deltaY / Math.abs(e.deltaY);

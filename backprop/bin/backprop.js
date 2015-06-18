@@ -3,6 +3,12 @@ var running = false, runningId = -1;
 var restartTimeout = -1;
 var net;
 var graph, graphData;
+var data = [
+    { x: 0, y: 0, label: 0 },
+    { x: 0, y: 1, label: 1 },
+    { x: 1, y: 0, label: 1 },
+    { x: 1, y: 1, label: 0 }
+];
 function loadTrainer() {
     net.learnRate = config.learningRate;
 }
@@ -73,12 +79,6 @@ function drawGraph() {
         });
     }
 }
-var data = [
-    { x: 0, y: 0, label: 0 },
-    { x: 0, y: 1, label: 1 },
-    { x: 1, y: 0, label: 1 },
-    { x: 1, y: 1, label: 0 }
-];
 function step() {
     stepNum++;
     for (var _i = 0; _i < data.length; _i++) {
@@ -105,6 +105,13 @@ function step() {
                 restartTimeout = -1;
                 setTimeout(function () { reset(); run(); }, 1000);
             }, 3000);
+        }
+    }
+    else {
+        if (restartTimeout != -1) {
+            clearTimeout(restartTimeout);
+            restartTimeout = -1;
+            $("#status>h3").hide();
         }
     }
 }
@@ -237,7 +244,7 @@ function resizeCanvas() {
 $(document).ready(function () {
     resizeCanvas();
     $("#learningRate").slider({
-        tooltip: 'always', min: 0.01, max: 1, step: 0.005, scale: "logarithmic", value: 0.01
+        min: 0.01, max: 1, step: 0.005, scale: "logarithmic", value: 0.05
     }).on('slide', function (e) { return $("#learningRateVal").text(e.value.toFixed(2)); });
     canvas.addEventListener('wheel', function (e) {
         var delta = e.deltaY / Math.abs(e.deltaY);

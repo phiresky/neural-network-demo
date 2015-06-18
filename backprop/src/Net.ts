@@ -98,7 +98,7 @@ module Net {
 		}
 	}
 	export class InputNeuron extends Neuron {
-		constructor(id, public name: string, public input: number = 0) {
+		constructor(id:int, public name: string, public input: number = 0) {
 			super(id);
 		}
 		weightedInputs() {
