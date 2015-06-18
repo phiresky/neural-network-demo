@@ -3,12 +3,41 @@ var stepNum = 0;
 var running = false, runningId = -1;
 var restartTimeout = -1;
 var net;
+var graph;
 function loadTrainer() {
     net.learnRate = config.learningRate;
 }
 function initializeNet() {
     net = new Net.NeuralNet([2, 2, 1]);
     stepNum = 0;
+    //drawGraph(net);
+}
+function drawGraph(net) {
+    var id = 0;
+    for (var lid = 0; lid < net.layers.length; lid++) {
+        var layer = net.layers[lid];
+        for (var nid = 0; nid < layer.length; nid++) {
+            var neuron = layer[nid];
+            graph.graph.addNode({
+                id: "n" + neuron.id,
+                label: "Neuron " + (nid + 1) + " in Layer " + (lid + 1),
+                x: lid,
+                y: nid,
+                size: 1,
+                color: "#000"
+            });
+        }
+    }
+    for (var _i = 0, _a = net.connections; _i < _a.length; _i++) {
+        var conn = _a[_i];
+        graph.graph.addEdge({
+            id: 'e' + conn.inp.id + '-' + conn.out.id,
+            source: "n" + conn.inp.id,
+            target: "n" + conn.out.id,
+            type: 'arrow'
+        });
+    }
+    graph.refresh();
 }
 var data = [
     { x: 0, y: 0, label: 0 },
@@ -166,6 +195,7 @@ function loadConfig() {
 }
 var mousedown = false, mousestart = { x: 0, y: 0 };
 $(document).ready(function () {
+    //graph = new sigma("graph");
     $("#learningRate").slider({
         tooltip: 'always', min: 0.01, max: 1, step: 0.005, scale: "logarithmic", value: 0.01
     }).on('slide', function (e) { return $("#learningRateVal").text(e.value.toFixed(2)); });

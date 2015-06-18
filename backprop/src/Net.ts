@@ -13,19 +13,20 @@ module Net {
 		return arr;
 	}
 
-
+	// back propagation code adapted from https://de.wikipedia.org/wiki/Backpropagation
 	export class NeuralNet {
 		layers: Neuron[][];
 		inputs: InputNeuron[];
 		outputs: OutputNeuron[];
-		conns: NeuronConnection[] = [];
+		connections: NeuronConnection[] = [];
 		learnRate: number = 0.01;
 		constructor(counts: int[]) {
-			this.inputs = makeArray(counts[0], () => new InputNeuron());
-			var hidden = makeArray(counts[1], () => new Neuron());
-			this.outputs = makeArray(counts[2], () => new OutputNeuron());
+			let nid = 0;
+			this.inputs = makeArray(counts[0], () => new InputNeuron(nid++));
+			var hidden = makeArray(counts[1], () => new Neuron(nid++));
+			this.outputs = makeArray(counts[2], () => new OutputNeuron(nid++));
 			this.layers = [this.inputs, hidden, this.outputs];
-			var onNeuron = new InputNeuron(1);
+			var onNeuron = new InputNeuron(nid++, 1);
 			this.inputs.push(onNeuron);
 			var startWeight = () => Math.random() - 0.5;
 			for (let i = 0; i < this.layers.length - 1; i++) {
@@ -36,7 +37,7 @@ module Net {
 					var conn = new Net.NeuronConnection(input, output, startWeight());
 					input.outputs.push(conn);
 					output.inputs.push(conn);
-					this.conns.push(conn);
+					this.connections.push(conn);
 				}
 			}
 		}
@@ -54,10 +55,10 @@ module Net {
 			this.setInputs(inputVals);
 			for (var i = 0; i < this.outputs.length; i++)
 				this.outputs[i].targetOutput = expectedOutput[i];
-			for (let conn of this.conns) {
+			for (let conn of this.connections) {
 				(<any>conn)._tmpw = conn.getDeltaWeight(this.learnRate);
 			}
-			for (let conn of this.conns) {
+			for (let conn of this.connections) {
 				conn.weight += (<any>conn)._tmpw;
 			}
 		}
@@ -74,7 +75,8 @@ module Net {
 	export class Neuron {
 		public inputs: NeuronConnection[] = [];
 		public outputs: NeuronConnection[] = [];
-
+		constructor(public id:int) {}
+		
 		weightedInputs() {
 			var output = 0;
 			for (let conn of this.inputs) {
@@ -95,8 +97,8 @@ module Net {
 		}
 	}
 	export class InputNeuron extends Neuron {
-		constructor(public input: number = 0) {
-			super();
+		constructor(id, public input: number = 0) {
+			super(id);
 		}
 		weightedInputs() {
 			return this.input;

@@ -1,5 +1,6 @@
 ///<reference path='../lib/typings/react/react-global.d.ts' />
 ///<reference path='../lib/typings/jquery/jquery.d.ts' />
+///<reference path='../lib/typings/sigmajs/sigmajs.d.ts' />
 ///<reference path='convnetjs.d.ts' />
 ///<reference path='Net.ts' />
 type int = number;
@@ -11,13 +12,40 @@ let stepNum = 0;
 let running = false, runningId = -1;
 let restartTimeout = -1;
 let net:Net.NeuralNet;
-
+let graph:SigmaJs.Sigma;
 function loadTrainer() {
 	net.learnRate = config.learningRate;
 }
 function initializeNet() {
 	net = new Net.NeuralNet([2,2,1]);
 	stepNum = 0;
+	//drawGraph(net);
+}
+function drawGraph(net:Net.NeuralNet) {
+	let id=0;
+	for(let lid=0;lid<net.layers.length;lid++) {
+		let layer = net.layers[lid];
+		for(let nid=0;nid<layer.length;nid++) {
+			let neuron =layer[nid];
+			graph.graph.addNode({
+				id: `n${neuron.id}`
+				label: `Neuron ${nid+1} in Layer ${lid+1}`,
+				x:lid,
+				y:nid,
+				size:1,
+				color:"#000"
+			});
+		}
+	}
+	for(let conn of net.connections) {
+		graph.graph.addEdge({
+			id:'e'+conn.inp.id+'-'+conn.out.id,
+			source: `n${conn.inp.id}`,
+			target: `n${conn.out.id}`,
+			type:'arrow'
+		})
+	}
+	graph.refresh();
 }
 interface Data {
 	x: double; y: double; label: int;
@@ -188,6 +216,7 @@ function loadConfig() {
 }
 let mousedown = false, mousestart = { x: 0, y: 0 };
 $(document).ready(function() {
+	//graph = new sigma("graph");
 	(<any>$("#learningRate")).slider({
 		tooltip: 'always', min: 0.01, max: 1, step: 0.005, scale: "logarithmic", value: 0.01
 	}).on('slide', (e: any) => $("#learningRateVal").text(e.value.toFixed(2)));

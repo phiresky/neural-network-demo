@@ -16,15 +16,17 @@ var Net;
             arr[i] = supplier();
         return arr;
     }
+    // back propagation code adapted from https://de.wikipedia.org/wiki/Backpropagation
     var NeuralNet = (function () {
         function NeuralNet(counts) {
-            this.conns = [];
+            this.connections = [];
             this.learnRate = 0.01;
-            this.inputs = makeArray(counts[0], function () { return new InputNeuron(); });
-            var hidden = makeArray(counts[1], function () { return new Neuron(); });
-            this.outputs = makeArray(counts[2], function () { return new OutputNeuron(); });
+            var nid = 0;
+            this.inputs = makeArray(counts[0], function () { return new InputNeuron(nid++); });
+            var hidden = makeArray(counts[1], function () { return new Neuron(nid++); });
+            this.outputs = makeArray(counts[2], function () { return new OutputNeuron(nid++); });
             this.layers = [this.inputs, hidden, this.outputs];
-            var onNeuron = new InputNeuron(1);
+            var onNeuron = new InputNeuron(nid++, 1);
             this.inputs.push(onNeuron);
             var startWeight = function () { return Math.random() - 0.5; };
             for (var i = 0; i < this.layers.length - 1; i++) {
@@ -37,7 +39,7 @@ var Net;
                         var conn = new Net.NeuronConnection(input, output, startWeight());
                         input.outputs.push(conn);
                         output.inputs.push(conn);
-                        this.conns.push(conn);
+                        this.connections.push(conn);
                     }
                 }
             }
@@ -56,11 +58,11 @@ var Net;
             this.setInputs(inputVals);
             for (var i = 0; i < this.outputs.length; i++)
                 this.outputs[i].targetOutput = expectedOutput[i];
-            for (var _i = 0, _a = this.conns; _i < _a.length; _i++) {
+            for (var _i = 0, _a = this.connections; _i < _a.length; _i++) {
                 var conn = _a[_i];
                 conn._tmpw = conn.getDeltaWeight(this.learnRate);
             }
-            for (var _b = 0, _c = this.conns; _b < _c.length; _b++) {
+            for (var _b = 0, _c = this.connections; _b < _c.length; _b++) {
                 var conn = _c[_b];
                 conn.weight += conn._tmpw;
             }
@@ -81,7 +83,8 @@ var Net;
     })();
     Net.NeuronConnection = NeuronConnection;
     var Neuron = (function () {
-        function Neuron() {
+        function Neuron(id) {
+            this.id = id;
             this.inputs = [];
             this.outputs = [];
         }
@@ -109,9 +112,9 @@ var Net;
     Net.Neuron = Neuron;
     var InputNeuron = (function (_super) {
         __extends(InputNeuron, _super);
-        function InputNeuron(input) {
+        function InputNeuron(id, input) {
             if (input === void 0) { input = 0; }
-            _super.call(this);
+            _super.call(this, id);
             this.input = input;
         }
         InputNeuron.prototype.weightedInputs = function () {
