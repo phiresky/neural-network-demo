@@ -78,7 +78,7 @@ let canvas = <HTMLCanvasElement>document.querySelector("canvas");
 let ctx = <CanvasRenderingContext2D>canvas.getContext('2d');
 
 
-let w = 400, h = 400, blocks = 5, scalex = 100, scaley = -100, offsetx = w / 2, offsety = h / 2;
+let w = 400, h = 400, blocks = 10, scalex = 100, scaley = -100, offsetx = w / 2, offsety = h / 2;
 var config = {
 	stepsPerFrame: 50,
 	learningRate: 0.01,
@@ -209,8 +209,8 @@ $(document).ready(function() {
 	(<any>$("#learningRate")).slider({
 		tooltip: 'always', min: 0.01, max: 1, step: 0.005, scale: "logarithmic", value: 0.01
 	}).on('slide', (e: any) => $("#learningRateVal").text(e.value.toFixed(2)));
-	canvas.addEventListener('mousewheel', e=> {
-		var delta = e.wheelDelta / Math.abs(e.wheelDelta);
+	canvas.addEventListener('wheel', e=> {
+		var delta = e.deltaY / Math.abs(e.deltaY);
 		scalex *= 1 + delta / 10;
 		scaley *= 1 + delta / 10;
 		if (!running) draw();

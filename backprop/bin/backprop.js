@@ -66,7 +66,7 @@ function step() {
 }
 var canvas = document.querySelector("canvas");
 var ctx = canvas.getContext('2d');
-var w = 400, h = 400, blocks = 5, scalex = 100, scaley = -100, offsetx = w / 2, offsety = h / 2;
+var w = 400, h = 400, blocks = 10, scalex = 100, scaley = -100, offsetx = w / 2, offsety = h / 2;
 var config = {
     stepsPerFrame: 50,
     learningRate: 0.01,
@@ -191,8 +191,8 @@ $(document).ready(function () {
     $("#learningRate").slider({
         tooltip: 'always', min: 0.01, max: 1, step: 0.005, scale: "logarithmic", value: 0.01
     }).on('slide', function (e) { return $("#learningRateVal").text(e.value.toFixed(2)); });
-    canvas.addEventListener('mousewheel', function (e) {
-        var delta = e.wheelDelta / Math.abs(e.wheelDelta);
+    canvas.addEventListener('wheel', function (e) {
+        var delta = e.deltaY / Math.abs(e.deltaY);
         scalex *= 1 + delta / 10;
         scaley *= 1 + delta / 10;
         if (!running)
