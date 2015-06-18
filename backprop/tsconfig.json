@@ -1,7 +1,7 @@
 {
 	"compilerOptions": {
 		"target": "ES5",
-		"outDir": "bin","out": "bin/backprop.js",
+		"outDir": "bin",
 		"watch": true,
 		"sourceMap": true,
 		"noImplicitAny": true,

@@ -1,18 +1,8 @@
-// binds a js var to a html value
-var Binding = (function () {
-    function Binding(bound) {
-        this.bound = bound;
-    }
-    Object.defineProperty(Binding.prototype, "value", {
-        get: function () {
-            return bound.value;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    return Binding;
-})();
 var net, trainer;
+var netx = new convnetjs.Vol(1, 1, 2, 0.0);
+var stepNum = 0;
+var running = false, runningId = -1;
+var restartTimeout = -1;
 function loadTrainer() {
     trainer = new convnetjs.Trainer(net, {
         learning_rate: config.learningRate, momentum: 0.9, batch_size: 1, l2_decay: 0.001
@@ -41,8 +31,6 @@ for (var _i = 0; _i < data.length; _i++) {
     p.x += Math.random() * 0.01;
     p.y += Math.random() * 0.01;
 }
-var netx = new convnetjs.Vol(1, 1, 2, 0.0);
-var stepNum = 0;
 function step() {
     stepNum++;
     for (var _i = 0; _i < data.length; _i++) {
@@ -61,21 +49,23 @@ function step() {
         if (val.label == label)
             correct++;
     }
-    document.getElementById('statusIteration').textContent = stepNum;
+    document.getElementById('statusIteration').textContent = stepNum.toString();
     document.getElementById('statusCorrect').textContent = correct + "/" + data.length;
     if (correct == data.length) {
-        //statusPre.textContent += "\nAll correct. Restarting in 3s";
-        if (running && restartTimeout == -1)
+        $("#status>h3").show();
+        if (running && restartTimeout == -1) {
             restartTimeout = setTimeout(function () {
-                restartTimeout = -1;
                 stop();
+                $("#status>h3").hide();
+                console.log('hidden');
+                restartTimeout = -1;
                 setTimeout(function () { reset(); run(); }, 1000);
             }, 3000);
+        }
     }
 }
 var canvas = document.querySelector("canvas");
 var ctx = canvas.getContext('2d');
-var restartTimeout = -1;
 var w = 400, h = 400, blocks = 5, scalex = 100, scaley = -100, offsetx = w / 2, offsety = h / 2;
 var config = {
     stepsPerFrame: 50,
@@ -84,7 +74,6 @@ var config = {
     showGradient: false,
     lossType: "svm"
 };
-var running = false;
 var color = {
     redbg: "#f88",
     greenbg: "#8f8",
@@ -96,7 +85,7 @@ function animationStep() {
         step();
     draw();
     if (running)
-        requestAnimationFrame(animationStep);
+        runningId = requestAnimationFrame(animationStep);
 }
 function ctox(x) {
     return (x - offsetx) / scalex;
@@ -164,6 +153,8 @@ function draw() {
     drawData();
 }
 function run() {
+    if (running)
+        return;
     running = true;
     animationStep();
 }
@@ -171,6 +162,7 @@ function stop() {
     clearTimeout(restartTimeout);
     restartTimeout = -1;
     running = false;
+    cancelAnimationFrame(runningId);
 }
 function reset() {
     stop();
@@ -224,5 +216,6 @@ $(document).ready(function () {
             draw();
     });
     reset();
+    run();
 });
 //# sourceMappingURL=backprop.js.map

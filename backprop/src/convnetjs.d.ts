@@ -23,10 +23,10 @@ declare module convnetjs {
 	}
 	class Trainer {
 		constructor(net: Net, options: Options);
-		train(vol: Vol, label: int);
+		train(vol: Vol, label: int) : any;
 	}
 	class Vol {
-		constructor(sx: int, sy: int, depth: int);
+		constructor(sx: int, sy: int, depth: int, initValue?:double);
 		sx: int; sy: int; depth: int;
 		w: Float64Array;
 		dw: Float64Array;
