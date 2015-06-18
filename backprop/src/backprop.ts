@@ -257,6 +257,7 @@ function loadConfig() {
 		if (ele.type == 'checkbox') config[conf] = ele.checked;
 		else config[conf] = ele.value;
 	}
+	Net.setLinearity(config.activation);
 }
 let mousedown = false, mousestart = { x: 0, y: 0 };
 function resizeCanvas() {

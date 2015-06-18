@@ -233,6 +233,7 @@ function loadConfig() {
         else
             config[conf] = ele.value;
     }
+    Net.setLinearity(config.activation);
 }
 var mousedown = false, mousestart = { x: 0, y: 0 };
 function resizeCanvas() {

@@ -6,10 +6,33 @@ var __extends = this.__extends || function (d, b) {
 };
 var Net;
 (function (Net) {
-    var NonLinearity = {
-        sigmoid: function (x) { return 1 / (1 + Math.exp(-x)); },
-        sigDiff: function (x) { return x * (1 - x); }
+    var tanh = function (x) {
+        if (x === Infinity) {
+            return 1;
+        }
+        else if (x === -Infinity) {
+            return -1;
+        }
+        else {
+            var y = Math.exp(2 * x);
+            return (y - 1) / (y + 1);
+        }
     };
+    var NonLinearities = {
+        sigmoid: {
+            f: function (x) { return 1 / (1 + Math.exp(-x)); },
+            df: function (x) { return x * (1 - x); }
+        },
+        tanh: {
+            f: function (x) { return tanh(x); },
+            df: function (x) { return 1 - x * x; }
+        },
+    };
+    Net.nonLinearity;
+    function setLinearity(name) {
+        Net.nonLinearity = NonLinearities[name];
+    }
+    Net.setLinearity = setLinearity;
     function makeArray(len, supplier) {
         var arr = new Array(len);
         for (var i = 0; i < len; i++)
@@ -100,7 +123,7 @@ var Net;
             return output;
         };
         Neuron.prototype.getOutput = function () {
-            return NonLinearity.sigmoid(this.weightedInputs());
+            return Net.nonLinearity.f(this.weightedInputs());
         };
         Neuron.prototype.getError = function () {
             var δ = 0;
@@ -108,7 +131,7 @@ var Net;
                 var output = _a[_i];
                 δ += output.out.getError() * output.weight;
             }
-            return δ * NonLinearity.sigDiff(this.getOutput());
+            return δ * Net.nonLinearity.df(this.getOutput());
         };
         return Neuron;
     })();
@@ -144,7 +167,7 @@ var Net;
             /*return NonLinearity.sigDiff(NonLinearity.sigmoid(oup)) *
                 (this.targetOutput - oup);*/
             var oup = this.getOutput();
-            return NonLinearity.sigDiff(oup) *
+            return Net.nonLinearity.df(oup) *
                 (this.targetOutput - oup);
         };
         return OutputNeuron;

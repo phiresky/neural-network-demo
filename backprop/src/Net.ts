@@ -1,10 +1,33 @@
 module Net {
 	type int = number;
 	type double = number;
-
-	var NonLinearity = {
-		sigmoid: (x: double) => 1 / (1 + Math.exp(-x)),
-		sigDiff: (x: double) => x * (1 - x)
+	var tanh = function(x:double) {
+		if (x === Infinity) {
+			return 1;
+		} else if (x === -Infinity) {
+			return -1;
+		} else {
+			var y = Math.exp(2 * x);
+			return (y - 1) / (y + 1);
+		}
+	}
+	interface NonLinearFunction {
+		f:(x:double) => double,
+		df:(x:double) => double
+	}
+	var NonLinearities:{[name:string]:NonLinearFunction} = {
+		sigmoid: {
+			f: (x: double) => 1 / (1 + Math.exp(-x)),
+			df: (x: double) => x * (1 - x)
+		},
+		tanh: {
+			f: (x:double) => tanh(x),
+			df: (x:double) => 1 - x*x
+		},
+	}
+	export var nonLinearity:NonLinearFunction;
+	export function setLinearity(name:string) {
+		nonLinearity = NonLinearities[name];
 	}
 
 	function makeArray<T>(len: int, supplier: () => T): T[] {
@@ -86,7 +109,7 @@ module Net {
 			return output;
 		}
 		getOutput() {
-			return NonLinearity.sigmoid(this.weightedInputs());
+			return nonLinearity.f(this.weightedInputs());
 		}
 
 		getError() {
@@ -94,7 +117,7 @@ module Net {
 			for (let output of this.outputs) {
 				δ += output.out.getError() * output.weight;
 			}
-			return δ * NonLinearity.sigDiff(this.getOutput());
+			return δ * nonLinearity.df(this.getOutput());
 		}
 	}
 	export class InputNeuron extends Neuron {
@@ -120,7 +143,7 @@ module Net {
 			/*return NonLinearity.sigDiff(NonLinearity.sigmoid(oup)) *
 				(this.targetOutput - oup);*/
 			let oup = this.getOutput();
-			return NonLinearity.sigDiff(oup) *
+			return nonLinearity.df(oup) *
 				(this.targetOutput - oup);
 		}
 	}
