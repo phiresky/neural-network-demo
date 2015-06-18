@@ -20,15 +20,15 @@ module Net {
 		outputs: OutputNeuron[];
 		connections: NeuronConnection[] = [];
 		learnRate: number = 0.01;
-		constructor(counts: int[]) {
+		constructor(counts: int[], inputnames:string[], weights?: double[]) {
 			let nid = 0;
-			this.inputs = makeArray(counts[0], () => new InputNeuron(nid++));
+			this.inputs = makeArray(counts[0], () => new InputNeuron(nid,inputnames[nid++]));
 			var hidden = makeArray(counts[1], () => new Neuron(nid++));
 			this.outputs = makeArray(counts[2], () => new OutputNeuron(nid++));
 			this.layers = [this.inputs, hidden, this.outputs];
-			var onNeuron = new InputNeuron(nid++, 1);
+			var onNeuron = new InputNeuron(nid++, "bias", 1);
 			this.inputs.push(onNeuron);
-			var startWeight = () => Math.random() - 0.5;
+			var startWeight = () => Math.random();
 			for (let i = 0; i < this.layers.length - 1; i++) {
 				let inLayer = this.layers[i];
 				let outLayer = this.layers[i + 1];
@@ -40,6 +40,7 @@ module Net {
 					this.connections.push(conn);
 				}
 			}
+			if (weights) weights.forEach((w, i) => this.connections[i].weight = w);
 		}
 		setInputs(inputVals: double[]) {
 			if (inputVals.length != this.inputs.length - 1) throw "invalid input size";
@@ -75,8 +76,8 @@ module Net {
 	export class Neuron {
 		public inputs: NeuronConnection[] = [];
 		public outputs: NeuronConnection[] = [];
-		constructor(public id:int) {}
-		
+		constructor(public id: int) { }
+
 		weightedInputs() {
 			var output = 0;
 			for (let conn of this.inputs) {
@@ -97,7 +98,7 @@ module Net {
 		}
 	}
 	export class InputNeuron extends Neuron {
-		constructor(id, public input: number = 0) {
+		constructor(id, public name: string, public input: number = 0) {
 			super(id);
 		}
 		weightedInputs() {
@@ -111,9 +112,13 @@ module Net {
 		targetOutput: double;
 
 		getOutput() {
-			return Math.max(Math.min(super.weightedInputs(), 1), 0);
+			return Math.max(Math.min(super.weightedInputs(), 0.999), 0.001);
+			//return super.weightedInputs();
 		}
 		getError() {
+			//let oup = Math.abs(NonLinearity.sigmoid(this.getOutput()));
+			/*return NonLinearity.sigDiff(NonLinearity.sigmoid(oup)) *
+				(this.targetOutput - oup);*/
 			let oup = this.getOutput();
 			return NonLinearity.sigDiff(oup) *
 				(this.targetOutput - oup);

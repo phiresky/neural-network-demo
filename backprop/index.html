@@ -4,8 +4,12 @@
 <title>Backpropagation demo</title>
 <link rel='stylesheet' href='lib/bootstrap.min.css'>
 <link rel='stylesheet' href='lib/bootstrap-slider.min.css'>
+<link rel='stylesheet' href='lib/vis.min.css'>
 <style>
-	.tab-pane{margin-top:1em}
+	#neuralOutputCanvas {
+		width:100%;
+		height:400px;
+	}
 	#graph {
 		 height:400px;
 		 border:1px solid black;
@@ -16,82 +20,72 @@
 	<hr>
 	<div class="row">
 		<div class="col-md-6">
-			<canvas class="center-block" width=400 height=400></canvas>
+			<canvas class="center-block" id='neuralOutputCanvas' width=400 height=400></canvas>
 			<div id='status'>
-				<h2>Iteration:
-					<span id='statusIteration'></span>
-				</h2>
 				<h2>Correct:
-					<span id='statusCorrect'></span>
+					<span id='statusCorrect'></span>&nbsp;Iteration:
+					<span id='statusIteration'></span>
 				</h2>
 				<h3 style='display:none'>All points correctly classified. Restarting in 3 seconds</h3>
 			</div>
+			<div>
+				<div id=graph></div>
+			</div>
 		</div>
 		<div class="col-md-6">
-			<div id=graph></div>
-		</div>
-	</div>
-	<div class="col-md-6">
-		<div class="form-horizontal">
-			<h3>Animated</h3>
-			<button class="btn btn-primary" onclick="run()">Run</button>
-			<button class="btn btn-default" onclick="stop()">Stop</button>
-			<button class="btn btn-warning" onclick="reset()">Reset / Reload</button>
-			<h3>Manual</h3>
-			<div class="form-group">
-				<label for="iterations" class="col-sm-4 control-label">Iterations</label>
-				<div class="input-group col-sm-8">
-					<input class="form-control" type=number min=0 max=10000 id=iterations value=5000>
-					<span class="input-group-btn">
-						<button class="btn btn-default" onclick="iterations()">Step</button>
-					</span>
-				</div>
-			</div>
-			<hr>
-			<h3>Configuration</h3>
-			<div id='configuration'>
-				<h4>Animation</h4>
+			<div class="form-horizontal">
+				<h3>Animated</h3>
+				<button class="btn btn-primary" onclick="run()">Run</button>
+				<button class="btn btn-default" onclick="stop()">Stop</button>
+				<button class="btn btn-warning" onclick="reset()">Reset / Reload</button>
+				<h3>Manual</h3>
 				<div class="form-group">
-					<label for="stepsPerFrame" class="col-sm-6 control-label">Steps per Frame</label>
-					<div class="col-sm-6">
-						<input class="form-control" type=number min=1 max=1000 id=stepsPerFrame value=100></input>
+					<label for="iterations" class="col-sm-4 control-label">Iterations</label>
+					<div class="input-group col-sm-8">
+						<input class="form-control" type=number min=0 max=10000 id=iterations value=5000>
+						<span class="input-group-btn">
+							<button class="btn btn-default" onclick="iterations()">Step</button>
+						</span>
 					</div>
 				</div>
-				<div class="form-group">
-					<label for="showGradient" class="col-sm-6 control-label">Show class propabilities as gradient</label>
-					<div class="col-sm-6 form-control-static">
-						<input type=checkbox id="showGradient" onchange='loadConfig();draw();'>
+				<hr>
+				<h3>Configuration</h3>
+				<div id='configuration'>
+					<h4>Animation</h4>
+					<div class="form-group">
+						<label for="stepsPerFrame" class="col-sm-6 control-label">Steps per Frame</label>
+						<div class="col-sm-6">
+							<input class="form-control" type=number min=1 max=1000 id=stepsPerFrame value=100></input>
+						</div>
 					</div>
-				</div>
-				<h4>Net</h4>
-				<div class="form-group">
-					<label for="activation" class="col-sm-6 control-label">Activation function</label>
-					<div class="col-sm-6">
-						<select class="form-control" id="activation">
-							<option selected>sigmoid</option>
-							<option>tanh</option>
-							<option>relu</option>
-						</select>
+					<div class="form-group">
+						<label for="showGradient" class="col-sm-6 control-label">Show class propabilities as gradient</label>
+						<div class="col-sm-6 form-control-static">
+							<input type=checkbox id="showGradient" onchange='loadConfig();draw();'>
+						</div>
 					</div>
-				</div>
-				<div class="form-group">
-					<label for="learningRate" class="col-sm-6 control-label">Learning Rate</label>
-					<div class="col-sm-6 form-control-static">
-						<span id="learningRateVal" style='margin-right:1em;'>0.01</span>
-						<input class="form-control" type=number min=0.000 max=1 step=0.01 id=learningRate value=0.01 onchange="loadConfig();loadTrainer()"></input>
+					<h4>Net</h4>
+					<div class="form-group">
+						<label for="activation" class="col-sm-6 control-label">Activation function</label>
+						<div class="col-sm-6">
+							<select class="form-control" id="activation">
+								<option selected>sigmoid</option>
+								<option>tanh</option>
+								<option>relu</option>
+							</select>
+						</div>
 					</div>
-				</div>
-				<div class="form-group">
-					<label for="lossType" class="col-sm-6 control-label">Loss Type</label>
-					<div class="col-sm-6 form-control-static">
-						<select id='lossType'>
-							<option>svm</option>
-							<option selected>softmax</option>
-						</select>
+					<div class="form-group">
+						<label for="learningRate" class="col-sm-6 control-label">Learning Rate</label>
+						<div class="col-sm-6 form-control-static">
+							<span id="learningRateVal" style='margin-right:1em;'>0.05</span>
+							<input class="form-control" type=number min=0.000 max=1 step=0.01 id=learningRate value=0.05 onchange="loadConfig();loadTrainer()"></input>
+						</div>
 					</div>
+					<br>
+					<button class="btn btn-default" onclick="loadConfig()">Load config</button>
+					<button class="btn btn-default" onclick="randomizeData()">Randomize input data</button>
 				</div>
-				<br>
-				<button class="btn btn-default" onclick="loadConfig()">Load config</button>
 			</div>
 		</div>
 	</div>
@@ -100,8 +94,8 @@
 <script src="lib/jquery.min.js"></script>
 <script src="lib/bootstrap.min.js"></script>
 <script src="lib/bootstrap-slider.min.js"></script>
-<script src="lib/convnet.min.js"></script>
+<!--<script src="lib/convnet.min.js"></script>-->
 <script src="lib/react.min.js"></script>
-<script src="lib/sigma.min.js"></script>
+<script src="lib/vis.min.js"></script>
 <script src="bin/Net.js"></script>
 <script src="bin/backprop.js"></script>

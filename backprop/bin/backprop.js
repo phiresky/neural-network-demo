@@ -1,43 +1,77 @@
-var netx = new convnetjs.Vol(1, 1, 2, 0.0);
 var stepNum = 0;
 var running = false, runningId = -1;
 var restartTimeout = -1;
 var net;
-var graph;
+var graph, graphData;
 function loadTrainer() {
     net.learnRate = config.learningRate;
 }
 function initializeNet() {
-    net = new Net.NeuralNet([2, 2, 1]);
+    //let cache = [0.18576880730688572,-0.12869677506387234,0.08548374730162323,-0.19820863520726562,-0.09532690420746803,-0.3415223266929388,-0.309354952769354,-0.157513455953449];
+    //let cache = [-0.04884958150796592,-0.3569231238216162,0.11143312812782824,0.43614205135963857,0.3078767384868115,-0.22759653301909566,0.09250503336079419,0.3279339636210352];
+    net = new Net.NeuralNet([2, 2, 1], ["x", "y"]);
+    console.log("net:" + JSON.stringify(net.connections.map(function (c) { return c.weight; })));
     stepNum = 0;
-    //drawGraph(net);
+    createGraph(net);
 }
-function drawGraph(net) {
+function randomizeData() {
+    var count = 4;
+    for (var i = 0; i < count; i++) {
+        data[i] = { x: Math.random() * 2, y: Math.random() * 2, label: +(Math.random() > 0.5) };
+    }
+    draw();
+}
+function createGraph(net) {
+    var nodes = [], edges = [];
     var id = 0;
     for (var lid = 0; lid < net.layers.length; lid++) {
         var layer = net.layers[lid];
         for (var nid = 0; nid < layer.length; nid++) {
             var neuron = layer[nid];
-            graph.graph.addNode({
-                id: "n" + neuron.id,
-                label: "Neuron " + (nid + 1) + " in Layer " + (lid + 1),
-                x: lid,
-                y: nid,
-                size: 1,
-                color: "#000"
+            var type = 'Hidden Neuron ' + (nid + 1);
+            var color_1 = '#000';
+            if (neuron instanceof Net.InputNeuron) {
+                type = 'Input: ' + neuron.name;
+                color_1 = '#008';
+            }
+            if (neuron instanceof Net.OutputNeuron) {
+                type = 'Output Neuron ' + (nid + 1);
+                color_1 = '#800';
+            }
+            nodes.push({
+                id: neuron.id,
+                label: "" + type,
+                level: lid,
+                color: color_1
             });
         }
     }
     for (var _i = 0, _a = net.connections; _i < _a.length; _i++) {
         var conn = _a[_i];
-        graph.graph.addEdge({
-            id: 'e' + conn.inp.id + '-' + conn.out.id,
-            source: "n" + conn.inp.id,
-            target: "n" + conn.out.id,
-            type: 'arrow'
+        edges.push({
+            id: conn.inp.id * net.connections.length + conn.out.id,
+            from: conn.inp.id,
+            to: conn.out.id,
+            arrows: 'to',
+            label: conn.weight.toFixed(2),
         });
     }
-    graph.refresh();
+    graphData = { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) };
+    var options = {
+        nodes: { shape: 'dot' },
+        edges: { smooth: { type: 'curvedCW', roundness: 0.25 } },
+        layout: { hierarchical: { direction: "LR" } }
+    };
+    graph = new vis.Network($('#graph')[0], graphData, options);
+}
+function drawGraph() {
+    for (var _i = 0, _a = net.connections; _i < _a.length; _i++) {
+        var conn = _a[_i];
+        graphData.edges.update({
+            id: conn.inp.id * net.connections.length + conn.out.id,
+            label: conn.weight.toFixed(2)
+        });
+    }
 }
 var data = [
     { x: 0, y: 0, label: 0 },
@@ -82,7 +116,6 @@ var config = {
     learningRate: 0.01,
     activation: "sigmoid",
     showGradient: false,
-    lossType: "svm"
 };
 var color = {
     bg: ["#f88", "#8f8"],
@@ -158,6 +191,7 @@ function draw() {
     drawBackground();
     drawCoordinateSystem();
     drawData();
+    drawGraph();
 }
 function run() {
     if (running)
@@ -194,8 +228,14 @@ function loadConfig() {
     }
 }
 var mousedown = false, mousestart = { x: 0, y: 0 };
+function resizeCanvas() {
+    w = $("#neuralOutputCanvas").width();
+    h = $("#neuralOutputCanvas").height();
+    canvas.width = w;
+    canvas.height = h;
+}
 $(document).ready(function () {
-    //graph = new sigma("graph");
+    resizeCanvas();
     $("#learningRate").slider({
         tooltip: 'always', min: 0.01, max: 1, step: 0.005, scale: "logarithmic", value: 0.01
     }).on('slide', function (e) { return $("#learningRateVal").text(e.value.toFixed(2)); });
@@ -205,13 +245,14 @@ $(document).ready(function () {
         scaley *= 1 - delta / 10;
         if (!running)
             draw();
-        return false;
+        e.preventDefault();
     });
     canvas.addEventListener('mousedown', function (e) {
         mousedown = true;
         mousestart.x = e.pageX;
         mousestart.y = e.pageY;
     });
+    window.addEventListener('resize', resizeCanvas);
     document.addEventListener('mouseup', function (e) { return mousedown = false; });
     canvas.addEventListener('mousemove', function (e) {
         if (!mousedown)

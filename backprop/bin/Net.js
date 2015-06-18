@@ -18,17 +18,18 @@ var Net;
     }
     // back propagation code adapted from https://de.wikipedia.org/wiki/Backpropagation
     var NeuralNet = (function () {
-        function NeuralNet(counts) {
+        function NeuralNet(counts, inputnames, weights) {
+            var _this = this;
             this.connections = [];
             this.learnRate = 0.01;
             var nid = 0;
-            this.inputs = makeArray(counts[0], function () { return new InputNeuron(nid++); });
+            this.inputs = makeArray(counts[0], function () { return new InputNeuron(nid, inputnames[nid++]); });
             var hidden = makeArray(counts[1], function () { return new Neuron(nid++); });
             this.outputs = makeArray(counts[2], function () { return new OutputNeuron(nid++); });
             this.layers = [this.inputs, hidden, this.outputs];
-            var onNeuron = new InputNeuron(nid++, 1);
+            var onNeuron = new InputNeuron(nid++, "bias", 1);
             this.inputs.push(onNeuron);
-            var startWeight = function () { return Math.random() - 0.5; };
+            var startWeight = function () { return Math.random(); };
             for (var i = 0; i < this.layers.length - 1; i++) {
                 var inLayer = this.layers[i];
                 var outLayer = this.layers[i + 1];
@@ -43,6 +44,8 @@ var Net;
                     }
                 }
             }
+            if (weights)
+                weights.forEach(function (w, i) { return _this.connections[i].weight = w; });
         }
         NeuralNet.prototype.setInputs = function (inputVals) {
             if (inputVals.length != this.inputs.length - 1)
@@ -112,9 +115,10 @@ var Net;
     Net.Neuron = Neuron;
     var InputNeuron = (function (_super) {
         __extends(InputNeuron, _super);
-        function InputNeuron(id, input) {
+        function InputNeuron(id, name, input) {
             if (input === void 0) { input = 0; }
             _super.call(this, id);
+            this.name = name;
             this.input = input;
         }
         InputNeuron.prototype.weightedInputs = function () {
@@ -132,9 +136,13 @@ var Net;
             _super.apply(this, arguments);
         }
         OutputNeuron.prototype.getOutput = function () {
-            return Math.max(Math.min(_super.prototype.weightedInputs.call(this), 1), 0);
+            return Math.max(Math.min(_super.prototype.weightedInputs.call(this), 0.999), 0.001);
+            //return super.weightedInputs();
         };
         OutputNeuron.prototype.getError = function () {
+            //let oup = Math.abs(NonLinearity.sigmoid(this.getOutput()));
+            /*return NonLinearity.sigDiff(NonLinearity.sigmoid(oup)) *
+                (this.targetOutput - oup);*/
             var oup = this.getOutput();
             return NonLinearity.sigDiff(oup) *
                 (this.targetOutput - oup);
