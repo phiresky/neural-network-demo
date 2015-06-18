@@ -42,7 +42,7 @@
 					<div class="form-group">
 						<label for="stepsPerFrame" class="col-sm-6 control-label">Steps per Frame</label>
 						<div class="col-sm-6">
-							<input class="form-control" type=number min=1 max=1000 id=stepsPerFrame value=3></input>
+							<input class="form-control" type=number min=1 max=1000 id=stepsPerFrame value=100></input>
 						</div>
 					</div>
 					<div class="form-group">
@@ -83,6 +83,9 @@
 				</div>
 			</div>
 		</div>
+		<div>
+			<div id=graph></div>
+		</div>
 	</div>
 </div>
 <script src="lib/jquery.min.js"></script>
@@ -90,4 +93,5 @@
 <script src="lib/bootstrap-slider.min.js"></script>
 <script src="lib/convnet.min.js"></script>
 <script src="lib/react.min.js"></script>
+<script src="bin/Net.js"></script>
 <script src="bin/backprop.js"></script>

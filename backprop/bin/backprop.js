@@ -1,24 +1,59 @@
-var net, trainer;
+var inputs, outputs;
+var conns = [];
 var netx = new convnetjs.Vol(1, 1, 2, 0.0);
 var stepNum = 0;
 var running = false, runningId = -1;
 var restartTimeout = -1;
 function loadTrainer() {
-    trainer = new convnetjs.Trainer(net, {
-        learning_rate: config.learningRate, momentum: 0.9, batch_size: 1, l2_decay: 0.001
-    });
+    Net.learnRate = config.learningRate;
 }
 function initializeNet() {
-    net = new convnetjs.Net();
-    var layers = [
-        { type: 'input', out_sx: 1, out_sy: 1, out_depth: 2 },
-        { type: 'fc', num_neurons: 2, activation: config.activation },
-        { type: config.lossType, num_classes: 2 }
-    ];
-    net.makeLayers(layers);
-    //net.fromJSON({"layers":[{"out_depth":2,"out_sx":1,"out_sy":1,"layer_type":"input"},{"out_depth":2,"out_sx":1,"out_sy":1,"layer_type":"fc","num_inputs":2,"l1_decay_mul":0,"l2_decay_mul":1,"filters":[{"sx":1,"sy":1,"depth":2,"w":{"0":2.0155538859555944,"1":-1.1242570376625403}},{"sx":1,"sy":1,"depth":2,"w":{"0":-1.997246234051715,"1":-1.2874173363849695}}],"biases":{"sx":1,"sy":1,"depth":2,"w":{"0":0.9125948164444501,"1":0.15075782384585915}}},{"out_depth":2,"out_sx":1,"out_sy":1,"layer_type":"tanh"},{"out_depth":2,"out_sx":1,"out_sy":1,"layer_type":"fc","num_inputs":2,"l1_decay_mul":0,"l2_decay_mul":1,"filters":[{"sx":1,"sy":1,"depth":2,"w":{"0":1.407302175440426,"1":1.3603279523598015}},{"sx":1,"sy":1,"depth":2,"w":{"0":-1.0146332894945678,"1":-1.2478560570752113}}],"biases":{"sx":1,"sy":1,"depth":2,"w":{"0":0.10260196288430118,"1":-0.10260196288430096}}},{"out_depth":2,"out_sx":1,"out_sy":1,"layer_type":"softmax","num_inputs":2}]});
-    loadTrainer();
+    var startWeight = function () { return Math.random(); };
+    inputs = [new Net.InputNeuron(), new Net.InputNeuron()];
+    var hidden = [new Net.HiddenNeuron(), new Net.HiddenNeuron()];
+    outputs = [new Net.OutputNeuron()];
+    var onNeuron = new Net.InputNeuron(1);
+    for (var _i = 0, _a = inputs.concat([onNeuron]); _i < _a.length; _i++) {
+        var input = _a[_i];
+        for (var _b = 0; _b < hidden.length; _b++) {
+            var output = hidden[_b];
+            var conn = new Net.NeuronConnection(input, output, startWeight());
+            input.outputs.push(conn);
+            output.inputs.push(conn);
+            conns.push(conn);
+        }
+    }
+    for (var _c = 0; _c < hidden.length; _c++) {
+        var input = hidden[_c];
+        for (var _d = 0; _d < outputs.length; _d++) {
+            var output = outputs[_d];
+            var conn = new Net.NeuronConnection(input, output, startWeight());
+            input.outputs.push(conn);
+            output.inputs.push(conn);
+            conns.push(conn);
+        }
+    }
     stepNum = 0;
+}
+function train(inputVals, expectedOutput) {
+    for (var i = 0; i < inputs.length; i++) {
+        inputs[i].input = inputVals[i];
+    }
+    for (var i = 0; i < outputs.length; i++)
+        outputs[i].targetOutput = expectedOutput[i];
+    for (var _i = 0; _i < conns.length; _i++) {
+        var conn = conns[_i];
+        conn._tmpw = conn.getDeltaWeight();
+    }
+    for (var _a = 0; _a < conns.length; _a++) {
+        var conn = conns[_a];
+        conn.weight += conn._tmpw;
+    }
+}
+function getOutput(inputVals) {
+    for (var i = 0; i < inputs.length; i++)
+        inputs[i].input = inputVals[i];
+    return outputs.map(function (output) { return output.getOutput(); });
 }
 var data = [
     { x: 0, y: 0, label: 0 },
@@ -26,26 +61,17 @@ var data = [
     { x: 1, y: 0, label: 1 },
     { x: 1, y: 1, label: 0 }
 ];
-for (var _i = 0; _i < data.length; _i++) {
-    var p = data[_i];
-    p.x += Math.random() * 0.01;
-    p.y += Math.random() * 0.01;
-}
 function step() {
     stepNum++;
     for (var _i = 0; _i < data.length; _i++) {
         var val = data[_i];
-        netx.w[0] = val.x;
-        netx.w[1] = val.y;
-        var stats = trainer.train(netx, val.label);
+        var stats = train([val.x, val.y], [val.label]);
     }
     var correct = 0;
     for (var _a = 0; _a < data.length; _a++) {
         var val = data[_a];
-        netx.w[0] = val.x;
-        netx.w[1] = val.y;
-        var res = net.forward(netx);
-        var label = (res.w[0] > res.w[1]) ? 0 : 1;
+        var res = getOutput([val.x, val.y]);
+        var label = (res[0] > 0.5) ? 1 : 0;
         if (val.label == label)
             correct++;
     }
@@ -66,7 +92,7 @@ function step() {
 }
 var canvas = document.querySelector("canvas");
 var ctx = canvas.getContext('2d');
-var w = 400, h = 400, blocks = 10, scalex = 100, scaley = -100, offsetx = w / 2, offsety = h / 2;
+var w = 400, h = 400, blocks = 10, scalex = 100, scaley = -100, offsetx = w / 3, offsety = 2 * h / 3;
 var config = {
     stepsPerFrame: 50,
     learningRate: 0.01,
@@ -75,10 +101,8 @@ var config = {
     lossType: "svm"
 };
 var color = {
-    redbg: "#f88",
-    greenbg: "#8f8",
-    red: "#f00",
-    green: "#0f0"
+    bg: ["#f88", "#8f8"],
+    fg: ["#f00", "#0f0"]
 };
 function animationStep() {
     for (var i = 0; i < config.stepsPerFrame; i++)
@@ -102,15 +126,14 @@ function ytoc(c) {
 function drawBackground() {
     for (var x = 0; x < w; x += blocks)
         for (var y = 0; y < h; y += blocks) {
-            netx.w[0] = ctox(x);
-            netx.w[1] = ctoy(y);
-            var res = net.forward(netx);
-            var red = (res.w[0] * 256) | 0;
-            var gre = (res.w[1] * 256) | 0;
-            if (config.showGradient)
+            var res = getOutput([ctox(x), ctoy(y)]);
+            if (config.showGradient) {
+                var red = (res[0] * 256) | 0;
+                var gre = ((1 - res[0]) * 256) | 0;
                 ctx.fillStyle = "rgb(" + [red, gre, 0] + ")";
+            }
             else
-                ctx.fillStyle = (res.w[0] > res.w[1]) ? color.redbg : color.greenbg;
+                ctx.fillStyle = color.bg[(res[0] + 0.5) | 0];
             ctx.fillRect(x, y, w, h);
         }
 }
@@ -118,7 +141,7 @@ function drawData() {
     ctx.strokeStyle = "#000";
     for (var _i = 0; _i < data.length; _i++) {
         var val = data[_i];
-        ctx.fillStyle = val.label ? color.green : color.red;
+        ctx.fillStyle = color.fg[val.label | 0];
         ctx.beginPath();
         ctx.arc(xtoc(val.x), ytoc(val.y), 5, 0, 2 * Math.PI);
         ctx.fill();

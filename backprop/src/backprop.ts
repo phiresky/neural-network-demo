@@ -1,35 +1,60 @@
 ///<reference path='../lib/typings/react/react-global.d.ts' />
 ///<reference path='../lib/typings/jquery/jquery.d.ts' />
 ///<reference path='convnetjs.d.ts' />
+///<reference path='Net.ts' />
 type int = number;
 type double = number;
 
-let net: convnetjs.Net, trainer: convnetjs.Trainer;
-
+let inputs:Net.InputNeuron[], outputs:Net.OutputNeuron[];
+let conns:Net.NeuronConnection[] = [];
 let netx = new convnetjs.Vol(1, 1, 2, 0.0);
 let stepNum = 0;
 let running = false, runningId = -1;
 let restartTimeout = -1;
-
 function loadTrainer() {
-	trainer = new convnetjs.Trainer(net, {
-		learning_rate: config.learningRate, momentum: 0.9, batch_size: 1, l2_decay: 0.001
-	});
+	Net.learnRate = config.learningRate;
 }
 function initializeNet() {
-	net = new convnetjs.Net();
-	let layers = [
-		{ type: 'input', out_sx: 1, out_sy: 1, out_depth: 2 },
-		{ type: 'fc', num_neurons: 2, activation: config.activation },
-		{ type: config.lossType, num_classes: 2 }
-	];
-	net.makeLayers(layers);
-	//net.fromJSON({"layers":[{"out_depth":2,"out_sx":1,"out_sy":1,"layer_type":"input"},{"out_depth":2,"out_sx":1,"out_sy":1,"layer_type":"fc","num_inputs":2,"l1_decay_mul":0,"l2_decay_mul":1,"filters":[{"sx":1,"sy":1,"depth":2,"w":{"0":2.0155538859555944,"1":-1.1242570376625403}},{"sx":1,"sy":1,"depth":2,"w":{"0":-1.997246234051715,"1":-1.2874173363849695}}],"biases":{"sx":1,"sy":1,"depth":2,"w":{"0":0.9125948164444501,"1":0.15075782384585915}}},{"out_depth":2,"out_sx":1,"out_sy":1,"layer_type":"tanh"},{"out_depth":2,"out_sx":1,"out_sy":1,"layer_type":"fc","num_inputs":2,"l1_decay_mul":0,"l2_decay_mul":1,"filters":[{"sx":1,"sy":1,"depth":2,"w":{"0":1.407302175440426,"1":1.3603279523598015}},{"sx":1,"sy":1,"depth":2,"w":{"0":-1.0146332894945678,"1":-1.2478560570752113}}],"biases":{"sx":1,"sy":1,"depth":2,"w":{"0":0.10260196288430118,"1":-0.10260196288430096}}},{"out_depth":2,"out_sx":1,"out_sy":1,"layer_type":"softmax","num_inputs":2}]});
+	var startWeight = () => Math.random();
+	inputs = [new Net.InputNeuron(), new Net.InputNeuron()];
+	var hidden = [new Net.HiddenNeuron(), new Net.HiddenNeuron()];
+	outputs = [new Net.OutputNeuron()];
+	var onNeuron = new Net.InputNeuron(1);
+	for(let input of inputs.concat([onNeuron])) for(let output of hidden) {
+		var conn = new Net.NeuronConnection(input, output, startWeight());
+		input.outputs.push(conn);
+		output.inputs.push(conn);
+		conns.push(conn);
+	}
+	for(let input of hidden) for(let output of outputs) {
+		var conn = new Net.NeuronConnection(input, output, startWeight());
+		input.outputs.push(conn);
+		output.inputs.push(conn);
+		conns.push(conn);
+	}
 	
-	loadTrainer();
 	stepNum = 0;
 }
 
+function train(inputVals:double[], expectedOutput:double[]) {
+	for(var i = 0; i < inputs.length; i++) {
+		inputs[i].input = inputVals[i];
+	}
+	for(var i = 0; i < outputs.length; i++)
+		outputs[i].targetOutput = expectedOutput[i];
+	for(let conn of conns) {
+		(<any>conn)._tmpw = conn.getDeltaWeight();
+	}
+	for(let conn of conns) {
+		conn.weight += (<any>conn)._tmpw;
+	}
+}
+
+function getOutput(inputVals:double[]) {
+	for(var i = 0; i < inputs.length; i++)
+		inputs[i].input = inputVals[i];
+	return outputs.map(output => output.getOutput());
+}
 interface Data {
 	x: double; y: double; label: int;
 }
@@ -44,16 +69,12 @@ let data: Data[] = [
 function step() {
 	stepNum++;
 	for (let val of data) {
-		netx.w[0] = val.x;
-		netx.w[1] = val.y;
-		let stats = trainer.train(netx, val.label);
+		let stats = train([val.x,val.y], [val.label]);
 	}
 	let correct = 0;
 	for (let val of data) {
-		netx.w[0] = val.x;
-		netx.w[1] = val.y;
-		let res = net.forward(netx);
-		let label = (res.w[0] > res.w[1]) ? 0 : 1;
+		let res = getOutput([val.x,val.y]);
+		let label = (res[0] > 0.5) ? 1 : 0;
 		if (val.label == label) correct++;
 	}
 	document.getElementById('statusIteration').textContent = stepNum.toString();
@@ -87,10 +108,8 @@ var config = {
 };
 
 let color = {
-	redbg: "#f88",
-	greenbg: "#8f8",
-	red: "#f00",
-	green: "#0f0"
+	bg: ["#f88","#8f8"],
+	fg:["#f00","#0f0"]
 }
 
 function animationStep() {
@@ -115,21 +134,21 @@ function drawBackground() {
 
 	for (let x = 0; x < w; x += blocks)
 		for (let y = 0; y < h; y += blocks) {
-			netx.w[0] = ctox(x);
-			netx.w[1] = ctoy(y);
-			let res = net.forward(netx);
-			let red = (res.w[0] * 256) | 0;
-			let gre = (res.w[1] * 256) | 0;
+			let res = getOutput([ctox(x),ctoy(y)]);
 
-			if (config.showGradient) ctx.fillStyle = "rgb(" + [red, gre, 0] + ")";
-			else ctx.fillStyle = (res.w[0] > res.w[1]) ? color.redbg : color.greenbg;
+			if (config.showGradient) {
+				let red = (res[0] * 256) | 0;
+				let gre = ((1-res[0]) * 256) | 0;
+				ctx.fillStyle = "rgb(" + [red, gre, 0] + ")";
+			}
+			else ctx.fillStyle = color.bg[(res[0] + 0.5)|0];
 			ctx.fillRect(x, y, w, h);
 		}
 }
 function drawData() {
 	ctx.strokeStyle = "#000";
 	for (let val of data) {
-		ctx.fillStyle = val.label ? color.green : color.red;
+		ctx.fillStyle = color.fg[val.label|0];
 		ctx.beginPath();
 		ctx.arc(xtoc(val.x), ytoc(val.y), 5, 0, 2 * Math.PI);
 		ctx.fill();
