@@ -67,7 +67,7 @@ var Net;
         function NeuralNet(counts, inputnames, learnRate, bias, startWeight, weights) {
             var _this = this;
             if (bias === void 0) { bias = true; }
-            if (startWeight === void 0) { startWeight = function () { return Math.random(); }; }
+            if (startWeight === void 0) { startWeight = function () { return Math.random() - 0.5; }; }
             this.layers = [];
             this.connections = [];
             this.learnRate = 0.01;

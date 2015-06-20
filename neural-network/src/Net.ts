@@ -65,7 +65,7 @@ module Net {
 		learnRate: number = 0.01;
 		bias: boolean;
 		constructor(counts: int[], inputnames: string[], learnRate: number, 
-			bias = true, startWeight = () => Math.random(), weights?: double[]) {
+			bias = true, startWeight = () => Math.random() - 0.5, weights?: double[]) {
 			this.learnRate = learnRate;
 			counts = counts.slice();
 			if (counts.length < 2) throw "Need at least two layers";
