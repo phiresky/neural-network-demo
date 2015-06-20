@@ -1,9 +1,7 @@
 type double = number; type int = number;
 interface Transform {
-	ctox(x: double): double;
-	ctoy(x: double): double;
-	xtoc(c: double): double;
-	ytoc(c: double): double;
+	toReal: { x: (x: double) => double; y: (y: double) => double };
+	toCanvas: { x: (x: double) => double; y: (y: double) => double };
 }
 class CanvasMouseNavigation implements Transform {
 	scalex = 100;
@@ -12,6 +10,14 @@ class CanvasMouseNavigation implements Transform {
 	offsety = 0;
 	mousedown: boolean = false;
 	mousestart = { x: 0, y: 0 };
+	toReal = {
+		x: (x:double) => (x - this.offsetx) / this.scalex,
+		y: (y:double) => (y- this.offsety) / this.scaley
+	}
+	toCanvas = {
+		x: (c: double) => c * this.scalex + this.offsetx,
+		y: (c: double) => c * this.scaley + this.offsety
+	}
 	constructor(canvas: HTMLCanvasElement, transformChanged: () => void) {
 		this.offsetx = canvas.width / 3;
 		this.offsety = 2 * canvas.height / 3;
@@ -37,16 +43,5 @@ class CanvasMouseNavigation implements Transform {
 		});
 		document.addEventListener('mouseup', e => this.mousedown = false);
 	}
-	ctox(x: double) {
-		return (x - this.offsetx) / this.scalex;
-	}
-	ctoy(x: double) {
-		return (x - this.offsety) / this.scaley;
-	}
-	xtoc(c: double) {
-		return c * this.scalex + this.offsetx;
-	}
-	ytoc(c: double) {
-		return c * this.scaley + this.offsety;
-	}
+
 }

@@ -1,7 +1,7 @@
 module Net {
 	type int = number;
 	type double = number;
-	var tanh = function(x:double) {
+	var tanh = function(x: double) {
 		if (x === Infinity) {
 			return 1;
 		} else if (x === -Infinity) {
@@ -12,21 +12,21 @@ module Net {
 		}
 	}
 	interface NonLinearFunction {
-		f:(x:double) => double,
-		df:(x:double) => double
+		f: (x: double) => double,
+		df: (x: double) => double
 	}
-	var NonLinearities:{[name:string]:NonLinearFunction} = {
+	var NonLinearities: { [name: string]: NonLinearFunction } = {
 		sigmoid: {
 			f: (x: double) => 1 / (1 + Math.exp(-x)),
 			df: (x: double) => x * (1 - x)
 		},
 		tanh: {
-			f: (x:double) => tanh(x),
-			df: (x:double) => 1 - x*x
+			f: (x: double) => tanh(x),
+			df: (x: double) => 1 - x * x
 		},
 	}
-	export var nonLinearity:NonLinearFunction;
-	export function setLinearity(name:string) {
+	export var nonLinearity: NonLinearFunction;
+	export function setLinearity(name: string) {
 		nonLinearity = NonLinearities[name];
 	}
 
@@ -43,15 +43,18 @@ module Net {
 		outputs: OutputNeuron[];
 		connections: NeuronConnection[] = [];
 		learnRate: number = 0.01;
-		constructor(counts: int[], inputnames:string[], weights?: double[]) {
+		bias: boolean;
+		constructor(counts: int[], inputnames: string[],
+				bias = true, startWeight = () => Math.random(), weights?: double[]) {
 			let nid = 0;
-			this.inputs = makeArray(counts[0], () => new InputNeuron(nid,inputnames[nid++]));
+			this.inputs = makeArray(counts[0], () => new InputNeuron(nid, inputnames[nid++]));
 			var hidden = makeArray(counts[1], () => new Neuron(nid++));
 			this.outputs = makeArray(counts[2], () => new OutputNeuron(nid++));
 			this.layers = [this.inputs, hidden, this.outputs];
-			var onNeuron = new InputNeuron(nid++, "1 (bias)", 1);
-			this.inputs.push(onNeuron);
-			var startWeight = () => Math.random();
+			this.bias = bias;
+			if (bias) {
+				var onNeuron = new InputNeuron(nid++, "1 (bias)", 1); this.inputs.push(onNeuron);
+			}
 			for (let i = 0; i < this.layers.length - 1; i++) {
 				let inLayer = this.layers[i];
 				let outLayer = this.layers[i + 1];
@@ -66,7 +69,7 @@ module Net {
 			if (weights) weights.forEach((w, i) => this.connections[i].weight = w);
 		}
 		setInputs(inputVals: double[]) {
-			if (inputVals.length != this.inputs.length - 1) throw "invalid input size";
+			if (inputVals.length != this.inputs.length - +this.bias) throw "invalid input size";
 			for (let i = 0; i < inputVals.length; i++)
 				this.inputs[i].input = inputVals[i];
 		}
@@ -121,7 +124,7 @@ module Net {
 		}
 	}
 	export class InputNeuron extends Neuron {
-		constructor(id:int, public name: string, public input: number = 0) {
+		constructor(id: int, public name: string, public input: number = 0) {
 			super(id);
 		}
 		weightedInputs() {

@@ -41,8 +41,10 @@ var Net;
     }
     // back propagation code adapted from https://de.wikipedia.org/wiki/Backpropagation
     var NeuralNet = (function () {
-        function NeuralNet(counts, inputnames, weights) {
+        function NeuralNet(counts, inputnames, bias, startWeight, weights) {
             var _this = this;
+            if (bias === void 0) { bias = true; }
+            if (startWeight === void 0) { startWeight = function () { return Math.random(); }; }
             this.connections = [];
             this.learnRate = 0.01;
             var nid = 0;
@@ -50,9 +52,11 @@ var Net;
             var hidden = makeArray(counts[1], function () { return new Neuron(nid++); });
             this.outputs = makeArray(counts[2], function () { return new OutputNeuron(nid++); });
             this.layers = [this.inputs, hidden, this.outputs];
-            var onNeuron = new InputNeuron(nid++, "1 (bias)", 1);
-            this.inputs.push(onNeuron);
-            var startWeight = function () { return Math.random(); };
+            this.bias = bias;
+            if (bias) {
+                var onNeuron = new InputNeuron(nid++, "1 (bias)", 1);
+                this.inputs.push(onNeuron);
+            }
             for (var i = 0; i < this.layers.length - 1; i++) {
                 var inLayer = this.layers[i];
                 var outLayer = this.layers[i + 1];
@@ -71,7 +75,7 @@ var Net;
                 weights.forEach(function (w, i) { return _this.connections[i].weight = w; });
         }
         NeuralNet.prototype.setInputs = function (inputVals) {
-            if (inputVals.length != this.inputs.length - 1)
+            if (inputVals.length != this.inputs.length - +this.bias)
                 throw "invalid input size";
             for (var i = 0; i < inputVals.length; i++)
                 this.inputs[i].input = inputVals[i];
@@ -179,19 +183,29 @@ var NetworkGraph = (function () {
     function NetworkGraph(networkGraphContainer) {
         this.nodes = new vis.DataSet();
         this.edges = new vis.DataSet();
-        var id = 0;
         var graphData = {
             nodes: this.nodes,
             edges: this.edges };
         var options = {
             nodes: { shape: 'dot' },
-            edges: { smooth: { type: 'curvedCW', roundness: 0.2 }, font: { align: 'top', background: 'white' } },
+            edges: {
+                smooth: { type: 'curvedCW', roundness: 0.2 },
+                font: { align: 'top', background: 'white' },
+            },
             layout: { hierarchical: { direction: "LR" } },
             interaction: { dragNodes: false }
         };
         this.graph = new vis.Network(networkGraphContainer, graphData, options);
     }
     NetworkGraph.prototype.loadNetwork = function (net) {
+        if (this.net
+            && this.net.layers.length == net.layers.length
+            && this.net.layers.every(function (layer, index) { return layer.length == net.layers[index].length; })) {
+            // same net layout, only update
+            this.net = net;
+            this.update();
+            return;
+        }
         this.net = net;
         this.nodes.clear();
         this.edges.clear();
@@ -236,7 +250,9 @@ var NetworkGraph = (function () {
             var conn = _a[_i];
             this.edges.update({
                 id: conn.inp.id * this.net.connections.length + conn.out.id,
-                label: conn.weight.toFixed(2)
+                label: conn.weight.toFixed(2),
+                width: Math.min(10, Math.abs(conn.weight * 2)),
+                color: conn.weight > 0 ? 'blue' : 'red'
             });
         }
     };
@@ -251,6 +267,14 @@ var CanvasMouseNavigation = (function () {
         this.offsety = 0;
         this.mousedown = false;
         this.mousestart = { x: 0, y: 0 };
+        this.toReal = {
+            x: function (x) { return (x - _this.offsetx) / _this.scalex; },
+            y: function (y) { return (y - _this.offsety) / _this.scaley; }
+        };
+        this.toCanvas = {
+            x: function (c) { return c * _this.scalex + _this.offsetx; },
+            y: function (c) { return c * _this.scaley + _this.offsety; }
+        };
         this.offsetx = canvas.width / 3;
         this.offsety = 2 * canvas.height / 3;
         canvas.addEventListener('wheel', function (e) {
@@ -276,18 +300,6 @@ var CanvasMouseNavigation = (function () {
         });
         document.addEventListener('mouseup', function (e) { return _this.mousedown = false; });
     }
-    CanvasMouseNavigation.prototype.ctox = function (x) {
-        return (x - this.offsetx) / this.scalex;
-    };
-    CanvasMouseNavigation.prototype.ctoy = function (x) {
-        return (x - this.offsety) / this.scaley;
-    };
-    CanvasMouseNavigation.prototype.xtoc = function (c) {
-        return c * this.scalex + this.offsetx;
-    };
-    CanvasMouseNavigation.prototype.ytoc = function (c) {
-        return c * this.scaley + this.offsety;
-    };
     return CanvasMouseNavigation;
 })();
 ///<reference path='Transform.ts' />
@@ -310,16 +322,16 @@ var NetworkVisualization = (function () {
             var val = data[_i];
             this.ctx.fillStyle = this.colors.fg[val.label | 0];
             this.ctx.beginPath();
-            this.ctx.arc(this.trafo.xtoc(val.x), this.trafo.ytoc(val.y), 5, 0, 2 * Math.PI);
+            this.ctx.arc(this.trafo.toCanvas.x(val.x), this.trafo.toCanvas.y(val.y), 5, 0, 2 * Math.PI);
             this.ctx.fill();
-            this.ctx.arc(this.trafo.xtoc(val.x), this.trafo.ytoc(val.y), 5, 0, 2 * Math.PI);
+            this.ctx.arc(this.trafo.toCanvas.x(val.x), this.trafo.toCanvas.y(val.y), 5, 0, 2 * Math.PI);
             this.ctx.stroke();
         }
     };
     NetworkVisualization.prototype.drawBackground = function (resolution, classify) {
         for (var x = 0; x < this.canvas.width; x += resolution) {
             for (var y = 0; y < this.canvas.height; y += resolution) {
-                var val = classify(this.trafo.ctox(x), this.trafo.ctoy(y));
+                var val = classify(this.trafo.toReal.x(x), this.trafo.toReal.y(y));
                 if (this.showGradient) {
                     this.ctx.fillStyle = this.colors.gradient(val);
                 }
@@ -331,23 +343,23 @@ var NetworkVisualization = (function () {
     };
     NetworkVisualization.prototype.drawCoordinateSystem = function () {
         var marklen = 0.2;
-        var ctx = this.ctx, xtoc = this.trafo.xtoc, ytoc = this.trafo.ytoc;
+        var ctx = this.ctx, toc = this.trafo.toCanvas;
         ctx.strokeStyle = "#000";
         ctx.fillStyle = "#000";
         ctx.textBaseline = "middle";
         ctx.textAlign = "center";
         ctx.font = "20px monospace";
         ctx.beginPath();
-        ctx.moveTo(xtoc(0), 0);
-        ctx.lineTo(xtoc(0), this.canvas.height);
-        ctx.moveTo(xtoc(-marklen / 2), ytoc(1));
-        ctx.lineTo(xtoc(marklen / 2), ytoc(1));
-        ctx.fillText("1", xtoc(-marklen), ytoc(1));
-        ctx.moveTo(0, ytoc(0));
-        ctx.lineTo(this.canvas.width, ytoc(0));
-        ctx.moveTo(xtoc(1), ytoc(-marklen / 2));
-        ctx.lineTo(xtoc(1), ytoc(marklen / 2));
-        ctx.fillText("1", xtoc(1), ytoc(-marklen));
+        ctx.moveTo(toc.x(0), 0);
+        ctx.lineTo(toc.x(0), this.canvas.height);
+        ctx.moveTo(toc.x(-marklen / 2), toc.y(1));
+        ctx.lineTo(toc.x(marklen / 2), toc.y(1));
+        ctx.fillText("1", toc.x(-marklen), toc.y(1));
+        ctx.moveTo(0, toc.y(0));
+        ctx.lineTo(this.canvas.width, toc.y(0));
+        ctx.moveTo(toc.x(1), toc.y(-marklen / 2));
+        ctx.lineTo(toc.x(1), toc.y(marklen / 2));
+        ctx.fillText("1", toc.x(1), toc.y(-marklen));
         ctx.stroke();
     };
     NetworkVisualization.prototype.canvasResized = function () {
@@ -376,9 +388,11 @@ var Simulation = (function () {
         ];
         this.config = {
             stepsPerFrame: 50,
-            learningRate: 0.01,
+            learningRate: 0.05,
             activation: "sigmoid",
             showGradient: false,
+            bias: true,
+            autoRestartTime: 5000
         };
         this.statusIterEle = document.getElementById('statusIteration');
         this.statusCorrectEle = document.getElementById('statusCorrect');
@@ -395,7 +409,7 @@ var Simulation = (function () {
     Simulation.prototype.initializeNet = function () {
         //let cache = [0.18576880730688572,-0.12869677506387234,0.08548374730162323,-0.19820863520726562,-0.09532690420746803,-0.3415223266929388,-0.309354952769354,-0.157513455953449];
         //let cache = [-0.04884958150796592,-0.3569231238216162,0.11143312812782824,0.43614205135963857,0.3078767384868115,-0.22759653301909566,0.09250503336079419,0.3279339636210352];
-        this.net = new Net.NeuralNet([2, 2, 1], ["x", "y"]);
+        this.net = new Net.NeuralNet([2, 2, 1], ["x", "y"], this.config.bias);
         console.log("net:" + JSON.stringify(this.net.connections.map(function (c) { return c.weight; })));
         this.stepNum = 0;
         this.netgraph.loadNetwork(this.net);
@@ -423,7 +437,7 @@ var Simulation = (function () {
                     _this.stop();
                     _this.restartTimeout = -1;
                     setTimeout(function () { _this.reset(); _this.run(); }, 1000);
-                }, 3000);
+                }, this.config.autoRestartTime - 1);
             }
         }
         else {
@@ -443,11 +457,13 @@ var Simulation = (function () {
     Simulation.prototype.run = function () {
         if (this.running)
             return;
+        $("#runButton").text("Stop").addClass("btn-danger").removeClass("btn-primary");
         this.running = true;
         this.animationStep();
     };
     Simulation.prototype.stop = function () {
         clearTimeout(this.restartTimeout);
+        $("#runButton").text("Run").addClass("btn-primary").removeClass("btn-danger");
         this.restartTimeout = -1;
         this.running = false;
         cancelAnimationFrame(this.runningId);
@@ -473,12 +489,15 @@ var Simulation = (function () {
         this.draw();
     };
     Simulation.prototype.loadConfig = function () {
-        for (var conf in this.config) {
+        var config = this.config;
+        for (var conf in config) {
             var ele = document.getElementById(conf);
+            if (!ele)
+                continue;
             if (ele.type == 'checkbox')
-                this.config[conf] = ele.checked;
+                config[conf] = ele.checked;
             else
-                this.config[conf] = ele.value;
+                config[conf] = ele.value;
         }
         Net.setLinearity(this.config.activation);
         if (this.net)
@@ -492,14 +511,12 @@ var Simulation = (function () {
         }
         this.draw();
     };
-    Simulation.prototype.runtoggle = function (button) {
+    Simulation.prototype.runtoggle = function () {
         if (this.running) {
             this.stop();
-            $(button).text("Run").toggleClass("btn-primary btn-danger");
         }
         else {
             this.run();
-            $(button).text("Stop").removeClass("btn-primary btn-danger");
         }
     };
     return Simulation;

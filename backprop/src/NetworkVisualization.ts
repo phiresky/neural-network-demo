@@ -27,16 +27,16 @@ class NetworkVisualization {
 		for (let val of data) {
 			this.ctx.fillStyle = this.colors.fg[val.label | 0];
 			this.ctx.beginPath();
-			this.ctx.arc(this.trafo.xtoc(val.x), this.trafo.ytoc(val.y), 5, 0, 2 * Math.PI);
+			this.ctx.arc(this.trafo.toCanvas.x(val.x), this.trafo.toCanvas.y(val.y), 5, 0, 2 * Math.PI);
 			this.ctx.fill();
-			this.ctx.arc(this.trafo.xtoc(val.x), this.trafo.ytoc(val.y), 5, 0, 2 * Math.PI);
+			this.ctx.arc(this.trafo.toCanvas.x(val.x), this.trafo.toCanvas.y(val.y), 5, 0, 2 * Math.PI);
 			this.ctx.stroke();
 		}
 	}
 	drawBackground(resolution: int, classify: (x: double, y: double) => int) {
 		for (let x = 0; x < this.canvas.width; x += resolution) {
 			for (let y = 0; y < this.canvas.height; y += resolution) {
-				let val = classify(this.trafo.ctox(x), this.trafo.ctoy(y));
+				let val = classify(this.trafo.toReal.x(x), this.trafo.toReal.y(y));
 
 				if (this.showGradient) {
 					this.ctx.fillStyle = this.colors.gradient(val);
@@ -47,7 +47,7 @@ class NetworkVisualization {
 	}
 	drawCoordinateSystem() {
 		let marklen = 0.2;
-		let ctx = this.ctx, xtoc = this.trafo.xtoc, ytoc = this.trafo.ytoc;
+		let ctx = this.ctx, toc = this.trafo.toCanvas;
 		ctx.strokeStyle = "#000";
 		ctx.fillStyle = "#000";
 		ctx.textBaseline = "middle";
@@ -55,19 +55,19 @@ class NetworkVisualization {
 		ctx.font = "20px monospace";
 		ctx.beginPath();
 
-		ctx.moveTo(xtoc(0), 0);
-		ctx.lineTo(xtoc(0), this.canvas.height);
+		ctx.moveTo(toc.x(0), 0);
+		ctx.lineTo(toc.x(0), this.canvas.height);
 
-		ctx.moveTo(xtoc(-marklen / 2), ytoc(1));
-		ctx.lineTo(xtoc(marklen / 2), ytoc(1));
-		ctx.fillText("1", xtoc(-marklen), ytoc(1));
+		ctx.moveTo(toc.x(-marklen / 2), toc.y(1));
+		ctx.lineTo(toc.x(marklen / 2), toc.y(1));
+		ctx.fillText("1", toc.x(-marklen), toc.y(1));
 
-		ctx.moveTo(0, ytoc(0));
-		ctx.lineTo(this.canvas.width, ytoc(0));
+		ctx.moveTo(0, toc.y(0));
+		ctx.lineTo(this.canvas.width, toc.y(0));
 
-		ctx.moveTo(xtoc(1), ytoc(-marklen / 2));
-		ctx.lineTo(xtoc(1), ytoc(marklen / 2));
-		ctx.fillText("1", xtoc(1), ytoc(-marklen));
+		ctx.moveTo(toc.x(1), toc.y(-marklen / 2));
+		ctx.lineTo(toc.x(1), toc.y(marklen / 2));
+		ctx.fillText("1", toc.x(1), toc.y(-marklen));
 		ctx.stroke();
 	}
 	canvasResized() {

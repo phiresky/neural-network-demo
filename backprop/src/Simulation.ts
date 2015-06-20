@@ -19,9 +19,11 @@ class Simulation {
 	net: Net.NeuralNet;
 	config = {
 		stepsPerFrame: 50,
-		learningRate: 0.01,
+		learningRate: 0.05,
 		activation: "sigmoid",
 		showGradient: false,
+		bias: true,
+		autoRestartTime: 5000
 		//lossType: "svm"
 	};
 
@@ -40,7 +42,7 @@ class Simulation {
 	initializeNet() {
 		//let cache = [0.18576880730688572,-0.12869677506387234,0.08548374730162323,-0.19820863520726562,-0.09532690420746803,-0.3415223266929388,-0.309354952769354,-0.157513455953449];
 		//let cache = [-0.04884958150796592,-0.3569231238216162,0.11143312812782824,0.43614205135963857,0.3078767384868115,-0.22759653301909566,0.09250503336079419,0.3279339636210352];
-		this.net = new Net.NeuralNet([2, 2, 1], ["x", "y"]);
+		this.net = new Net.NeuralNet([2, 2, 1], ["x", "y"], this.config.bias);
 		console.log("net:" + JSON.stringify(this.net.connections.map(c => c.weight)));
 		this.stepNum = 0;
 		this.netgraph.loadNetwork(this.net);
@@ -67,7 +69,7 @@ class Simulation {
 					this.stop();
 					this.restartTimeout = -1;
 					setTimeout(() => { this.reset(); this.run(); }, 1000);
-				}, 3000);
+				}, this.config.autoRestartTime - 1);
 			}
 		} else {
 			if (this.restartTimeout != -1) {
@@ -87,12 +89,14 @@ class Simulation {
 
 	run() {
 		if (this.running) return;
+		$("#runButton").text("Stop").addClass("btn-danger").removeClass("btn-primary");
 		this.running = true;
 		this.animationStep();
 	}
 
 	stop() {
 		clearTimeout(this.restartTimeout);
+		$("#runButton").text("Run").addClass("btn-primary").removeClass("btn-danger");
 		this.restartTimeout = -1;
 		this.running = false;
 		cancelAnimationFrame(this.runningId);
@@ -121,13 +125,15 @@ class Simulation {
 	}
 
 	loadConfig() {
-		for (let conf in this.config) {
+		let config = <any>this.config;
+		for (let conf in config) {
 			let ele = <HTMLInputElement>document.getElementById(conf);
-			if (ele.type == 'checkbox') (<any>this.config)[conf] = ele.checked;
-			else this.config[conf] = ele.value;
+			if (!ele) continue;
+			if (ele.type == 'checkbox') config[conf] = ele.checked;
+			else config[conf] = ele.value;
 		}
 		Net.setLinearity(this.config.activation);
-		if(this.net) this.net.learnRate = this.config.learningRate;
+		if (this.net) this.net.learnRate = this.config.learningRate;
 		this.netviz.showGradient = this.config.showGradient;
 	}
 
@@ -138,13 +144,11 @@ class Simulation {
 		}
 		this.draw();
 	}
-	runtoggle(button) {
-		if(this.running) {
+	runtoggle() {
+		if (this.running) {
 			this.stop();
-			$(button).text("Run").toggleClass("btn-primary btn-danger");
 		} else {
 			this.run();
-			$(button).text("Stop").removeClass("btn-primary btn-danger");
 		}
 	}
 }

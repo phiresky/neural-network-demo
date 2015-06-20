@@ -24,7 +24,7 @@
 				<div id="neuralNetworkGraph"></div>
 			</div>
 			<h3>
-				<button class="btn btn-primary" onclick="simulation.runtoggle(this)">Stop</button>
+				<button class="btn btn-danger" id="runButton" onclick="simulation.runtoggle()">Stop</button>
 				<button class="btn btn-warning" onclick="simulation.reset()">Reset / Reload</button>
 				<button class="btn btn-default" onclick="simulation.iterations()">Step</button>
 			</h3>
@@ -43,7 +43,7 @@
 	<div class="col-sm-6">
 		<div class="panel panel-default">
 			<div class="panel-heading">
-				<a class="panel-title" href="#" data-toggle="collapse" data-target=".panel-body">Configuration</h3>
+				<h3 class="panel-title"><a href="#" data-toggle="collapse" data-target=".panel-body">Configuration</a></h3>
 			</div>
 			<div class="collapse panel-body">
 				<div id='configuration' class="form-horizontal">
@@ -82,6 +82,12 @@
 						<div class="col-sm-6 form-control-static">
 							<span id="learningRateVal" style='margin-right:1em;'>0.05</span>
 							<input class="form-control" type=number min=0.000 max=1 step=0.01 id=learningRate value=0.05 onchange="simulation.loadConfig();"></input>
+						</div>
+					</div>
+					<div class="form-group">
+						<label for="bias" class="col-sm-6 control-label">Add bias input</label>
+						<div class="col-sm-6 form-control-static">
+							<input type=checkbox id="bias" onchange='simulation.loadConfig();simulation.initializeNet();'>
 						</div>
 					</div>
 					<br>
