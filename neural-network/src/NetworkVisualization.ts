@@ -50,7 +50,7 @@ class NetworkVisualization {
 
 				if (this.showGradient) {
 					this.ctx.fillStyle = this.colors.gradient(val);
-				} else this.ctx.fillStyle = this.colors.bg[(val + 0.5) | 0];
+				} else this.ctx.fillStyle = this.colors.bg[val];
 				this.ctx.fillRect(x, y, this.backgroundResolution, this.backgroundResolution);
 			}
 		}
@@ -85,7 +85,7 @@ class NetworkVisualization {
 		this.canvas.height = $(this.canvas).height();
 	}
 	canvasClicked(evt: MouseEvent) {
-		if (this.dragged > 10) return;
+		if (this.dragged > 5) return;
 		let rect = this.canvas.getBoundingClientRect();
 		let x = this.trafo.toReal.x(evt.clientX - rect.left);
 		let y = this.trafo.toReal.y(evt.clientY - rect.top);
@@ -94,8 +94,8 @@ class NetworkVisualization {
 			let nearestDist = Infinity, nearest = -1;
 			for (let i = 0; i < this.data.length; i++) {
 				let p = this.data[i];
-				let dx = p.x - x, dy = p.y - y;
-				if (dx * dx + dy * dy < nearestDist) nearest = i;
+				let dx = p.x - x, dy = p.y - y, dist = dx * dx + dy * dy;
+				if (dist < nearestDist) nearest = i, nearestDist = dist; 
 			}
 			if (nearest >= 0) this.data.splice(nearest, 1);
 		} else {

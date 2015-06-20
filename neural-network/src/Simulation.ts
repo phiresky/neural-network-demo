@@ -36,7 +36,7 @@ class Simulation {
 		this.netviz = new NetworkVisualization(canvas,
 			new CanvasMouseNavigation(canvas, () => this.draw()),
 			this.config.data,
-			(x, y) => this.net.getOutput([x, y])[0],
+			(x, y) => +(this.net.getOutput([x, y])[0] > 0.5),
 			this.backgroundResolution);
 		this.netgraph = new NetworkGraph($("#neuralNetworkGraph")[0]);
 		(<any>$("#learningRate")).slider({

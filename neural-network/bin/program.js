@@ -363,7 +363,7 @@ var NetworkVisualization = (function () {
                     this.ctx.fillStyle = this.colors.gradient(val);
                 }
                 else
-                    this.ctx.fillStyle = this.colors.bg[(val + 0.5) | 0];
+                    this.ctx.fillStyle = this.colors.bg[val];
                 this.ctx.fillRect(x, y, this.backgroundResolution, this.backgroundResolution);
             }
         }
@@ -394,7 +394,7 @@ var NetworkVisualization = (function () {
         this.canvas.height = $(this.canvas).height();
     };
     NetworkVisualization.prototype.canvasClicked = function (evt) {
-        if (this.dragged > 10)
+        if (this.dragged > 5)
             return;
         var rect = this.canvas.getBoundingClientRect();
         var x = this.trafo.toReal.x(evt.clientX - rect.left);
@@ -404,9 +404,9 @@ var NetworkVisualization = (function () {
             var nearestDist = Infinity, nearest = -1;
             for (var i = 0; i < this.data.length; i++) {
                 var p = this.data[i];
-                var dx = p.x - x, dy = p.y - y;
-                if (dx * dx + dy * dy < nearestDist)
-                    nearest = i;
+                var dx = p.x - x, dy = p.y - y, dist = dx * dx + dy * dy;
+                if (dist < nearestDist)
+                    nearest = i, nearestDist = dist;
             }
             if (nearest >= 0)
                 this.data.splice(nearest, 1);
@@ -454,7 +454,7 @@ var Simulation = (function () {
         this.statusCorrectEle = document.getElementById('statusCorrect');
         this.aniFrameCallback = this.animationStep.bind(this);
         var canvas = $("#neuralOutputCanvas")[0];
-        this.netviz = new NetworkVisualization(canvas, new CanvasMouseNavigation(canvas, function () { return _this.draw(); }), this.config.data, function (x, y) { return _this.net.getOutput([x, y])[0]; }, this.backgroundResolution);
+        this.netviz = new NetworkVisualization(canvas, new CanvasMouseNavigation(canvas, function () { return _this.draw(); }), this.config.data, function (x, y) { return +(_this.net.getOutput([x, y])[0] > 0.5); }, this.backgroundResolution);
         this.netgraph = new NetworkGraph($("#neuralNetworkGraph")[0]);
         $("#learningRate").slider({
             min: 0.01, max: 1, step: 0.005, scale: "logarithmic", value: 0.05
