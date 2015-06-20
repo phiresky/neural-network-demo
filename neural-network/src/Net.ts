@@ -11,11 +11,11 @@ module Net {
 			return (y - 1) / (y + 1);
 		}
 	}
-	interface NonLinearFunction {
+	interface ActivationFunction {
 		f: (x: double) => double,
 		df: (x: double) => double
 	}
-	var NonLinearities: { [name: string]: NonLinearFunction } = {
+	var NonLinearities: { [name: string]: ActivationFunction } = {
 		sigmoid: {
 			f: (x: double) => 1 / (1 + Math.exp(-x)),
 			df: (x: double) => x * (1 - x)
@@ -25,9 +25,9 @@ module Net {
 			df: (x: double) => 1 - x * x
 		},
 	}
-	export var nonLinearity: NonLinearFunction;
+	export var activation: ActivationFunction;
 	export function setLinearity(name: string) {
-		nonLinearity = NonLinearities[name];
+		activation = NonLinearities[name];
 	}
 
 	function makeArray<T>(len: int, supplier: () => T): T[] {
@@ -57,12 +57,11 @@ module Net {
 			this.outputs = makeArray(counts.shift(), () => new OutputNeuron(nid++));
 			this.layers.push(this.outputs);
 			this.bias = bias;
-			if (bias) {
-				var onNeuron = new InputNeuron(nid++, "1 (bias)", 1); this.inputs.push(onNeuron);
-			}
 			for (let i = 0; i < this.layers.length - 1; i++) {
 				let inLayer = this.layers[i];
 				let outLayer = this.layers[i + 1];
+				if(bias) 
+					inLayer.push(new InputNeuron(nid++, "1 (bias)", 1));
 
 				for (let input of inLayer) for (let output of outLayer) {
 					var conn = new Net.NeuronConnection(input, output, startWeight());
@@ -117,7 +116,7 @@ module Net {
 			return output;
 		}
 		getOutput() {
-			return nonLinearity.f(this.weightedInputs());
+			return activation.f(this.weightedInputs());
 		}
 
 		getError() {
@@ -125,7 +124,7 @@ module Net {
 			for (let output of this.outputs) {
 				δ += output.out.getError() * output.weight;
 			}
-			return δ * nonLinearity.df(this.getOutput());
+			return δ * activation.df(this.getOutput());
 		}
 	}
 	export class InputNeuron extends Neuron {
@@ -151,7 +150,7 @@ module Net {
 			/*return NonLinearity.sigDiff(NonLinearity.sigmoid(oup)) *
 				(this.targetOutput - oup);*/
 			let oup = this.getOutput();
-			return nonLinearity.df(oup) *
+			return activation.df(oup) *
 				(this.targetOutput - oup);
 		}
 	}

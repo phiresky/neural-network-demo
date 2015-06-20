@@ -21,6 +21,7 @@ class Simulation {
 		showGradient: false,
 		bias: true,
 		autoRestartTime: 5000,
+		autoRestart: true,
 		data: <Data[]>[
 			{ x: 0, y: 0, label: 0 },
 			{ x: 0, y: 1, label: 1 },
@@ -36,7 +37,7 @@ class Simulation {
 		this.netviz = new NetworkVisualization(canvas,
 			new CanvasMouseNavigation(canvas, () => this.draw()),
 			this.config.data,
-			(x, y) => +(this.net.getOutput([x, y])[0] > 0.5),
+			(x, y) => this.net.getOutput([x, y])[0],
 			this.backgroundResolution);
 		this.netgraph = new NetworkGraph($("#neuralNetworkGraph")[0]);
 		(<any>$("#learningRate")).slider({
@@ -88,13 +89,13 @@ class Simulation {
 		let correct = 0;
 		for (let val of this.config.data) {
 			let res = this.net.getOutput([val.x, val.y]);
-			let label = (res[0] > 0.5) ? 1 : 0;
+			let label = +(res[0] > 0.5);
 			if (val.label == label) correct++;
 		}
 		this.statusIterEle.innerHTML = this.stepNum.toString();
 		this.statusCorrectEle.innerHTML = `${correct}/${this.config.data.length}`;
 		if (correct == this.config.data.length) {
-			if (this.running && this.restartTimeout == -1) {
+			if (this.config.autoRestart && this.running && this.restartTimeout == -1) {
 				this.restartTimeout = setTimeout(() => {
 					this.stop();
 					this.restartTimeout = -1;

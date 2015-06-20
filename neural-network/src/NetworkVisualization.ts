@@ -6,7 +6,7 @@ interface Data {
 class NetworkVisualization {
 	ctx: CanvasRenderingContext2D;
 	showGradient: boolean;
-	dragged = 0; // ignore clicks if dragged
+	mouseDownTime = 0; // ignore clicks if dragged
 	colors = {
 		bg: ["#f88", "#8f8"],
 		fg: ["#f00", "#0f0"],
@@ -16,14 +16,13 @@ class NetworkVisualization {
 	constructor(
 			public canvas: HTMLCanvasElement, 
 			public trafo: Transform, public data: Data[],
-			public classify: (x: double, y: double) => int,
+			public netOutput: (x: double, y: double) => double,
 			public backgroundResolution: int) {
 		this.ctx = <CanvasRenderingContext2D>this.canvas.getContext('2d');
 		this.canvasResized();
 		window.addEventListener('resize', this.canvasResized.bind(this));
 		canvas.addEventListener("click", this.canvasClicked.bind(this));
-		canvas.addEventListener("mousedown", () => this.dragged = 0);
-		canvas.addEventListener("mousemove", () => this.dragged++);
+		canvas.addEventListener("mousedown", () => this.mouseDownTime = Date.now());
 		canvas.addEventListener("contextmenu", this.canvasClicked.bind(this));
 	}
 	draw() {
@@ -46,11 +45,11 @@ class NetworkVisualization {
 	drawBackground() {
 		for (let x = 0; x < this.canvas.width; x += this.backgroundResolution) {
 			for (let y = 0; y < this.canvas.height; y += this.backgroundResolution) {
-				let val = this.classify(this.trafo.toReal.x(x), this.trafo.toReal.y(y));
+				let val = this.netOutput(this.trafo.toReal.x(x), this.trafo.toReal.y(y));
 
 				if (this.showGradient) {
 					this.ctx.fillStyle = this.colors.gradient(val);
-				} else this.ctx.fillStyle = this.colors.bg[val];
+				} else this.ctx.fillStyle = this.colors.bg[+(val>0.5)];
 				this.ctx.fillRect(x, y, this.backgroundResolution, this.backgroundResolution);
 			}
 		}
@@ -85,7 +84,7 @@ class NetworkVisualization {
 		this.canvas.height = $(this.canvas).height();
 	}
 	canvasClicked(evt: MouseEvent) {
-		if (this.dragged > 5) return;
+		if ((Date.now()-this.mouseDownTime) > 200) return;
 		let rect = this.canvas.getBoundingClientRect();
 		let x = this.trafo.toReal.x(evt.clientX - rect.left);
 		let y = this.trafo.toReal.y(evt.clientY - rect.top);

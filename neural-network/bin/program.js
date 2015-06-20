@@ -28,9 +28,9 @@ var Net;
             df: function (x) { return 1 - x * x; }
         },
     };
-    Net.nonLinearity;
+    Net.activation;
     function setLinearity(name) {
-        Net.nonLinearity = NonLinearities[name];
+        Net.activation = NonLinearities[name];
     }
     Net.setLinearity = setLinearity;
     function makeArray(len, supplier) {
@@ -60,13 +60,11 @@ var Net;
             this.outputs = makeArray(counts.shift(), function () { return new OutputNeuron(nid++); });
             this.layers.push(this.outputs);
             this.bias = bias;
-            if (bias) {
-                var onNeuron = new InputNeuron(nid++, "1 (bias)", 1);
-                this.inputs.push(onNeuron);
-            }
             for (var i = 0; i < this.layers.length - 1; i++) {
                 var inLayer = this.layers[i];
                 var outLayer = this.layers[i + 1];
+                if (bias)
+                    inLayer.push(new InputNeuron(nid++, "1 (bias)", 1));
                 for (var _i = 0; _i < inLayer.length; _i++) {
                     var input = inLayer[_i];
                     for (var _a = 0; _a < outLayer.length; _a++) {
@@ -134,7 +132,7 @@ var Net;
             return output;
         };
         Neuron.prototype.getOutput = function () {
-            return Net.nonLinearity.f(this.weightedInputs());
+            return Net.activation.f(this.weightedInputs());
         };
         Neuron.prototype.getError = function () {
             var δ = 0;
@@ -142,7 +140,7 @@ var Net;
                 var output = _a[_i];
                 δ += output.out.getError() * output.weight;
             }
-            return δ * Net.nonLinearity.df(this.getOutput());
+            return δ * Net.activation.df(this.getOutput());
         };
         return Neuron;
     })();
@@ -178,7 +176,7 @@ var Net;
             /*return NonLinearity.sigDiff(NonLinearity.sigmoid(oup)) *
                 (this.targetOutput - oup);*/
             var oup = this.getOutput();
-            return Net.nonLinearity.df(oup) *
+            return Net.activation.df(oup) *
                 (this.targetOutput - oup);
         };
         return OutputNeuron;
@@ -317,14 +315,14 @@ var CanvasMouseNavigation = (function () {
 })();
 ///<reference path='Transform.ts' />
 var NetworkVisualization = (function () {
-    function NetworkVisualization(canvas, trafo, data, classify, backgroundResolution) {
+    function NetworkVisualization(canvas, trafo, data, netOutput, backgroundResolution) {
         var _this = this;
         this.canvas = canvas;
         this.trafo = trafo;
         this.data = data;
-        this.classify = classify;
+        this.netOutput = netOutput;
         this.backgroundResolution = backgroundResolution;
-        this.dragged = 0; // ignore clicks if dragged
+        this.mouseDownTime = 0; // ignore clicks if dragged
         this.colors = {
             bg: ["#f88", "#8f8"],
             fg: ["#f00", "#0f0"],
@@ -334,8 +332,7 @@ var NetworkVisualization = (function () {
         this.canvasResized();
         window.addEventListener('resize', this.canvasResized.bind(this));
         canvas.addEventListener("click", this.canvasClicked.bind(this));
-        canvas.addEventListener("mousedown", function () { return _this.dragged = 0; });
-        canvas.addEventListener("mousemove", function () { return _this.dragged++; });
+        canvas.addEventListener("mousedown", function () { return _this.mouseDownTime = Date.now(); });
         canvas.addEventListener("contextmenu", this.canvasClicked.bind(this));
     }
     NetworkVisualization.prototype.draw = function () {
@@ -358,12 +355,12 @@ var NetworkVisualization = (function () {
     NetworkVisualization.prototype.drawBackground = function () {
         for (var x = 0; x < this.canvas.width; x += this.backgroundResolution) {
             for (var y = 0; y < this.canvas.height; y += this.backgroundResolution) {
-                var val = this.classify(this.trafo.toReal.x(x), this.trafo.toReal.y(y));
+                var val = this.netOutput(this.trafo.toReal.x(x), this.trafo.toReal.y(y));
                 if (this.showGradient) {
                     this.ctx.fillStyle = this.colors.gradient(val);
                 }
                 else
-                    this.ctx.fillStyle = this.colors.bg[val];
+                    this.ctx.fillStyle = this.colors.bg[+(val > 0.5)];
                 this.ctx.fillRect(x, y, this.backgroundResolution, this.backgroundResolution);
             }
         }
@@ -394,7 +391,7 @@ var NetworkVisualization = (function () {
         this.canvas.height = $(this.canvas).height();
     };
     NetworkVisualization.prototype.canvasClicked = function (evt) {
-        if (this.dragged > 5)
+        if ((Date.now() - this.mouseDownTime) > 200)
             return;
         var rect = this.canvas.getBoundingClientRect();
         var x = this.trafo.toReal.x(evt.clientX - rect.left);
@@ -442,6 +439,7 @@ var Simulation = (function () {
             showGradient: false,
             bias: true,
             autoRestartTime: 5000,
+            autoRestart: true,
             data: [
                 { x: 0, y: 0, label: 0 },
                 { x: 0, y: 1, label: 1 },
@@ -454,7 +452,7 @@ var Simulation = (function () {
         this.statusCorrectEle = document.getElementById('statusCorrect');
         this.aniFrameCallback = this.animationStep.bind(this);
         var canvas = $("#neuralOutputCanvas")[0];
-        this.netviz = new NetworkVisualization(canvas, new CanvasMouseNavigation(canvas, function () { return _this.draw(); }), this.config.data, function (x, y) { return +(_this.net.getOutput([x, y])[0] > 0.5); }, this.backgroundResolution);
+        this.netviz = new NetworkVisualization(canvas, new CanvasMouseNavigation(canvas, function () { return _this.draw(); }), this.config.data, function (x, y) { return _this.net.getOutput([x, y])[0]; }, this.backgroundResolution);
         this.netgraph = new NetworkGraph($("#neuralNetworkGraph")[0]);
         $("#learningRate").slider({
             min: 0.01, max: 1, step: 0.005, scale: "logarithmic", value: 0.05
@@ -508,14 +506,14 @@ var Simulation = (function () {
         for (var _b = 0, _c = this.config.data; _b < _c.length; _b++) {
             var val = _c[_b];
             var res = this.net.getOutput([val.x, val.y]);
-            var label = (res[0] > 0.5) ? 1 : 0;
+            var label = +(res[0] > 0.5);
             if (val.label == label)
                 correct++;
         }
         this.statusIterEle.innerHTML = this.stepNum.toString();
         this.statusCorrectEle.innerHTML = correct + "/" + this.config.data.length;
         if (correct == this.config.data.length) {
-            if (this.running && this.restartTimeout == -1) {
+            if (this.config.autoRestart && this.running && this.restartTimeout == -1) {
                 this.restartTimeout = setTimeout(function () {
                     _this.stop();
                     _this.restartTimeout = -1;
