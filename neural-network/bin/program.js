@@ -304,22 +304,29 @@ var CanvasMouseNavigation = (function () {
 })();
 ///<reference path='Transform.ts' />
 var NetworkVisualization = (function () {
-    function NetworkVisualization(outputCanvas, trafo) {
+    function NetworkVisualization(outputCanvas, trafo, data) {
+        var _this = this;
+        this.dragged = 0; // ignore clicks if dragged
         this.colors = {
             bg: ["#f88", "#8f8"],
             fg: ["#f00", "#0f0"],
-            gradient: function (val) { return "rgb(" + [(val * 256) | 0, ((1 - val) * 256) | 0, 0] + ")"; }
+            gradient: function (val) { return "rgb(" + [((1 - val) * 256) | 0, (val * 256) | 0, 0] + ")"; }
         };
         this.canvas = outputCanvas;
         this.ctx = this.canvas.getContext('2d');
         this.trafo = trafo;
+        this.data = data;
         this.canvasResized();
         window.addEventListener('resize', this.canvasResized.bind(this));
+        this.canvas.addEventListener("click", this.canvasClicked.bind(this));
+        this.canvas.addEventListener("mousedown", function () { return _this.dragged = 0; });
+        this.canvas.addEventListener("mousemove", function () { return _this.dragged++; });
+        this.canvas.addEventListener("contextmenu", this.canvasClicked.bind(this));
     }
-    NetworkVisualization.prototype.drawDataPoints = function (data) {
+    NetworkVisualization.prototype.drawDataPoints = function () {
         this.ctx.strokeStyle = "#000";
-        for (var _i = 0; _i < data.length; _i++) {
-            var val = data[_i];
+        for (var _i = 0, _a = this.data; _i < _a.length; _i++) {
+            var val = _a[_i];
             this.ctx.fillStyle = this.colors.fg[val.label | 0];
             this.ctx.beginPath();
             this.ctx.arc(this.trafo.toCanvas.x(val.x), this.trafo.toCanvas.y(val.y), 5, 0, 2 * Math.PI);
@@ -366,6 +373,33 @@ var NetworkVisualization = (function () {
         this.canvas.width = $(this.canvas).width();
         this.canvas.height = $(this.canvas).height();
     };
+    NetworkVisualization.prototype.canvasClicked = function (evt) {
+        if (this.dragged > 10)
+            return;
+        var rect = this.canvas.getBoundingClientRect();
+        var x = this.trafo.toReal.x(evt.clientX - rect.left);
+        var y = this.trafo.toReal.y(evt.clientY - rect.top);
+        if (evt.button == 2 || evt.shiftKey) {
+            //remove nearest
+            var nearestDist = Infinity, nearest = -1;
+            for (var i = 0; i < this.data.length; i++) {
+                var p = this.data[i];
+                var dx = p.x - x, dy = p.y - y;
+                if (dx * dx + dy * dy < nearestDist)
+                    nearest = i;
+            }
+            if (nearest >= 0)
+                this.data.splice(nearest, 1);
+        }
+        else {
+            var label = evt.button == 0 ? 0 : 1;
+            if (evt.ctrlKey)
+                label = label == 0 ? 1 : 0;
+            this.data.push({ x: x, y: y, label: label });
+            this.drawDataPoints();
+        }
+        evt.preventDefault();
+    };
     return NetworkVisualization;
 })();
 ///<reference path='../lib/typings/jquery/jquery.d.ts' />
@@ -398,7 +432,7 @@ var Simulation = (function () {
         this.statusCorrectEle = document.getElementById('statusCorrect');
         this.aniFrameCallback = this.animationStep.bind(this);
         var canvas = $("#neuralOutputCanvas")[0];
-        this.netviz = new NetworkVisualization(canvas, new CanvasMouseNavigation(canvas, function () { return _this.draw(); }));
+        this.netviz = new NetworkVisualization(canvas, new CanvasMouseNavigation(canvas, function () { return _this.draw(); }), this.data);
         this.netgraph = new NetworkGraph($("#neuralNetworkGraph")[0]);
         $("#learningRate").slider({
             min: 0.01, max: 1, step: 0.005, scale: "logarithmic", value: 0.05
@@ -451,7 +485,7 @@ var Simulation = (function () {
         var _this = this;
         this.netviz.drawBackground(this.backgroundResolution, function (x, y) { return _this.net.getOutput([x, y])[0]; });
         this.netviz.drawCoordinateSystem();
-        this.netviz.drawDataPoints(this.data);
+        this.netviz.drawDataPoints();
         this.netgraph.update();
     };
     Simulation.prototype.run = function () {
@@ -512,12 +546,10 @@ var Simulation = (function () {
         this.draw();
     };
     Simulation.prototype.runtoggle = function () {
-        if (this.running) {
+        if (this.running)
             this.stop();
-        }
-        else {
+        else
             this.run();
-        }
     };
     return Simulation;
 })();

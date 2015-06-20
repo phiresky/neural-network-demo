@@ -30,7 +30,7 @@ class Simulation {
 	constructor() {
 		let canvas = <HTMLCanvasElement>$("#neuralOutputCanvas")[0];
 		this.netviz = new NetworkVisualization(canvas,
-			new CanvasMouseNavigation(canvas, () => this.draw()));
+			new CanvasMouseNavigation(canvas, () => this.draw()), this.data);
 		this.netgraph = new NetworkGraph($("#neuralNetworkGraph")[0]);
 		(<any>$("#learningRate")).slider({
 			min: 0.01, max: 1, step: 0.005, scale: "logarithmic", value: 0.05
@@ -83,7 +83,7 @@ class Simulation {
 		this.netviz.drawBackground(this.backgroundResolution,
 			(x, y) => this.net.getOutput([x, y])[0]);
 		this.netviz.drawCoordinateSystem();
-		this.netviz.drawDataPoints(this.data);
+		this.netviz.drawDataPoints();
 		this.netgraph.update();
 	}
 
@@ -145,10 +145,7 @@ class Simulation {
 		this.draw();
 	}
 	runtoggle() {
-		if (this.running) {
-			this.stop();
-		} else {
-			this.run();
-		}
+		if (this.running) this.stop();
+		else this.run();
 	}
 }
