@@ -4,11 +4,8 @@ interface Data {
 }
 
 class NetworkVisualization {
-	canvas: HTMLCanvasElement;
 	ctx: CanvasRenderingContext2D;
-	trafo: Transform;
 	showGradient: boolean;
-	data: Data[];
 	dragged = 0; // ignore clicks if dragged
 	colors = {
 		bg: ["#f88", "#8f8"],
@@ -16,17 +13,23 @@ class NetworkVisualization {
 		gradient: (val: number) => "rgb(" + [((1 - val) * 256) | 0, (val * 256) | 0, 0] + ")"
 	}
 
-	constructor(outputCanvas: HTMLCanvasElement, trafo: Transform, data: Data[]) {
-		this.canvas = outputCanvas;
+	constructor(
+			public canvas: HTMLCanvasElement, 
+			public trafo: Transform, public data: Data[],
+			public classify: (x: double, y: double) => int,
+			public backgroundResolution: int) {
 		this.ctx = <CanvasRenderingContext2D>this.canvas.getContext('2d');
-		this.trafo = trafo;
-		this.data = data;
 		this.canvasResized();
 		window.addEventListener('resize', this.canvasResized.bind(this));
-		this.canvas.addEventListener("click", this.canvasClicked.bind(this));
-		this.canvas.addEventListener("mousedown", () => this.dragged = 0);
-		this.canvas.addEventListener("mousemove", () => this.dragged++);
-		this.canvas.addEventListener("contextmenu", this.canvasClicked.bind(this));
+		canvas.addEventListener("click", this.canvasClicked.bind(this));
+		canvas.addEventListener("mousedown", () => this.dragged = 0);
+		canvas.addEventListener("mousemove", () => this.dragged++);
+		canvas.addEventListener("contextmenu", this.canvasClicked.bind(this));
+	}
+	draw() {
+		this.drawBackground();
+		this.drawCoordinateSystem();
+		this.drawDataPoints();
 	}
 
 	drawDataPoints() {
@@ -40,15 +43,15 @@ class NetworkVisualization {
 			this.ctx.stroke();
 		}
 	}
-	drawBackground(resolution: int, classify: (x: double, y: double) => int) {
-		for (let x = 0; x < this.canvas.width; x += resolution) {
-			for (let y = 0; y < this.canvas.height; y += resolution) {
-				let val = classify(this.trafo.toReal.x(x), this.trafo.toReal.y(y));
+	drawBackground() {
+		for (let x = 0; x < this.canvas.width; x += this.backgroundResolution) {
+			for (let y = 0; y < this.canvas.height; y += this.backgroundResolution) {
+				let val = this.classify(this.trafo.toReal.x(x), this.trafo.toReal.y(y));
 
 				if (this.showGradient) {
 					this.ctx.fillStyle = this.colors.gradient(val);
 				} else this.ctx.fillStyle = this.colors.bg[(val + 0.5) | 0];
-				this.ctx.fillRect(x, y, resolution, resolution);
+				this.ctx.fillRect(x, y, this.backgroundResolution, this.backgroundResolution);
 			}
 		}
 	}
@@ -99,8 +102,8 @@ class NetworkVisualization {
 			let label = evt.button == 0 ? 0 : 1;
 			if(evt.ctrlKey) label = label == 0 ? 1 : 0;
 			this.data.push({ x: x, y: y, label: label });
-			this.drawDataPoints();
 		}
+		this.draw();
 		evt.preventDefault();
 	}
 }

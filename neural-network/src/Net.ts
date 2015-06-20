@@ -38,7 +38,7 @@ module Net {
 
 	// back propagation code adapted from https://de.wikipedia.org/wiki/Backpropagation
 	export class NeuralNet {
-		layers: Neuron[][];
+		layers: Neuron[][] = [];
 		inputs: InputNeuron[];
 		outputs: OutputNeuron[];
 		connections: NeuronConnection[] = [];
@@ -46,11 +46,16 @@ module Net {
 		bias: boolean;
 		constructor(counts: int[], inputnames: string[],
 				bias = true, startWeight = () => Math.random(), weights?: double[]) {
+			counts = counts.slice();
+			if(counts.length < 2) throw "Need at least two layers";
 			let nid = 0;
-			this.inputs = makeArray(counts[0], () => new InputNeuron(nid, inputnames[nid++]));
-			var hidden = makeArray(counts[1], () => new Neuron(nid++));
-			this.outputs = makeArray(counts[2], () => new OutputNeuron(nid++));
-			this.layers = [this.inputs, hidden, this.outputs];
+			this.inputs = makeArray(counts.shift(), () => new InputNeuron(nid, inputnames[nid++]));
+			this.layers.push(this.inputs);
+			while(counts.length > 1) {
+				this.layers.push(makeArray(counts.shift(), () => new Neuron(nid++)));
+			}
+			this.outputs = makeArray(counts.shift(), () => new OutputNeuron(nid++));
+			this.layers.push(this.outputs);
 			this.bias = bias;
 			if (bias) {
 				var onNeuron = new InputNeuron(nid++, "1 (bias)", 1); this.inputs.push(onNeuron);

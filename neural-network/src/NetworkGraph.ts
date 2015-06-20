@@ -6,7 +6,11 @@ class NetworkGraph {
 	nodes = new vis.DataSet();
 	edges = new vis.DataSet();
 	net:Net.NeuralNet;
-	constructor(networkGraphContainer:HTMLElement) {
+	constructor(public networkGraphContainer:HTMLElement) {
+		this.instantiateGraph();
+	}
+	instantiateGraph() {
+		// need only be run once, but removes bounciness if run every time
 		let graphData = {
 			nodes: this.nodes,
 			edges: this.edges };
@@ -22,7 +26,7 @@ class NetworkGraph {
 			layout: { hierarchical: { direction: "LR" } },
 			interaction: { dragNodes: false }
 		}
-		this.graph = new vis.Network(networkGraphContainer, graphData, options);
+		this.graph = new vis.Network(this.networkGraphContainer, graphData, options);
 	}
 	loadNetwork(net:Net.NeuralNet) {
 		if(this.net
@@ -33,6 +37,7 @@ class NetworkGraph {
 			this.update();
 			return;
 		}
+		this.instantiateGraph();
 		this.net = net;
 		this.nodes.clear();
 		this.edges.clear();
@@ -75,7 +80,7 @@ class NetworkGraph {
 			this.edges.update({
 				id: conn.inp.id * this.net.connections.length + conn.out.id,
 				label: conn.weight.toFixed(2),
-				width: Math.min(10, Math.abs(conn.weight*2)),
+				width: Math.min(6, Math.abs(conn.weight*2)),
 				color: conn.weight > 0 ? 'blue':'red'
 			})
 		}

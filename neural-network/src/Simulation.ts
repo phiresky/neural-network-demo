@@ -12,6 +12,7 @@ class Simulation {
 	restartTimeout = -1;
 	
 	net: Net.NeuralNet;
+	hiddenLayerDiv: JQuery = $("#neuronCountModifier div").eq(1).clone();
 	
 	config = {
 		stepsPerFrame: 50,
@@ -33,23 +34,42 @@ class Simulation {
 	constructor() {
 		let canvas = <HTMLCanvasElement>$("#neuralOutputCanvas")[0];
 		this.netviz = new NetworkVisualization(canvas,
-			new CanvasMouseNavigation(canvas, () => this.draw()), this.config.data);
+			new CanvasMouseNavigation(canvas, () => this.draw()),
+			this.config.data,
+			(x, y) => this.net.getOutput([x, y])[0],
+			this.backgroundResolution);
 		this.netgraph = new NetworkGraph($("#neuralNetworkGraph")[0]);
 		(<any>$("#learningRate")).slider({
 			min: 0.01, max: 1, step: 0.005, scale: "logarithmic", value: 0.05
 		}).on('slide', (e: any) => $("#learningRateVal").text(e.value.toFixed(2)));
 		$("#neuronCountModifier").on("click", "button", e => {
 			let inc = e.target.textContent == '+';
-			let layer = $(e.target.parentNode).index() - 1;
-			this.config.netLayers[layer] += inc ? 1 : -1;
-			$("#neuronCountModifier .neuronCount").eq(layer).text(this.config.netLayers[layer]);
+			let layer = $(e.target.parentNode).index();
+			let newval = this.config.netLayers[layer] + (inc ? 1 : -1);
+			if(newval < 1) return;
+			this.config.netLayers[layer] = newval;
+			$("#neuronCountModifier .neuronCount").eq(layer).text(newval);
 			this.initializeNet();
-		})
+		});
+		$("#layerCountModifier").on("click","button", e=> {
+			let inc = e.target.textContent  == '+';
+			if(!inc) {
+				if(this.config.netLayers.length == 2) return;
+				this.config.netLayers.splice(1, 1);
+				$("#neuronCountModifier div").eq(1).remove();
+			} else {
+				$("#neuronCountModifier div").eq(1).before(this.hiddenLayerDiv.clone());
+				this.config.netLayers.splice(1, 0, 2);
+			}
+			$("#layerCount").text(this.config.netLayers.length);
+			this.initializeNet();
+		});
 		this.reset();
 		this.run();
 	}
 
 	initializeNet() {
+		if(this.net) this.stop();
 		//let cache = [0.18576880730688572,-0.12869677506387234,0.08548374730162323,-0.19820863520726562,-0.09532690420746803,-0.3415223266929388,-0.309354952769354,-0.157513455953449];
 		//let cache = [-0.04884958150796592,-0.3569231238216162,0.11143312812782824,0.43614205135963857,0.3078767384868115,-0.22759653301909566,0.09250503336079419,0.3279339636210352];
 		this.net = new Net.NeuralNet(this.config.netLayers, ["x", "y"], this.config.bias);
@@ -90,10 +110,7 @@ class Simulation {
 	}
 
 	draw() {
-		this.netviz.drawBackground(this.backgroundResolution,
-			(x, y) => this.net.getOutput([x, y])[0]);
-		this.netviz.drawCoordinateSystem();
-		this.netviz.drawDataPoints();
+		this.netviz.draw();
 		this.netgraph.update();
 	}
 

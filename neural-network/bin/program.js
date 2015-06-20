@@ -45,13 +45,20 @@ var Net;
             var _this = this;
             if (bias === void 0) { bias = true; }
             if (startWeight === void 0) { startWeight = function () { return Math.random(); }; }
+            this.layers = [];
             this.connections = [];
             this.learnRate = 0.01;
+            counts = counts.slice();
+            if (counts.length < 2)
+                throw "Need at least two layers";
             var nid = 0;
-            this.inputs = makeArray(counts[0], function () { return new InputNeuron(nid, inputnames[nid++]); });
-            var hidden = makeArray(counts[1], function () { return new Neuron(nid++); });
-            this.outputs = makeArray(counts[2], function () { return new OutputNeuron(nid++); });
-            this.layers = [this.inputs, hidden, this.outputs];
+            this.inputs = makeArray(counts.shift(), function () { return new InputNeuron(nid, inputnames[nid++]); });
+            this.layers.push(this.inputs);
+            while (counts.length > 1) {
+                this.layers.push(makeArray(counts.shift(), function () { return new Neuron(nid++); }));
+            }
+            this.outputs = makeArray(counts.shift(), function () { return new OutputNeuron(nid++); });
+            this.layers.push(this.outputs);
             this.bias = bias;
             if (bias) {
                 var onNeuron = new InputNeuron(nid++, "1 (bias)", 1);
@@ -181,8 +188,13 @@ var Net;
 ///<reference path='Net.ts' />
 var NetworkGraph = (function () {
     function NetworkGraph(networkGraphContainer) {
+        this.networkGraphContainer = networkGraphContainer;
         this.nodes = new vis.DataSet();
         this.edges = new vis.DataSet();
+        this.instantiateGraph();
+    }
+    NetworkGraph.prototype.instantiateGraph = function () {
+        // need only be run once, but removes bounciness if run every time
         var graphData = {
             nodes: this.nodes,
             edges: this.edges };
@@ -195,8 +207,8 @@ var NetworkGraph = (function () {
             layout: { hierarchical: { direction: "LR" } },
             interaction: { dragNodes: false }
         };
-        this.graph = new vis.Network(networkGraphContainer, graphData, options);
-    }
+        this.graph = new vis.Network(this.networkGraphContainer, graphData, options);
+    };
     NetworkGraph.prototype.loadNetwork = function (net) {
         if (this.net
             && this.net.layers.length == net.layers.length
@@ -206,6 +218,7 @@ var NetworkGraph = (function () {
             this.update();
             return;
         }
+        this.instantiateGraph();
         this.net = net;
         this.nodes.clear();
         this.edges.clear();
@@ -251,7 +264,7 @@ var NetworkGraph = (function () {
             this.edges.update({
                 id: conn.inp.id * this.net.connections.length + conn.out.id,
                 label: conn.weight.toFixed(2),
-                width: Math.min(10, Math.abs(conn.weight * 2)),
+                width: Math.min(6, Math.abs(conn.weight * 2)),
                 color: conn.weight > 0 ? 'blue' : 'red'
             });
         }
@@ -304,25 +317,32 @@ var CanvasMouseNavigation = (function () {
 })();
 ///<reference path='Transform.ts' />
 var NetworkVisualization = (function () {
-    function NetworkVisualization(outputCanvas, trafo, data) {
+    function NetworkVisualization(canvas, trafo, data, classify, backgroundResolution) {
         var _this = this;
+        this.canvas = canvas;
+        this.trafo = trafo;
+        this.data = data;
+        this.classify = classify;
+        this.backgroundResolution = backgroundResolution;
         this.dragged = 0; // ignore clicks if dragged
         this.colors = {
             bg: ["#f88", "#8f8"],
             fg: ["#f00", "#0f0"],
             gradient: function (val) { return "rgb(" + [((1 - val) * 256) | 0, (val * 256) | 0, 0] + ")"; }
         };
-        this.canvas = outputCanvas;
         this.ctx = this.canvas.getContext('2d');
-        this.trafo = trafo;
-        this.data = data;
         this.canvasResized();
         window.addEventListener('resize', this.canvasResized.bind(this));
-        this.canvas.addEventListener("click", this.canvasClicked.bind(this));
-        this.canvas.addEventListener("mousedown", function () { return _this.dragged = 0; });
-        this.canvas.addEventListener("mousemove", function () { return _this.dragged++; });
-        this.canvas.addEventListener("contextmenu", this.canvasClicked.bind(this));
+        canvas.addEventListener("click", this.canvasClicked.bind(this));
+        canvas.addEventListener("mousedown", function () { return _this.dragged = 0; });
+        canvas.addEventListener("mousemove", function () { return _this.dragged++; });
+        canvas.addEventListener("contextmenu", this.canvasClicked.bind(this));
     }
+    NetworkVisualization.prototype.draw = function () {
+        this.drawBackground();
+        this.drawCoordinateSystem();
+        this.drawDataPoints();
+    };
     NetworkVisualization.prototype.drawDataPoints = function () {
         this.ctx.strokeStyle = "#000";
         for (var _i = 0, _a = this.data; _i < _a.length; _i++) {
@@ -335,16 +355,16 @@ var NetworkVisualization = (function () {
             this.ctx.stroke();
         }
     };
-    NetworkVisualization.prototype.drawBackground = function (resolution, classify) {
-        for (var x = 0; x < this.canvas.width; x += resolution) {
-            for (var y = 0; y < this.canvas.height; y += resolution) {
-                var val = classify(this.trafo.toReal.x(x), this.trafo.toReal.y(y));
+    NetworkVisualization.prototype.drawBackground = function () {
+        for (var x = 0; x < this.canvas.width; x += this.backgroundResolution) {
+            for (var y = 0; y < this.canvas.height; y += this.backgroundResolution) {
+                var val = this.classify(this.trafo.toReal.x(x), this.trafo.toReal.y(y));
                 if (this.showGradient) {
                     this.ctx.fillStyle = this.colors.gradient(val);
                 }
                 else
                     this.ctx.fillStyle = this.colors.bg[(val + 0.5) | 0];
-                this.ctx.fillRect(x, y, resolution, resolution);
+                this.ctx.fillRect(x, y, this.backgroundResolution, this.backgroundResolution);
             }
         }
     };
@@ -396,8 +416,8 @@ var NetworkVisualization = (function () {
             if (evt.ctrlKey)
                 label = label == 0 ? 1 : 0;
             this.data.push({ x: x, y: y, label: label });
-            this.drawDataPoints();
         }
+        this.draw();
         evt.preventDefault();
     };
     return NetworkVisualization;
@@ -414,6 +434,7 @@ var Simulation = (function () {
         this.running = false;
         this.runningId = -1;
         this.restartTimeout = -1;
+        this.hiddenLayerDiv = $("#neuronCountModifier div").eq(1).clone();
         this.config = {
             stepsPerFrame: 50,
             learningRate: 0.05,
@@ -433,22 +454,42 @@ var Simulation = (function () {
         this.statusCorrectEle = document.getElementById('statusCorrect');
         this.aniFrameCallback = this.animationStep.bind(this);
         var canvas = $("#neuralOutputCanvas")[0];
-        this.netviz = new NetworkVisualization(canvas, new CanvasMouseNavigation(canvas, function () { return _this.draw(); }), this.config.data);
+        this.netviz = new NetworkVisualization(canvas, new CanvasMouseNavigation(canvas, function () { return _this.draw(); }), this.config.data, function (x, y) { return _this.net.getOutput([x, y])[0]; }, this.backgroundResolution);
         this.netgraph = new NetworkGraph($("#neuralNetworkGraph")[0]);
         $("#learningRate").slider({
             min: 0.01, max: 1, step: 0.005, scale: "logarithmic", value: 0.05
         }).on('slide', function (e) { return $("#learningRateVal").text(e.value.toFixed(2)); });
         $("#neuronCountModifier").on("click", "button", function (e) {
             var inc = e.target.textContent == '+';
-            var layer = $(e.target.parentNode).index() - 1;
-            _this.config.netLayers[layer] += inc ? 1 : -1;
-            $("#neuronCountModifier .neuronCount").eq(layer).text(_this.config.netLayers[layer]);
+            var layer = $(e.target.parentNode).index();
+            var newval = _this.config.netLayers[layer] + (inc ? 1 : -1);
+            if (newval < 1)
+                return;
+            _this.config.netLayers[layer] = newval;
+            $("#neuronCountModifier .neuronCount").eq(layer).text(newval);
+            _this.initializeNet();
+        });
+        $("#layerCountModifier").on("click", "button", function (e) {
+            var inc = e.target.textContent == '+';
+            if (!inc) {
+                if (_this.config.netLayers.length == 2)
+                    return;
+                _this.config.netLayers.splice(1, 1);
+                $("#neuronCountModifier div").eq(1).remove();
+            }
+            else {
+                $("#neuronCountModifier div").eq(1).before(_this.hiddenLayerDiv.clone());
+                _this.config.netLayers.splice(1, 0, 2);
+            }
+            $("#layerCount").text(_this.config.netLayers.length);
             _this.initializeNet();
         });
         this.reset();
         this.run();
     }
     Simulation.prototype.initializeNet = function () {
+        if (this.net)
+            this.stop();
         //let cache = [0.18576880730688572,-0.12869677506387234,0.08548374730162323,-0.19820863520726562,-0.09532690420746803,-0.3415223266929388,-0.309354952769354,-0.157513455953449];
         //let cache = [-0.04884958150796592,-0.3569231238216162,0.11143312812782824,0.43614205135963857,0.3078767384868115,-0.22759653301909566,0.09250503336079419,0.3279339636210352];
         this.net = new Net.NeuralNet(this.config.netLayers, ["x", "y"], this.config.bias);
@@ -490,10 +531,7 @@ var Simulation = (function () {
         }
     };
     Simulation.prototype.draw = function () {
-        var _this = this;
-        this.netviz.drawBackground(this.backgroundResolution, function (x, y) { return _this.net.getOutput([x, y])[0]; });
-        this.netviz.drawCoordinateSystem();
-        this.netviz.drawDataPoints();
+        this.netviz.draw();
         this.netgraph.update();
     };
     Simulation.prototype.run = function () {
