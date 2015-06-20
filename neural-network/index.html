@@ -45,7 +45,7 @@
 			<div class="panel-heading">
 				<h3 class="panel-title"><a href="#" data-toggle="collapse" data-target=".panel-body">Configuration</a></h3>
 			</div>
-			<div class="collapse panel-body">
+			<div class="panel-body">
 				<div id='configuration' class="form-horizontal">
 					<div class="form-group">
 						<label for="iterations" class="col-sm-6 control-label">Iterations per Step</label>
@@ -89,6 +89,12 @@
 						<div class="col-sm-6 form-control-static">
 							<input type=checkbox id="bias" onchange='simulation.loadConfig();simulation.initializeNet();'>
 						</div>
+					</div>
+					<div id='neuronCountModifier'>
+						<p><span id='layerCount'>3</span> layers:</p>
+						<div>Input layer: <span class='neuronCount'>2</span> neurons <button class="btn btn-xs btn-default">+</button><button class="btn btn-xs btn-default">-</button></div>
+						<div>Hidden layer: <span class='neuronCount'>2</span> neurons <button class="btn btn-xs btn-default">+</button><button class="btn btn-xs btn-default">-</button></div>
+						<div>Output layer: <span class='neuronCount'>1</span> neuron <button class="btn btn-xs btn-default">+</button><button class="btn btn-xs btn-default">-</button></div>
 					</div>
 					<br>
 					<button class="btn btn-default" onclick="simulation.loadConfig()">Load config</button>

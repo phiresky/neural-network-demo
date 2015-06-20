@@ -414,36 +414,44 @@ var Simulation = (function () {
         this.running = false;
         this.runningId = -1;
         this.restartTimeout = -1;
-        this.data = [
-            { x: 0, y: 0, label: 0 },
-            { x: 0, y: 1, label: 1 },
-            { x: 1, y: 0, label: 1 },
-            { x: 1, y: 1, label: 0 }
-        ];
         this.config = {
             stepsPerFrame: 50,
             learningRate: 0.05,
             activation: "sigmoid",
             showGradient: false,
             bias: true,
-            autoRestartTime: 5000
+            autoRestartTime: 5000,
+            data: [
+                { x: 0, y: 0, label: 0 },
+                { x: 0, y: 1, label: 1 },
+                { x: 1, y: 0, label: 1 },
+                { x: 1, y: 1, label: 0 }
+            ],
+            netLayers: [2, 2, 1]
         };
         this.statusIterEle = document.getElementById('statusIteration');
         this.statusCorrectEle = document.getElementById('statusCorrect');
         this.aniFrameCallback = this.animationStep.bind(this);
         var canvas = $("#neuralOutputCanvas")[0];
-        this.netviz = new NetworkVisualization(canvas, new CanvasMouseNavigation(canvas, function () { return _this.draw(); }), this.data);
+        this.netviz = new NetworkVisualization(canvas, new CanvasMouseNavigation(canvas, function () { return _this.draw(); }), this.config.data);
         this.netgraph = new NetworkGraph($("#neuralNetworkGraph")[0]);
         $("#learningRate").slider({
             min: 0.01, max: 1, step: 0.005, scale: "logarithmic", value: 0.05
         }).on('slide', function (e) { return $("#learningRateVal").text(e.value.toFixed(2)); });
+        $("#neuronCountModifier").on("click", "button", function (e) {
+            var inc = e.target.textContent == '+';
+            var layer = $(e.target.parentNode).index() - 1;
+            _this.config.netLayers[layer] += inc ? 1 : -1;
+            $("#neuronCountModifier .neuronCount").eq(layer).text(_this.config.netLayers[layer]);
+            _this.initializeNet();
+        });
         this.reset();
         this.run();
     }
     Simulation.prototype.initializeNet = function () {
         //let cache = [0.18576880730688572,-0.12869677506387234,0.08548374730162323,-0.19820863520726562,-0.09532690420746803,-0.3415223266929388,-0.309354952769354,-0.157513455953449];
         //let cache = [-0.04884958150796592,-0.3569231238216162,0.11143312812782824,0.43614205135963857,0.3078767384868115,-0.22759653301909566,0.09250503336079419,0.3279339636210352];
-        this.net = new Net.NeuralNet([2, 2, 1], ["x", "y"], this.config.bias);
+        this.net = new Net.NeuralNet(this.config.netLayers, ["x", "y"], this.config.bias);
         console.log("net:" + JSON.stringify(this.net.connections.map(function (c) { return c.weight; })));
         this.stepNum = 0;
         this.netgraph.loadNetwork(this.net);
@@ -451,12 +459,12 @@ var Simulation = (function () {
     Simulation.prototype.step = function () {
         var _this = this;
         this.stepNum++;
-        for (var _i = 0, _a = this.data; _i < _a.length; _i++) {
+        for (var _i = 0, _a = this.config.data; _i < _a.length; _i++) {
             var val = _a[_i];
             var stats = this.net.train([val.x, val.y], [val.label]);
         }
         var correct = 0;
-        for (var _b = 0, _c = this.data; _b < _c.length; _b++) {
+        for (var _b = 0, _c = this.config.data; _b < _c.length; _b++) {
             var val = _c[_b];
             var res = this.net.getOutput([val.x, val.y]);
             var label = (res[0] > 0.5) ? 1 : 0;
@@ -464,8 +472,8 @@ var Simulation = (function () {
                 correct++;
         }
         this.statusIterEle.innerHTML = this.stepNum.toString();
-        this.statusCorrectEle.innerHTML = correct + "/" + this.data.length;
-        if (correct == this.data.length) {
+        this.statusCorrectEle.innerHTML = correct + "/" + this.config.data.length;
+        if (correct == this.config.data.length) {
             if (this.running && this.restartTimeout == -1) {
                 this.restartTimeout = setTimeout(function () {
                     _this.stop();
@@ -541,7 +549,7 @@ var Simulation = (function () {
     Simulation.prototype.randomizeData = function () {
         var count = 4;
         for (var i = 0; i < count; i++) {
-            this.data[i] = { x: Math.random() * 2, y: Math.random() * 2, label: +(Math.random() > 0.5) };
+            this.config.data[i] = { x: Math.random() * 2, y: Math.random() * 2, label: +(Math.random() > 0.5) };
         }
         this.draw();
     };
