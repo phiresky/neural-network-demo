@@ -162,14 +162,7 @@ module Net {
 	export class OutputNeuron extends Neuron {
 		targetOutput: double;
 
-		getOutput() {
-			return Math.max(Math.min(super.weightedInputs(), 0.999), 0.001);
-			//return super.weightedInputs();
-		}
 		getError() {
-			//let oup = Math.abs(NonLinearity.sigmoid(this.getOutput()));
-			/*return NonLinearity.sigDiff(NonLinearity.sigmoid(oup)) *
-				(this.targetOutput - oup);*/
 			let oup = this.getOutput();
 			return activation.df(oup) *
 				(this.targetOutput - oup);
