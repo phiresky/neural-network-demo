@@ -15,7 +15,7 @@ class NetworkGraph {
 			edges: this.edges };
 		let options = {
 			nodes: { shape: 'dot' },
-			edges: { smooth: {type: 'curvedCW',roundness:0.25}},
+			edges: { smooth: {type: 'curvedCW',roundness:0.2}, font:{align:'top', background:'white'}},
 			layout: { hierarchical: { direction: "LR" } },
 			interaction: { dragNodes: false }
 		}

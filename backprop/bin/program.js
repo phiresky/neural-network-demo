@@ -185,7 +185,7 @@ var NetworkGraph = (function () {
             edges: this.edges };
         var options = {
             nodes: { shape: 'dot' },
-            edges: { smooth: { type: 'curvedCW', roundness: 0.25 } },
+            edges: { smooth: { type: 'curvedCW', roundness: 0.2 }, font: { align: 'top', background: 'white' } },
             layout: { hierarchical: { direction: "LR" } },
             interaction: { dragNodes: false }
         };
@@ -491,6 +491,16 @@ var Simulation = (function () {
             this.data[i] = { x: Math.random() * 2, y: Math.random() * 2, label: +(Math.random() > 0.5) };
         }
         this.draw();
+    };
+    Simulation.prototype.runtoggle = function (button) {
+        if (this.running) {
+            this.stop();
+            $(button).text("Run").toggleClass("btn-primary btn-danger");
+        }
+        else {
+            this.run();
+            $(button).text("Stop").removeClass("btn-primary btn-danger");
+        }
     };
     return Simulation;
 })();

@@ -138,4 +138,13 @@ class Simulation {
 		}
 		this.draw();
 	}
+	runtoggle(button) {
+		if(this.running) {
+			this.stop();
+			$(button).text("Run").toggleClass("btn-primary btn-danger");
+		} else {
+			this.run();
+			$(button).text("Stop").removeClass("btn-primary btn-danger");
+		}
+	}
 }
