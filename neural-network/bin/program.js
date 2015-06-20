@@ -6,6 +6,29 @@ var __extends = this.__extends || function (d, b) {
 };
 var Net;
 (function (Net) {
+    var _nextGaussian;
+    function randomGaussian(mean, standardDeviation) {
+        if (mean === void 0) { mean = 0; }
+        if (standardDeviation === void 0) { standardDeviation = 1; }
+        if (_nextGaussian !== undefined) {
+            var nextGaussian = _nextGaussian;
+            _nextGaussian = undefined;
+            return (nextGaussian * standardDeviation) + mean;
+        }
+        else {
+            var v1, v2, s, multiplier;
+            do {
+                v1 = 2 * Math.random() - 1; // between -1 and 1
+                v2 = 2 * Math.random() - 1; // between -1 and 1
+                s = v1 * v1 + v2 * v2;
+            } while (s >= 1 || s == 0);
+            multiplier = Math.sqrt(-2 * Math.log(s) / s);
+            _nextGaussian = v2 * multiplier;
+            return (v1 * multiplier * standardDeviation) + mean;
+        }
+    }
+    Net.randomGaussian = randomGaussian;
+    ;
     var tanh = function (x) {
         if (x === Infinity) {
             return 1;
@@ -41,13 +64,14 @@ var Net;
     }
     // back propagation code adapted from https://de.wikipedia.org/wiki/Backpropagation
     var NeuralNet = (function () {
-        function NeuralNet(counts, inputnames, bias, startWeight, weights) {
+        function NeuralNet(counts, inputnames, learnRate, bias, startWeight, weights) {
             var _this = this;
             if (bias === void 0) { bias = true; }
             if (startWeight === void 0) { startWeight = function () { return Math.random(); }; }
             this.layers = [];
             this.connections = [];
             this.learnRate = 0.01;
+            this.learnRate = learnRate;
             counts = counts.slice();
             if (counts.length < 2)
                 throw "Need at least two layers";
@@ -167,14 +191,7 @@ var Net;
         function OutputNeuron() {
             _super.apply(this, arguments);
         }
-        OutputNeuron.prototype.getOutput = function () {
-            return Math.max(Math.min(_super.prototype.weightedInputs.call(this), 0.999), 0.001);
-            //return super.weightedInputs();
-        };
         OutputNeuron.prototype.getError = function () {
-            //let oup = Math.abs(NonLinearity.sigmoid(this.getOutput()));
-            /*return NonLinearity.sigDiff(NonLinearity.sigmoid(oup)) *
-                (this.targetOutput - oup);*/
             var oup = this.getOutput();
             return Net.activation.df(oup) *
                 (this.targetOutput - oup);
@@ -490,7 +507,7 @@ var Simulation = (function () {
             this.stop();
         //let cache = [0.18576880730688572,-0.12869677506387234,0.08548374730162323,-0.19820863520726562,-0.09532690420746803,-0.3415223266929388,-0.309354952769354,-0.157513455953449];
         //let cache = [-0.04884958150796592,-0.3569231238216162,0.11143312812782824,0.43614205135963857,0.3078767384868115,-0.22759653301909566,0.09250503336079419,0.3279339636210352];
-        this.net = new Net.NeuralNet(this.config.netLayers, ["x", "y"], this.config.bias);
+        this.net = new Net.NeuralNet(this.config.netLayers, ["x", "y"], this.config.learningRate, this.config.bias);
         console.log("net:" + JSON.stringify(this.net.connections.map(function (c) { return c.weight; })));
         this.stepNum = 0;
         this.netgraph.loadNetwork(this.net);

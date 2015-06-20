@@ -1,6 +1,26 @@
 module Net {
 	type int = number;
 	type double = number;
+	let _nextGaussian:double;
+	export function randomGaussian(mean = 0, standardDeviation = 1) {
+
+		if (_nextGaussian !== undefined) {
+			var nextGaussian = _nextGaussian;
+			_nextGaussian = undefined;
+			return (nextGaussian * standardDeviation) + mean;
+		} else {
+			let v1:double, v2:double, s:double, multiplier:double;
+			do {
+				v1 = 2 * Math.random() - 1; // between -1 and 1
+				v2 = 2 * Math.random() - 1; // between -1 and 1
+				s = v1 * v1 + v2 * v2;
+			} while (s >= 1 || s == 0);
+			multiplier = Math.sqrt(-2 * Math.log(s) / s);
+			_nextGaussian = v2 * multiplier;
+			return (v1 * multiplier * standardDeviation) + mean;
+		}
+
+	};
 	var tanh = function(x: double) {
 		if (x === Infinity) {
 			return 1;
@@ -44,14 +64,15 @@ module Net {
 		connections: NeuronConnection[] = [];
 		learnRate: number = 0.01;
 		bias: boolean;
-		constructor(counts: int[], inputnames: string[],
-				bias = true, startWeight = () => Math.random(), weights?: double[]) {
+		constructor(counts: int[], inputnames: string[], learnRate: number, 
+			bias = true, startWeight = () => Math.random(), weights?: double[]) {
+			this.learnRate = learnRate;
 			counts = counts.slice();
-			if(counts.length < 2) throw "Need at least two layers";
+			if (counts.length < 2) throw "Need at least two layers";
 			let nid = 0;
 			this.inputs = makeArray(counts.shift(), () => new InputNeuron(nid, inputnames[nid++]));
 			this.layers.push(this.inputs);
-			while(counts.length > 1) {
+			while (counts.length > 1) {
 				this.layers.push(makeArray(counts.shift(), () => new Neuron(nid++)));
 			}
 			this.outputs = makeArray(counts.shift(), () => new OutputNeuron(nid++));
@@ -60,7 +81,7 @@ module Net {
 			for (let i = 0; i < this.layers.length - 1; i++) {
 				let inLayer = this.layers[i];
 				let outLayer = this.layers[i + 1];
-				if(bias) 
+				if (bias)
 					inLayer.push(new InputNeuron(nid++, "1 (bias)", 1));
 
 				for (let input of inLayer) for (let output of outLayer) {
