@@ -1,10 +1,13 @@
 {
 	"compilerOptions": {
 		"target": "ES5",
-		"outDir": "bin",
+		"out": "bin/program.js",
 		"watch": true,
 		"sourceMap": true,
 		"noImplicitAny": true,
 		"module": "amd"
-	}
+	},
+	"files": [
+		"src/main.ts"
+	]
 }

@@ -28,22 +28,22 @@
 				</h2>
 			</div>
 			<div>
-				<div id=graph></div>
+				<div id="neuralNetworkGraph"></div>
 			</div>
 		</div>
 		<div class="col-md-6">
 			<div class="form-horizontal">
 				<h3>Animated</h3>
-				<button class="btn btn-primary" onclick="run()">Run</button>
-				<button class="btn btn-default" onclick="stop()">Stop</button>
-				<button class="btn btn-warning" onclick="reset()">Reset / Reload</button>
+				<button class="btn btn-primary" onclick="simulation.run()">Run</button>
+				<button class="btn btn-default" onclick="simulation.stop()">Stop</button>
+				<button class="btn btn-warning" onclick="simulation.reset()">Reset / Reload</button>
 				<h3>Manual</h3>
 				<div class="form-group">
 					<label for="iterations" class="col-sm-4 control-label">Iterations</label>
 					<div class="input-group col-sm-8">
 						<input class="form-control" type=number min=0 max=10000 id=iterations value=5000>
 						<span class="input-group-btn">
-							<button class="btn btn-default" onclick="iterations()">Step</button>
+							<button class="btn btn-default" onclick="simulation.iterations()">Step</button>
 						</span>
 					</div>
 				</div>
@@ -54,20 +54,20 @@
 					<div class="form-group">
 						<label for="stepsPerFrame" class="col-sm-6 control-label">Steps per Frame</label>
 						<div class="col-sm-6">
-							<input class="form-control" type=number min=1 max=1000 id=stepsPerFrame value=100 onchange="loadConfig()"></input>
+							<input class="form-control" type=number min=1 max=1000 id=stepsPerFrame value=100 onchange="simulation.loadConfig()"></input>
 						</div>
 					</div>
 					<div class="form-group">
 						<label for="showGradient" class="col-sm-6 control-label">Show class propabilities as gradient</label>
 						<div class="col-sm-6 form-control-static">
-							<input type=checkbox id="showGradient" onchange='loadConfig();draw();'>
+							<input type=checkbox id="showGradient" onchange='simulation.loadConfig();simulation.draw();'>
 						</div>
 					</div>
 					<h4>Net</h4>
 					<div class="form-group">
 						<label for="activation" class="col-sm-6 control-label">Activation function</label>
 						<div class="col-sm-6">
-							<select class="form-control" id="activation" onchange="loadConfig()">
+							<select class="form-control" id="activation" onchange="simulation.loadConfig()">
 								<option selected>sigmoid</option>
 								<option>tanh</option>
 								<!--<option>relu</option>-->
@@ -78,12 +78,12 @@
 						<label for="learningRate" class="col-sm-6 control-label">Learning Rate</label>
 						<div class="col-sm-6 form-control-static">
 							<span id="learningRateVal" style='margin-right:1em;'>0.05</span>
-							<input class="form-control" type=number min=0.000 max=1 step=0.01 id=learningRate value=0.05 onchange="loadConfig();loadTrainer()"></input>
+							<input class="form-control" type=number min=0.000 max=1 step=0.01 id=learningRate value=0.05 onchange="simulation.loadConfig();"></input>
 						</div>
 					</div>
 					<br>
-					<button class="btn btn-default" onclick="loadConfig()">Load config</button>
-					<button class="btn btn-default" onclick="randomizeData()">Randomize input data</button>
+					<button class="btn btn-default" onclick="simulation.loadConfig()">Load config</button>
+					<button class="btn btn-default" onclick="simulation.randomizeData()">Randomize input data</button>
 				</div>
 			</div>
 		</div>
@@ -96,5 +96,4 @@
 <!--<script src="lib/convnet.min.js"></script>-->
 <script src="lib/react.min.js"></script>
 <script src="lib/vis.min.js"></script>
-<script src="bin/Net.js"></script>
-<script src="bin/backprop.js"></script>
+<script src="bin/program.js"></script>
