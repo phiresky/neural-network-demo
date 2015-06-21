@@ -55,7 +55,7 @@ module Presets {
 		}
 	}
 	export function get(name: string) {
-		return $.extend({}, presets["Default"], presets[name]);
+		return $.extend(true, {}, presets["Default"], presets[name]);
 	}
 	export function printDataPoints() {
 		return (<any>window).simulation.config.data.map(

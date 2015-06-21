@@ -21,6 +21,13 @@
 	<hr>
 	<div class="row">
 		<div class="col-sm-6">
+			</div>
+		<div class="col-sm-6">
+			<p class="small">Left-Click adds red points. Middle-Click/Ctrl-Click adds green points. Right-Click/Ctrl-Click removes.</p>
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-6">
 			<div>
 				<div id="neuralNetworkGraph"></div>
 			</div>
@@ -29,10 +36,16 @@
 				<button class="btn btn-warning" onclick="simulation.reset()">Reset / Reload</button>
 				<button class="btn btn-default" onclick="simulation.iterations()">Step</button>
 				<div class="btn-group pull-right">
-					<button class="btn btn-default dropdown-toggle" data-toggle="dropdown">Load preset <span class="caret"></span></button>
+					<button class="btn btn-default dropdown-toggle" data-toggle="dropdown">Load preset
+						<span class="caret"></span>
+					</button>
 					<ul class="dropdown-menu" id="presetLoader">
-						<li><a>XOR</a></li>
-						<li><a>Auto-Encoder</a></li>
+						<li>
+							<a>XOR</a>
+						</li>
+						<li>
+							<a>Auto-Encoder</a>
+						</li>
 					</ul>
 				</div>
 			</h3>
@@ -40,8 +53,8 @@
 		<div class="col-sm-6">
 			<canvas class="center-block" id='neuralOutputCanvas' width=400 height=400></canvas>
 			<div id='status'>
-				<h2>Correct:
-					<span id='statusCorrect'></span>&nbsp;Iteration:
+				<h2>
+					<span id='statusCorrect'></span>&nbsp;&mdash; Iteration:
 					<span id='statusIteration'></span>
 				</h2>
 			</div>
@@ -99,7 +112,7 @@
 						</div>
 					</div>
 					<div id='layerCountModifier'>
-						<span id='layerCount'>3</span>layers
+						<span id='layerCount'>3</span>&nbsp;layers
 						<button class="btn btn-xs btn-default">+</button>
 						<button class="btn btn-xs btn-default">-</button>
 					</div>

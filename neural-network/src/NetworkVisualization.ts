@@ -138,7 +138,7 @@ class NetworkVisualization {
 				data.push({ input: [x, y], output: [x, y] });
 			} else if (this.sim.config.simType == SimulationType.BinaryClassification) {
 				let label = evt.button == 0 ? 0 : 1;
-				if (evt.ctrlKey) label = label == 0 ? 1 : 0;
+				if (evt.ctrlKey || evt.metaKey || evt.altKey) label = label == 0 ? 1 : 0;
 				data.push({ input: [x, y], output: [label] });
 			}
 		}

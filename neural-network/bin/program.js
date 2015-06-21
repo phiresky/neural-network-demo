@@ -486,7 +486,7 @@ var NetworkVisualization = (function () {
             }
             else if (this.sim.config.simType == SimulationType.BinaryClassification) {
                 var label = evt.button == 0 ? 0 : 1;
-                if (evt.ctrlKey)
+                if (evt.ctrlKey || evt.metaKey || evt.altKey)
                     label = label == 0 ? 1 : 0;
                 data.push({ input: [x, y], output: [label] });
             }
@@ -553,7 +553,7 @@ var Presets;
         }
     };
     function get(name) {
-        return $.extend({}, presets["Default"], presets[name]);
+        return $.extend(true, {}, presets["Default"], presets[name]);
     }
     Presets.get = get;
     function printDataPoints() {
@@ -677,10 +677,14 @@ var Simulation = (function () {
                     if (+(res[0] > 0.5) == val.output[0])
                         correct++;
                 }
-                this.statusCorrectEle.innerHTML = correct + "/" + this.config.data.length;
+                this.statusCorrectEle.innerHTML = "Correct: " + correct + "/" + this.config.data.length;
                 break;
             case SimulationType.AutoEncoder:
-                this.statusCorrectEle.innerHTML = "?";
+                var avgDist = this.config.data
+                    .map(function (point) { return ({ a: point.output, b: _this.net.getOutput(point.input) }); })
+                    .map(function (x) { return ({ dx: x.a[0] - x.b[0], dy: x.a[1] - x.b[1] }); })
+                    .reduce(function (a, b) { return a + Math.sqrt(b.dx * b.dx + b.dy * b.dy); }, 0) / this.config.data.length;
+                this.statusCorrectEle.innerHTML = "Avg. distance: " + avgDist.toFixed(2);
                 break;
         }
         this.statusIterEle.innerHTML = this.stepNum.toString();

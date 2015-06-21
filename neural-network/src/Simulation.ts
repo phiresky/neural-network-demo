@@ -122,10 +122,14 @@ class Simulation {
 					let res = this.net.getOutput(val.input);
 					if (+(res[0] > 0.5) == val.output[0]) correct++;
 				}
-				this.statusCorrectEle.innerHTML = `${correct}/${this.config.data.length}`;
+				this.statusCorrectEle.innerHTML = `Correct: ${correct}/${this.config.data.length}`;
 				break;
 			case SimulationType.AutoEncoder:
-				this.statusCorrectEle.innerHTML = `?`
+				let avgDist = (<TrainingData[]>this.config.data)
+					.map(point => ({ a: point.output, b: this.net.getOutput(point.input) }))
+					.map(x => ({ dx: x.a[0] - x.b[0], dy: x.a[1] - x.b[1] }))
+					.reduce((a, b) => a + Math.sqrt(b.dx * b.dx + b.dy * b.dy), 0) / this.config.data.length;
+				this.statusCorrectEle.innerHTML = `Avg. distance: ${avgDist.toFixed(2)}`;
 				break;
 		}
 
