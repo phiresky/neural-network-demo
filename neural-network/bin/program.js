@@ -525,36 +525,10 @@ var Simulation = (function () {
         this.netgraph.loadNetwork(this.net);
     };
     Simulation.prototype.step = function () {
-        var _this = this;
         this.stepNum++;
         for (var _i = 0, _a = this.config.data; _i < _a.length; _i++) {
             var val = _a[_i];
-            var stats = this.net.train([val.x, val.y], [val.label]);
-        }
-        var correct = 0;
-        for (var _b = 0, _c = this.config.data; _b < _c.length; _b++) {
-            var val = _c[_b];
-            var res = this.net.getOutput([val.x, val.y]);
-            var label = +(res[0] > 0.5);
-            if (val.label == label)
-                correct++;
-        }
-        this.statusIterEle.innerHTML = this.stepNum.toString();
-        this.statusCorrectEle.innerHTML = correct + "/" + this.config.data.length;
-        if (correct == this.config.data.length) {
-            if (this.config.autoRestart && this.running && this.restartTimeout == -1) {
-                this.restartTimeout = setTimeout(function () {
-                    _this.stop();
-                    _this.restartTimeout = -1;
-                    setTimeout(function () { _this.reset(); _this.run(); }, 1000);
-                }, this.config.autoRestartTime - 1);
-            }
-        }
-        else {
-            if (this.restartTimeout != -1) {
-                clearTimeout(this.restartTimeout);
-                this.restartTimeout = -1;
-            }
+            this.net.train([val.x, val.y], [val.label]);
         }
     };
     Simulation.prototype.draw = function () {
@@ -581,10 +555,39 @@ var Simulation = (function () {
         this.initializeNet();
         this.draw();
     };
+    Simulation.prototype.updateStatusLine = function () {
+        var _this = this;
+        var correct = 0;
+        for (var _i = 0, _a = this.config.data; _i < _a.length; _i++) {
+            var val = _a[_i];
+            var res = this.net.getOutput([val.x, val.y]);
+            var label = +(res[0] > 0.5);
+            if (val.label == label)
+                correct++;
+        }
+        this.statusIterEle.innerHTML = this.stepNum.toString();
+        this.statusCorrectEle.innerHTML = correct + "/" + this.config.data.length;
+        if (correct == this.config.data.length) {
+            if (this.config.autoRestart && this.running && this.restartTimeout == -1) {
+                this.restartTimeout = setTimeout(function () {
+                    _this.stop();
+                    _this.restartTimeout = -1;
+                    setTimeout(function () { _this.reset(); _this.run(); }, 1000);
+                }, this.config.autoRestartTime - 1);
+            }
+        }
+        else {
+            if (this.restartTimeout != -1) {
+                clearTimeout(this.restartTimeout);
+                this.restartTimeout = -1;
+            }
+        }
+    };
     Simulation.prototype.animationStep = function () {
         for (var i = 0; i < this.config.stepsPerFrame; i++)
             this.step();
         this.draw();
+        this.updateStatusLine();
         if (this.running)
             this.runningId = requestAnimationFrame(this.aniFrameCallback);
     };
@@ -594,6 +597,7 @@ var Simulation = (function () {
         for (var i = 0; i < count; i++)
             this.step();
         this.draw();
+        this.updateStatusLine();
     };
     Simulation.prototype.loadConfig = function () {
         var config = this.config;

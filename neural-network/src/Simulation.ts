@@ -84,29 +84,7 @@ class Simulation {
 	step() {
 		this.stepNum++;
 		for (let val of this.config.data) {
-			let stats = this.net.train([val.x, val.y], [val.label]);
-		}
-		let correct = 0;
-		for (let val of this.config.data) {
-			let res = this.net.getOutput([val.x, val.y]);
-			let label = +(res[0] > 0.5);
-			if (val.label == label) correct++;
-		}
-		this.statusIterEle.innerHTML = this.stepNum.toString();
-		this.statusCorrectEle.innerHTML = `${correct}/${this.config.data.length}`;
-		if (correct == this.config.data.length) {
-			if (this.config.autoRestart && this.running && this.restartTimeout == -1) {
-				this.restartTimeout = setTimeout(() => {
-					this.stop();
-					this.restartTimeout = -1;
-					setTimeout(() => { this.reset(); this.run(); }, 1000);
-				}, this.config.autoRestartTime - 1);
-			}
-		} else {
-			if (this.restartTimeout != -1) {
-				clearTimeout(this.restartTimeout);
-				this.restartTimeout = -1;
-			}
+			this.net.train([val.x, val.y], [val.label]);
 		}
 	}
 
@@ -136,11 +114,37 @@ class Simulation {
 		this.initializeNet();
 		this.draw();
 	}
+	
+	updateStatusLine() {
+		let correct = 0;
+		for (let val of this.config.data) {
+			let res = this.net.getOutput([val.x, val.y]);
+			let label = +(res[0] > 0.5);
+			if (val.label == label) correct++;
+		}
+		this.statusIterEle.innerHTML = this.stepNum.toString();
+		this.statusCorrectEle.innerHTML = `${correct}/${this.config.data.length}`;
+		if (correct == this.config.data.length) {
+			if (this.config.autoRestart && this.running && this.restartTimeout == -1) {
+				this.restartTimeout = setTimeout(() => {
+					this.stop();
+					this.restartTimeout = -1;
+					setTimeout(() => { this.reset(); this.run(); }, 1000);
+				}, this.config.autoRestartTime - 1);
+			}
+		} else {
+			if (this.restartTimeout != -1) {
+				clearTimeout(this.restartTimeout);
+				this.restartTimeout = -1;
+			}
+		}
+	}
 
 	aniFrameCallback = this.animationStep.bind(this);
 	animationStep() {
 		for (let i = 0; i < this.config.stepsPerFrame; i++) this.step();
 		this.draw();
+		this.updateStatusLine();
 		if (this.running) this.runningId = requestAnimationFrame(this.aniFrameCallback);
 	}
 
@@ -150,6 +154,7 @@ class Simulation {
 		for (var i = 0; i < count; i++)
 			this.step();
 		this.draw();
+		this.updateStatusLine();
 	}
 
 	loadConfig() {
