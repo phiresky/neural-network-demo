@@ -3,6 +3,64 @@
 ///<reference path='NetworkGraph.ts' />
 ///<reference path='NetworkVisualization.ts' />
 ///<reference path='Presets.ts' />
+
+class NeuronGui {
+	layerDiv: JQuery = $("#neuronCountModifier > div").eq(1).clone();
+
+	removeLayer() {
+		$("#neuronCountModifier > div").eq(1).remove();
+	}
+	addLayer() {
+		$("#neuronCountModifier > div").eq(1).before(this.layerDiv.clone());
+	}
+	setNeuronCount(layer: int, newval: int) {
+		$("#neuronCountModifier .neuronCount").eq(layer).text(newval);
+	}
+	setActivation(layer: int, activ: string) {
+		$("#neuronCountModifier > div").eq(layer).children("select.activation").val(activ);
+	}
+	constructor(public sim: Simulation) {
+		$("#neuronCountModifier").on("click", "button", e => {
+			let inc = e.target.textContent == '+';
+			let layer = $(e.target.parentNode).index();
+			let newval = sim.config.netLayers[layer].neuronCount + (inc ? 1 : -1);
+			if (newval < 1) return;
+			sim.config.netLayers[layer].neuronCount = newval;
+			this.setNeuronCount(layer, newval);
+			sim.initializeNet();
+		});
+		$("#layerCountModifier").on("click", "button", e => {
+			let inc = e.target.textContent == '+';
+			if (!inc) {
+				if (sim.config.netLayers.length == 2) return;
+				sim.config.netLayers.splice(1, 1);
+				this.removeLayer();
+			} else {
+				this.addLayer();
+				sim.config.netLayers.splice(1, 0, { activation: 'sigmoid', neuronCount: 2 });
+			}
+			$("#layerCount").text(sim.config.netLayers.length);
+			sim.initializeNet();
+		});
+		$("#neuronCountModifier").on("change", "select", e => {
+			let layer = $(e.target.parentNode).index();
+			sim.config.netLayers[layer].activation = (<HTMLSelectElement>e.target).value;
+			sim.initializeNet();
+		});
+	}
+	regenerate() {
+		let targetCount = this.sim.config.netLayers.length;
+		while ($("#neuronCountModifier > div").length > targetCount)
+			this.removeLayer();
+		while ($("#neuronCountModifier > div").length < targetCount)
+			this.addLayer();
+		this.sim.config.netLayers.forEach(
+			(c: LayerConfig, i: int) => {
+				this.setNeuronCount(i, c.neuronCount);
+				this.setActivation(i, c.activation);
+			});
+	}
+}
 interface LayerConfig {
 	neuronCount: int;
 	activation?: string;
@@ -16,8 +74,7 @@ class Simulation {
 	restartTimeout = -1;
 
 	net: Net.NeuralNet;
-	hiddenLayerDiv: JQuery = $("#neuronCountModifier div").eq(1).clone();
-
+	neuronGui: NeuronGui;
 	config = Presets.get('XOR');
 
 	constructor() {
@@ -31,36 +88,11 @@ class Simulation {
 		(<any>$("#learningRate")).slider({
 			min: 0.01, max: 1, step: 0.005, scale: "logarithmic", value: 0.05
 		}).on('slide', (e: any) => $("#learningRateVal").text(e.value.toFixed(2)));
-		$("#neuronCountModifier").on("click", "button", e => {
-			let inc = e.target.textContent == '+';
-			let layer = $(e.target.parentNode).index();
-			let newval = this.config.netLayers[layer].neuronCount + (inc ? 1 : -1);
-			if (newval < 1) return;
-			this.config.netLayers[layer].neuronCount = newval;
-			$("#neuronCountModifier .neuronCount").eq(layer).text(newval);
-			this.initializeNet();
-		});
-		$("#layerCountModifier").on("click", "button", e => {
-			let inc = e.target.textContent == '+';
-			if (!inc) {
-				if (this.config.netLayers.length == 2) return;
-				this.config.netLayers.splice(1, 1);
-				$("#neuronCountModifier div").eq(1).remove();
-			} else {
-				$("#neuronCountModifier div").eq(1).before(this.hiddenLayerDiv.clone());
-				this.config.netLayers.splice(1, 0, { activation: 'sigmoid', neuronCount: 2 });
-			}
-			$("#layerCount").text(this.config.netLayers.length);
-			this.initializeNet();
-		});
-		$("#neuronCountModifier").on("change", "select", e => {
-			let layer = $(e.target.parentNode).index();
-			this.config.netLayers[layer].activation = (<HTMLSelectElement>e.target).value;
-			this.initializeNet();
-		});
+		this.neuronGui = new NeuronGui(this);
 		$("#presetLoader").on("click", "a", e => {
 			let name = e.target.textContent;
 			this.config = Presets.get(name);
+			this.setConfig();
 			this.initializeNet();
 		});
 		this.reset();
@@ -129,7 +161,7 @@ class Simulation {
 					.map(point => ({ a: point.output, b: this.net.getOutput(point.input) }))
 					.map(x => ({ dx: x.a[0] - x.b[0], dy: x.a[1] - x.b[1] }))
 					.reduce((a, b) => a + Math.sqrt(b.dx * b.dx + b.dy * b.dy), 0) / this.config.data.length;
-				this.statusCorrectEle.innerHTML = `Avg. distance: ${avgDist.toFixed(2)}`;
+				this.statusCorrectEle.innerHTML = `Avg. distance: ${avgDist.toFixed(2) }`;
 				break;
 		}
 
@@ -167,15 +199,27 @@ class Simulation {
 		this.updateStatusLine();
 	}
 
-	loadConfig() {
+	loadConfig() { // from gui
 		let config = <any>this.config;
 		for (let conf in config) {
 			let ele = <HTMLInputElement>document.getElementById(conf);
 			if (!ele) continue;
 			if (ele.type == 'checkbox') config[conf] = ele.checked;
+			else if(typeof config[conf] === 'number')
+				config[conf] = +ele.value;
 			else config[conf] = ele.value;
 		}
 		if (this.net) this.net.learnRate = this.config.learningRate;
+	}
+	setConfig() { // in gui
+		let config = <any>this.config;
+		for (let conf in config) {
+			let ele = <HTMLInputElement>document.getElementById(conf);
+			if (!ele) continue;
+			if (ele.type == 'checkbox') ele.checked = config[conf];
+			else ele.value = config[conf];
+		}
+		this.neuronGui.regenerate();
 	}
 
 	randomizeData() {

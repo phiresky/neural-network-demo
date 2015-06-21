@@ -527,6 +527,64 @@ var Presets;
             ]
         },
         "XOR": {},
+        "Circular data": {
+            "netLayers": [
+                { "neuronCount": 2 },
+                { "neuronCount": 3, "activation": "sigmoid" },
+                { "neuronCount": 1, "activation": "sigmoid" }
+            ],
+            data: [{ input: [1.46, 1.36], output: [0] },
+                { input: [1.14, 1.26], output: [0] },
+                { input: [0.96, 0.97], output: [0] },
+                { input: [1.04, 0.76], output: [0] },
+                { input: [1.43, 0.81], output: [0] },
+                { input: [1.30, 1.05], output: [0] },
+                { input: [1.45, 1.22], output: [0] },
+                { input: [2.04, 1.10], output: [0] },
+                { input: [1.06, 0.28], output: [0] },
+                { input: [0.96, 0.57], output: [0] },
+                { input: [1.28, 0.46], output: [0] },
+                { input: [1.51, 0.33], output: [0] },
+                { input: [1.65, 0.68], output: [0] },
+                { input: [1.67, 1.01], output: [0] },
+                { input: [1.50, 1.83], output: [1] },
+                { input: [0.76, 1.69], output: [1] },
+                { input: [0.40, 0.71], output: [1] },
+                { input: [0.61, 1.18], output: [1] },
+                { input: [0.26, 1.42], output: [1] },
+                { input: [0.28, 1.89], output: [1] },
+                { input: [1.37, 1.89], output: [1] },
+                { input: [1.11, 1.90], output: [1] },
+                { input: [1.05, 2.04], output: [1] },
+                { input: [2.43, 1.42], output: [1] },
+                { input: [2.39, 1.20], output: [1] },
+                { input: [2.10, 1.53], output: [1] },
+                { input: [1.89, 1.72], output: [1] },
+                { input: [2.69, 0.72], output: [1] },
+                { input: [2.96, 0.44], output: [1] },
+                { input: [2.50, 0.79], output: [1] },
+                { input: [2.85, 1.23], output: [1] },
+                { input: [2.82, 1.37], output: [1] },
+                { input: [1.93, 1.90], output: [1] },
+                { input: [2.18, 1.77], output: [1] },
+                { input: [2.29, 0.39], output: [1] },
+                { input: [2.57, 0.22], output: [1] },
+                { input: [2.70, -0.11], output: [1] },
+                { input: [1.96, -0.20], output: [1] },
+                { input: [1.89, -0.10], output: [1] },
+                { input: [1.77, 0.13], output: [1] },
+                { input: [0.73, 0.01], output: [1] },
+                { input: [0.37, 0.31], output: [1] },
+                { input: [0.46, 0.44], output: [1] },
+                { input: [0.48, 0.11], output: [1] },
+                { input: [0.37, -0.10], output: [1] },
+                { input: [1.03, -0.42], output: [1] },
+                { input: [1.35, -0.25], output: [1] },
+                { input: [1.17, 0.01], output: [1] },
+                { input: [0.12, 0.94], output: [1] },
+                { input: [2.05, 0.32], output: [1] },
+                { input: [1.97, 0.55], output: [0] }]
+        },
         "Auto-Encoder": {
             simType: SimulationType.AutoEncoder,
             stepsPerFrame: 1,
@@ -556,17 +614,91 @@ var Presets;
         return $.extend(true, {}, presets["Default"], presets[name]);
     }
     Presets.get = get;
-    function printDataPoints() {
-        return window.simulation.config.data.map(function (e) { return '{input:[' + e.input.map(function (x) { return x.toFixed(2); })
-            + '], output:[' + e.input.map(function (x) { return x.toFixed(2); }) + ']},'; }).join("\n");
+    function printPreset(parent) {
+        if (parent === void 0) { parent = presets["Default"]; }
+        var config = window.simulation.config;
+        var outconf = {};
+        for (var prop in config) {
+            if (config[prop] !== parent[prop])
+                outconf[prop] = config[prop];
+        }
+        outconf["data"] = config.data.map(function (e) { return '{input:[' + e.input.map(function (x) { return x.toFixed(2); })
+            + '], output:[' +
+            (config.simType == SimulationType.BinaryClassification
+                ? e.output
+                : e.input.map(function (x) { return x.toFixed(2); }))
+            + ']},'; }).join("\n");
+        return outconf;
     }
-    Presets.printDataPoints = printDataPoints;
+    Presets.printPreset = printPreset;
 })(Presets || (Presets = {}));
 ///<reference path='../lib/typings/jquery/jquery.d.ts' />
 ///<reference path='Net.ts' />
 ///<reference path='NetworkGraph.ts' />
 ///<reference path='NetworkVisualization.ts' />
 ///<reference path='Presets.ts' />
+var NeuronGui = (function () {
+    function NeuronGui(sim) {
+        var _this = this;
+        this.sim = sim;
+        this.layerDiv = $("#neuronCountModifier > div").eq(1).clone();
+        $("#neuronCountModifier").on("click", "button", function (e) {
+            var inc = e.target.textContent == '+';
+            var layer = $(e.target.parentNode).index();
+            var newval = sim.config.netLayers[layer].neuronCount + (inc ? 1 : -1);
+            if (newval < 1)
+                return;
+            sim.config.netLayers[layer].neuronCount = newval;
+            _this.setNeuronCount(layer, newval);
+            sim.initializeNet();
+        });
+        $("#layerCountModifier").on("click", "button", function (e) {
+            var inc = e.target.textContent == '+';
+            if (!inc) {
+                if (sim.config.netLayers.length == 2)
+                    return;
+                sim.config.netLayers.splice(1, 1);
+                _this.removeLayer();
+            }
+            else {
+                _this.addLayer();
+                sim.config.netLayers.splice(1, 0, { activation: 'sigmoid', neuronCount: 2 });
+            }
+            $("#layerCount").text(sim.config.netLayers.length);
+            sim.initializeNet();
+        });
+        $("#neuronCountModifier").on("change", "select", function (e) {
+            var layer = $(e.target.parentNode).index();
+            sim.config.netLayers[layer].activation = e.target.value;
+            sim.initializeNet();
+        });
+    }
+    NeuronGui.prototype.removeLayer = function () {
+        $("#neuronCountModifier > div").eq(1).remove();
+    };
+    NeuronGui.prototype.addLayer = function () {
+        $("#neuronCountModifier > div").eq(1).before(this.layerDiv.clone());
+    };
+    NeuronGui.prototype.setNeuronCount = function (layer, newval) {
+        $("#neuronCountModifier .neuronCount").eq(layer).text(newval);
+    };
+    NeuronGui.prototype.setActivation = function (layer, activ) {
+        $("#neuronCountModifier > div").eq(layer).children("select.activation").val(activ);
+    };
+    NeuronGui.prototype.regenerate = function () {
+        var _this = this;
+        var targetCount = this.sim.config.netLayers.length;
+        while ($("#neuronCountModifier > div").length > targetCount)
+            this.removeLayer();
+        while ($("#neuronCountModifier > div").length < targetCount)
+            this.addLayer();
+        this.sim.config.netLayers.forEach(function (c, i) {
+            _this.setNeuronCount(i, c.neuronCount);
+            _this.setActivation(i, c.activation);
+        });
+    };
+    return NeuronGui;
+})();
 var Simulation = (function () {
     function Simulation() {
         var _this = this;
@@ -575,7 +707,6 @@ var Simulation = (function () {
         this.running = false;
         this.runningId = -1;
         this.restartTimeout = -1;
-        this.hiddenLayerDiv = $("#neuronCountModifier div").eq(1).clone();
         this.config = Presets.get('XOR');
         this.statusIterEle = document.getElementById('statusIteration');
         this.statusCorrectEle = document.getElementById('statusCorrect');
@@ -586,39 +717,11 @@ var Simulation = (function () {
         $("#learningRate").slider({
             min: 0.01, max: 1, step: 0.005, scale: "logarithmic", value: 0.05
         }).on('slide', function (e) { return $("#learningRateVal").text(e.value.toFixed(2)); });
-        $("#neuronCountModifier").on("click", "button", function (e) {
-            var inc = e.target.textContent == '+';
-            var layer = $(e.target.parentNode).index();
-            var newval = _this.config.netLayers[layer].neuronCount + (inc ? 1 : -1);
-            if (newval < 1)
-                return;
-            _this.config.netLayers[layer].neuronCount = newval;
-            $("#neuronCountModifier .neuronCount").eq(layer).text(newval);
-            _this.initializeNet();
-        });
-        $("#layerCountModifier").on("click", "button", function (e) {
-            var inc = e.target.textContent == '+';
-            if (!inc) {
-                if (_this.config.netLayers.length == 2)
-                    return;
-                _this.config.netLayers.splice(1, 1);
-                $("#neuronCountModifier div").eq(1).remove();
-            }
-            else {
-                $("#neuronCountModifier div").eq(1).before(_this.hiddenLayerDiv.clone());
-                _this.config.netLayers.splice(1, 0, { activation: 'sigmoid', neuronCount: 2 });
-            }
-            $("#layerCount").text(_this.config.netLayers.length);
-            _this.initializeNet();
-        });
-        $("#neuronCountModifier").on("change", "select", function (e) {
-            var layer = $(e.target.parentNode).index();
-            _this.config.netLayers[layer].activation = e.target.value;
-            _this.initializeNet();
-        });
+        this.neuronGui = new NeuronGui(this);
         $("#presetLoader").on("click", "a", function (e) {
             var name = e.target.textContent;
             _this.config = Presets.get(name);
+            _this.setConfig();
             _this.initializeNet();
         });
         this.reset();
@@ -727,11 +830,26 @@ var Simulation = (function () {
                 continue;
             if (ele.type == 'checkbox')
                 config[conf] = ele.checked;
+            else if (typeof config[conf] === 'number')
+                config[conf] = +ele.value;
             else
                 config[conf] = ele.value;
         }
         if (this.net)
             this.net.learnRate = this.config.learningRate;
+    };
+    Simulation.prototype.setConfig = function () {
+        var config = this.config;
+        for (var conf in config) {
+            var ele = document.getElementById(conf);
+            if (!ele)
+                continue;
+            if (ele.type == 'checkbox')
+                ele.checked = config[conf];
+            else
+                ele.value = config[conf];
+        }
+        this.neuronGui.regenerate();
     };
     Simulation.prototype.randomizeData = function () {
         if (this.config.netLayers[0].neuronCount !== 2 || this.config.simType !== SimulationType.BinaryClassification)
