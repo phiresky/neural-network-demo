@@ -103,27 +103,40 @@ var Net;
             if (weights)
                 weights.forEach(function (w, i) { return _this.connections[i].weight = w; });
         }
-        NeuralNet.prototype.setInputs = function (inputVals) {
+        NeuralNet.prototype.setInputsAndCalculate = function (inputVals) {
             if (inputVals.length != this.inputs.length - +this.bias)
                 throw "invalid input size";
             for (var i = 0; i < inputVals.length; i++)
-                this.inputs[i].input = inputVals[i];
+                this.inputs[i].output = inputVals[i];
+            for (var _i = 0, _a = this.layers.slice(1); _i < _a.length; _i++) {
+                var layer = _a[_i];
+                for (var _b = 0; _b < layer.length; _b++) {
+                    var neuron = layer[_b];
+                    neuron.calculateOutput();
+                }
+            }
         };
         NeuralNet.prototype.getOutput = function (inputVals) {
-            this.setInputs(inputVals);
-            return this.outputs.map(function (output) { return output.getOutput(); });
+            this.setInputsAndCalculate(inputVals);
+            return this.outputs.map(function (output) { return output.output; });
         };
         NeuralNet.prototype.train = function (inputVals, expectedOutput) {
-            this.setInputs(inputVals);
+            this.setInputsAndCalculate(inputVals);
             for (var i = 0; i < this.outputs.length; i++)
                 this.outputs[i].targetOutput = expectedOutput[i];
-            for (var _i = 0, _a = this.connections; _i < _a.length; _i++) {
-                var conn = _a[_i];
-                conn._tmpw = conn.getDeltaWeight(this.learnRate);
+            for (var i_1 = this.layers.length - 1; i_1 > 0; i_1--) {
+                for (var _i = 0, _a = this.layers[i_1]; _i < _a.length; _i++) {
+                    var neuron = _a[_i];
+                    neuron.calculateError();
+                    for (var _b = 0, _c = neuron.inputs; _b < _c.length; _b++) {
+                        var conn = _c[_b];
+                        conn.calculateDeltaWeight(this.learnRate);
+                    }
+                }
             }
-            for (var _b = 0, _c = this.connections; _b < _c.length; _b++) {
-                var conn = _c[_b];
-                conn.weight += conn._tmpw;
+            for (var _d = 0, _e = this.connections; _d < _e.length; _d++) {
+                var conn = _e[_d];
+                conn.weight += conn.deltaWeight;
             }
         };
         return NeuralNet;
@@ -134,9 +147,10 @@ var Net;
             this.inp = inp;
             this.out = out;
             this.weight = weight;
+            this.deltaWeight = 0;
         }
-        NeuronConnection.prototype.getDeltaWeight = function (learnRate) {
-            return learnRate * this.out.getError() * this.inp.getOutput();
+        NeuronConnection.prototype.calculateDeltaWeight = function (learnRate) {
+            this.deltaWeight = learnRate * this.out.error * this.inp.output;
         };
         return NeuronConnection;
     })();
@@ -146,43 +160,43 @@ var Net;
             this.id = id;
             this.inputs = [];
             this.outputs = [];
+            this.weightedInputs = 0;
+            this.output = 0;
+            this.error = 0;
         }
-        Neuron.prototype.weightedInputs = function () {
-            var output = 0;
+        Neuron.prototype.calculateWeightedInputs = function () {
+            this.weightedInputs = 0;
             for (var _i = 0, _a = this.inputs; _i < _a.length; _i++) {
                 var conn = _a[_i];
-                output += conn.inp.getOutput() * conn.weight;
+                this.weightedInputs += conn.inp.output * conn.weight;
             }
-            return output;
         };
-        Neuron.prototype.getOutput = function () {
-            return Net.activation.f(this.weightedInputs());
+        Neuron.prototype.calculateOutput = function () {
+            this.calculateWeightedInputs();
+            this.output = Net.activation.f(this.weightedInputs);
         };
-        Neuron.prototype.getError = function () {
+        Neuron.prototype.calculateError = function () {
             var δ = 0;
             for (var _i = 0, _a = this.outputs; _i < _a.length; _i++) {
                 var output = _a[_i];
-                δ += output.out.getError() * output.weight;
+                δ += output.out.error * output.weight;
             }
-            return δ * Net.activation.df(this.getOutput());
+            this.error = δ * Net.activation.df(this.output);
         };
         return Neuron;
     })();
     Net.Neuron = Neuron;
     var InputNeuron = (function (_super) {
         __extends(InputNeuron, _super);
-        function InputNeuron(id, name, input) {
-            if (input === void 0) { input = 0; }
+        function InputNeuron(id, name, output) {
+            if (output === void 0) { output = 0; }
             _super.call(this, id);
             this.name = name;
-            this.input = input;
+            this.output = output;
         }
-        InputNeuron.prototype.weightedInputs = function () {
-            return this.input;
-        };
-        InputNeuron.prototype.getOutput = function () {
-            return this.input;
-        };
+        InputNeuron.prototype.calculateOutput = function () { };
+        InputNeuron.prototype.calculateWeightedInputs = function () { };
+        InputNeuron.prototype.calculateError = function () { };
         return InputNeuron;
     })(Neuron);
     Net.InputNeuron = InputNeuron;
@@ -191,10 +205,8 @@ var Net;
         function OutputNeuron() {
             _super.apply(this, arguments);
         }
-        OutputNeuron.prototype.getError = function () {
-            var oup = this.getOutput();
-            return Net.activation.df(oup) *
-                (this.targetOutput - oup);
+        OutputNeuron.prototype.calculateError = function () {
+            this.error = Net.activation.df(this.output) * (this.targetOutput - this.output);
         };
         return OutputNeuron;
     })(Neuron);

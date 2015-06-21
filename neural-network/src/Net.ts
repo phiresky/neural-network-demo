@@ -1,7 +1,7 @@
 module Net {
 	type int = number;
 	type double = number;
-	let _nextGaussian:double;
+	let _nextGaussian: double;
 	export function randomGaussian(mean = 0, standardDeviation = 1) {
 
 		if (_nextGaussian !== undefined) {
@@ -9,7 +9,7 @@ module Net {
 			_nextGaussian = undefined;
 			return (nextGaussian * standardDeviation) + mean;
 		} else {
-			let v1:double, v2:double, s:double, multiplier:double;
+			let v1: double, v2: double, s: double, multiplier: double;
 			do {
 				v1 = 2 * Math.random() - 1; // between -1 and 1
 				v2 = 2 * Math.random() - 1; // between -1 and 1
@@ -64,7 +64,7 @@ module Net {
 		connections: NeuronConnection[] = [];
 		learnRate: number = 0.01;
 		bias: boolean;
-		constructor(counts: int[], inputnames: string[], learnRate: number, 
+		constructor(counts: int[], inputnames: string[], learnRate: number,
 			bias = true, startWeight = () => Math.random() - 0.5, weights?: double[]) {
 			this.learnRate = learnRate;
 			counts = counts.slice();
@@ -93,79 +93,83 @@ module Net {
 			}
 			if (weights) weights.forEach((w, i) => this.connections[i].weight = w);
 		}
-		setInputs(inputVals: double[]) {
+		setInputsAndCalculate(inputVals: double[]) {
 			if (inputVals.length != this.inputs.length - +this.bias) throw "invalid input size";
 			for (let i = 0; i < inputVals.length; i++)
-				this.inputs[i].input = inputVals[i];
+				this.inputs[i].output = inputVals[i];
+			for (let layer of this.layers.slice(1)) for (let neuron of layer)
+				neuron.calculateOutput();
 		}
 		getOutput(inputVals: double[]) {
-			this.setInputs(inputVals);
-			return this.outputs.map(output => output.getOutput());
+			this.setInputsAndCalculate(inputVals);
+			return this.outputs.map(output => output.output);
 		}
 
 		train(inputVals: double[], expectedOutput: double[]) {
-			this.setInputs(inputVals);
+			this.setInputsAndCalculate(inputVals);
 			for (var i = 0; i < this.outputs.length; i++)
 				this.outputs[i].targetOutput = expectedOutput[i];
-			for (let conn of this.connections) {
-				(<any>conn)._tmpw = conn.getDeltaWeight(this.learnRate);
+			for (let i = this.layers.length - 1; i > 0; i--) {
+				for(let neuron of this.layers[i]) {
+					neuron.calculateError();
+					for(let conn of neuron.inputs)
+						conn.calculateDeltaWeight(this.learnRate);
+				}
 			}
-			for (let conn of this.connections) {
-				conn.weight += (<any>conn)._tmpw;
-			}
+			for (let conn of this.connections) conn.weight += conn.deltaWeight;
 		}
 	}
 
 	export class NeuronConnection {
+		public deltaWeight = 0;
 		constructor(public inp: Neuron, public out: Neuron, public weight: double) {
 
 		}
-		getDeltaWeight(learnRate: double) {
-			return learnRate * this.out.getError() * this.inp.getOutput();
+		calculateDeltaWeight(learnRate: double) {
+			this.deltaWeight = learnRate * this.out.error * this.inp.output;
 		}
 	}
 	export class Neuron {
 		public inputs: NeuronConnection[] = [];
 		public outputs: NeuronConnection[] = [];
+		public weightedInputs = 0;
+		public output = 0;
+		public error = 0;
 		constructor(public id: int) { }
 
-		weightedInputs() {
-			var output = 0;
+		calculateWeightedInputs() {
+			this.weightedInputs = 0;
 			for (let conn of this.inputs) {
-				output += conn.inp.getOutput() * conn.weight;
+				this.weightedInputs += conn.inp.output * conn.weight;
 			}
-			return output;
 		}
-		getOutput() {
-			return activation.f(this.weightedInputs());
+		calculateOutput() {
+			this.calculateWeightedInputs();
+			this.output = activation.f(this.weightedInputs);
 		}
 
-		getError() {
+		calculateError() {
 			var δ = 0;
 			for (let output of this.outputs) {
-				δ += output.out.getError() * output.weight;
+				δ += output.out.error * output.weight;
 			}
-			return δ * activation.df(this.getOutput());
+			this.error = δ * activation.df(this.output);
 		}
 	}
 	export class InputNeuron extends Neuron {
-		constructor(id: int, public name: string, public input: number = 0) {
+		constructor(id: int, public name: string, output: number = 0) {
 			super(id);
+			this.output = output;
 		}
-		weightedInputs() {
-			return this.input;
-		}
-		getOutput() {
-			return this.input;
-		}
+		calculateOutput() { }
+		calculateWeightedInputs() { }
+		calculateError() { }
 	}
 	export class OutputNeuron extends Neuron {
 		targetOutput: double;
 
-		getError() {
-			let oup = this.getOutput();
-			return activation.df(oup) *
-				(this.targetOutput - oup);
+		calculateError() {
+			this.error = activation.df(this.output) * (this.targetOutput - this.output);
 		}
 	}
 }
