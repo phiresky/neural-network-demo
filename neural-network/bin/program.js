@@ -44,18 +44,17 @@ var Net;
     var NonLinearities = {
         sigmoid: {
             f: function (x) { return 1 / (1 + Math.exp(-x)); },
-            df: function (x) { return x * (1 - x); }
+            df: function (x) { x = 1 / (1 + Math.exp(-x)); return x * (1 - x); }
         },
         tanh: {
             f: function (x) { return tanh(x); },
-            df: function (x) { return 1 - x * x; }
+            df: function (x) { x = tanh(x); return 1 - x * x; }
         },
+        linear: {
+            f: function (x) { return x; },
+            df: function (x) { return 1; }
+        }
     };
-    Net.activation;
-    function setLinearity(name) {
-        Net.activation = NonLinearities[name];
-    }
-    Net.setLinearity = setLinearity;
     function makeArray(len, supplier) {
         var arr = new Array(len);
         for (var i = 0; i < len; i++)
@@ -64,7 +63,7 @@ var Net;
     }
     // back propagation code adapted from https://de.wikipedia.org/wiki/Backpropagation
     var NeuralNet = (function () {
-        function NeuralNet(counts, inputnames, learnRate, bias, startWeight, weights) {
+        function NeuralNet(layout, inputnames, learnRate, bias, startWeight, weights) {
             var _this = this;
             if (bias === void 0) { bias = true; }
             if (startWeight === void 0) { startWeight = function () { return Math.random() - 0.5; }; }
@@ -72,16 +71,18 @@ var Net;
             this.connections = [];
             this.learnRate = 0.01;
             this.learnRate = learnRate;
-            counts = counts.slice();
-            if (counts.length < 2)
+            layout = layout.slice();
+            if (layout.length < 2)
                 throw "Need at least two layers";
             var nid = 0;
-            this.inputs = makeArray(counts.shift(), function () { return new InputNeuron(nid, inputnames[nid++]); });
+            this.inputs = makeArray(layout.shift().neuronCount, function () { return new InputNeuron(nid, inputnames[nid++]); });
             this.layers.push(this.inputs);
-            while (counts.length > 1) {
-                this.layers.push(makeArray(counts.shift(), function () { return new Neuron(nid++); }));
+            while (layout.length > 1) {
+                var layer = layout.shift();
+                this.layers.push(makeArray(layer.neuronCount, function () { return new Neuron(layer.activation, nid++); }));
             }
-            this.outputs = makeArray(counts.shift(), function () { return new OutputNeuron(nid++); });
+            var outputLayer = layout.shift();
+            this.outputs = makeArray(outputLayer.neuronCount, function () { return new OutputNeuron(outputLayer.activation, nid++); });
             this.layers.push(this.outputs);
             this.bias = bias;
             for (var i = 0; i < this.layers.length - 1; i++) {
@@ -156,7 +157,8 @@ var Net;
     })();
     Net.NeuronConnection = NeuronConnection;
     var Neuron = (function () {
-        function Neuron(id) {
+        function Neuron(activation, id) {
+            this.activation = activation;
             this.id = id;
             this.inputs = [];
             this.outputs = [];
@@ -173,7 +175,7 @@ var Net;
         };
         Neuron.prototype.calculateOutput = function () {
             this.calculateWeightedInputs();
-            this.output = Net.activation.f(this.weightedInputs);
+            this.output = NonLinearities[this.activation].f(this.weightedInputs);
         };
         Neuron.prototype.calculateError = function () {
             var δ = 0;
@@ -181,7 +183,7 @@ var Net;
                 var output = _a[_i];
                 δ += output.out.error * output.weight;
             }
-            this.error = δ * Net.activation.df(this.output);
+            this.error = δ * NonLinearities[this.activation].df(this.weightedInputs);
         };
         return Neuron;
     })();
@@ -190,7 +192,7 @@ var Net;
         __extends(InputNeuron, _super);
         function InputNeuron(id, name, output) {
             if (output === void 0) { output = 0; }
-            _super.call(this, id);
+            _super.call(this, null, id);
             this.name = name;
             this.output = output;
         }
@@ -206,7 +208,7 @@ var Net;
             _super.apply(this, arguments);
         }
         OutputNeuron.prototype.calculateError = function () {
-            this.error = Net.activation.df(this.output) * (this.targetOutput - this.output);
+            this.error = NonLinearities[this.activation].df(this.weightedInputs) * (this.targetOutput - this.output);
         };
         return OutputNeuron;
     })(Neuron);
@@ -344,11 +346,11 @@ var CanvasMouseNavigation = (function () {
 })();
 ///<reference path='Transform.ts' />
 var NetworkVisualization = (function () {
-    function NetworkVisualization(canvas, trafo, data, netOutput, backgroundResolution) {
+    function NetworkVisualization(canvas, trafo, sim, netOutput, backgroundResolution) {
         var _this = this;
         this.canvas = canvas;
         this.trafo = trafo;
-        this.data = data;
+        this.sim = sim;
         this.netOutput = netOutput;
         this.backgroundResolution = backgroundResolution;
         this.mouseDownTime = 0; // ignore clicks if dragged
@@ -371,15 +373,18 @@ var NetworkVisualization = (function () {
     };
     NetworkVisualization.prototype.drawDataPoints = function () {
         this.ctx.strokeStyle = "#000";
-        for (var _i = 0, _a = this.data; _i < _a.length; _i++) {
+        for (var _i = 0, _a = this.sim.config.data; _i < _a.length; _i++) {
             var val = _a[_i];
-            this.ctx.fillStyle = this.colors.fg[val.label | 0];
-            this.ctx.beginPath();
-            this.ctx.arc(this.trafo.toCanvas.x(val.x), this.trafo.toCanvas.y(val.y), 5, 0, 2 * Math.PI);
-            this.ctx.fill();
-            this.ctx.arc(this.trafo.toCanvas.x(val.x), this.trafo.toCanvas.y(val.y), 5, 0, 2 * Math.PI);
-            this.ctx.stroke();
+            this.drawDataPoint(val.input[0], val.input[1], val.output[0]);
         }
+    };
+    NetworkVisualization.prototype.drawDataPoint = function (x, y, label) {
+        this.ctx.fillStyle = this.colors.fg[label | 0];
+        this.ctx.beginPath();
+        this.ctx.arc(this.trafo.toCanvas.x(x), this.trafo.toCanvas.y(y), 5, 0, 2 * Math.PI);
+        this.ctx.fill();
+        this.ctx.arc(this.trafo.toCanvas.x(x), this.trafo.toCanvas.y(y), 5, 0, 2 * Math.PI);
+        this.ctx.stroke();
     };
     NetworkVisualization.prototype.drawBackground = function () {
         for (var x = 0; x < this.canvas.width; x += this.backgroundResolution) {
@@ -422,26 +427,35 @@ var NetworkVisualization = (function () {
     NetworkVisualization.prototype.canvasClicked = function (evt) {
         if ((Date.now() - this.mouseDownTime) > 200)
             return;
+        if (this.sim.config.netLayers[0].neuronCount !== 2) {
+            throw "data modification not supported for !=2 inputs";
+        }
+        var data = this.sim.config.data;
         var rect = this.canvas.getBoundingClientRect();
         var x = this.trafo.toReal.x(evt.clientX - rect.left);
         var y = this.trafo.toReal.y(evt.clientY - rect.top);
         if (evt.button == 2 || evt.shiftKey) {
             //remove nearest
             var nearestDist = Infinity, nearest = -1;
-            for (var i = 0; i < this.data.length; i++) {
-                var p = this.data[i];
-                var dx = p.x - x, dy = p.y - y, dist = dx * dx + dy * dy;
+            for (var i = 0; i < data.length; i++) {
+                var p = data[i];
+                var dx = p.input[0] - x, dy = p.input[1] - y, dist = dx * dx + dy * dy;
                 if (dist < nearestDist)
                     nearest = i, nearestDist = dist;
             }
             if (nearest >= 0)
-                this.data.splice(nearest, 1);
+                data.splice(nearest, 1);
         }
         else {
-            var label = evt.button == 0 ? 0 : 1;
-            if (evt.ctrlKey)
-                label = label == 0 ? 1 : 0;
-            this.data.push({ x: x, y: y, label: label });
+            if (this.sim.config.simType == SimulationType.AutoEncoder) {
+                data.push({ input: [x, y], output: [x, y] });
+            }
+            else if (this.sim.config.simType == SimulationType.BinaryClassification) {
+                var label = evt.button == 0 ? 0 : 1;
+                if (evt.ctrlKey)
+                    label = label == 0 ? 1 : 0;
+                data.push({ input: [x, y], output: [label] });
+            }
         }
         this.draw();
         evt.preventDefault();
@@ -452,6 +466,11 @@ var NetworkVisualization = (function () {
 ///<reference path='Net.ts' />
 ///<reference path='NetworkGraph.ts' />
 ///<reference path='NetworkVisualization.ts' />
+var SimulationType;
+(function (SimulationType) {
+    SimulationType[SimulationType["BinaryClassification"] = 0] = "BinaryClassification";
+    SimulationType[SimulationType["AutoEncoder"] = 1] = "AutoEncoder";
+})(SimulationType || (SimulationType = {}));
 var Simulation = (function () {
     function Simulation() {
         var _this = this;
@@ -464,24 +483,28 @@ var Simulation = (function () {
         this.config = {
             stepsPerFrame: 50,
             learningRate: 0.05,
-            activation: "sigmoid",
             showGradient: false,
             bias: true,
             autoRestartTime: 5000,
             autoRestart: true,
+            simType: SimulationType.BinaryClassification,
             data: [
-                { x: 0, y: 0, label: 0 },
-                { x: 0, y: 1, label: 1 },
-                { x: 1, y: 0, label: 1 },
-                { x: 1, y: 1, label: 0 }
+                { input: [0, 0], output: [0] },
+                { input: [0, 1], output: [1] },
+                { input: [1, 0], output: [1] },
+                { input: [1, 1], output: [0] }
             ],
-            netLayers: [2, 2, 1]
+            netLayers: [
+                { neuronCount: 2 },
+                { neuronCount: 2, activation: "sigmoid" },
+                { neuronCount: 1, activation: "sigmoid" }
+            ]
         };
         this.statusIterEle = document.getElementById('statusIteration');
         this.statusCorrectEle = document.getElementById('statusCorrect');
         this.aniFrameCallback = this.animationStep.bind(this);
         var canvas = $("#neuralOutputCanvas")[0];
-        this.netviz = new NetworkVisualization(canvas, new CanvasMouseNavigation(canvas, function () { return _this.draw(); }), this.config.data, function (x, y) { return _this.net.getOutput([x, y])[0]; }, this.backgroundResolution);
+        this.netviz = new NetworkVisualization(canvas, new CanvasMouseNavigation(canvas, function () { return _this.draw(); }), this, function (x, y) { return _this.net.getOutput([x, y])[0]; }, this.backgroundResolution);
         this.netgraph = new NetworkGraph($("#neuralNetworkGraph")[0]);
         $("#learningRate").slider({
             min: 0.01, max: 1, step: 0.005, scale: "logarithmic", value: 0.05
@@ -489,10 +512,10 @@ var Simulation = (function () {
         $("#neuronCountModifier").on("click", "button", function (e) {
             var inc = e.target.textContent == '+';
             var layer = $(e.target.parentNode).index();
-            var newval = _this.config.netLayers[layer] + (inc ? 1 : -1);
+            var newval = _this.config.netLayers[layer].neuronCount + (inc ? 1 : -1);
             if (newval < 1)
                 return;
-            _this.config.netLayers[layer] = newval;
+            _this.config.netLayers[layer].neuronCount = newval;
             $("#neuronCountModifier .neuronCount").eq(layer).text(newval);
             _this.initializeNet();
         });
@@ -506,7 +529,7 @@ var Simulation = (function () {
             }
             else {
                 $("#neuronCountModifier div").eq(1).before(_this.hiddenLayerDiv.clone());
-                _this.config.netLayers.splice(1, 0, 2);
+                _this.config.netLayers.splice(1, 0, { activation: 'sigmoid', neuronCount: 2 });
             }
             $("#layerCount").text(_this.config.netLayers.length);
             _this.initializeNet();
@@ -514,12 +537,12 @@ var Simulation = (function () {
         this.reset();
         this.run();
     }
-    Simulation.prototype.initializeNet = function () {
+    Simulation.prototype.initializeNet = function (weights) {
         if (this.net)
             this.stop();
         //let cache = [0.18576880730688572,-0.12869677506387234,0.08548374730162323,-0.19820863520726562,-0.09532690420746803,-0.3415223266929388,-0.309354952769354,-0.157513455953449];
         //let cache = [-0.04884958150796592,-0.3569231238216162,0.11143312812782824,0.43614205135963857,0.3078767384868115,-0.22759653301909566,0.09250503336079419,0.3279339636210352];
-        this.net = new Net.NeuralNet(this.config.netLayers, ["x", "y"], this.config.learningRate, this.config.bias);
+        this.net = new Net.NeuralNet(this.config.netLayers, ["x", "y"], this.config.learningRate, this.config.bias, undefined, weights);
         console.log("net:" + JSON.stringify(this.net.connections.map(function (c) { return c.weight; })));
         this.stepNum = 0;
         this.netgraph.loadNetwork(this.net);
@@ -528,7 +551,7 @@ var Simulation = (function () {
         this.stepNum++;
         for (var _i = 0, _a = this.config.data; _i < _a.length; _i++) {
             var val = _a[_i];
-            this.net.train([val.x, val.y], [val.label]);
+            this.net.train(val.input, val.output);
         }
     };
     Simulation.prototype.draw = function () {
@@ -560,9 +583,8 @@ var Simulation = (function () {
         var correct = 0;
         for (var _i = 0, _a = this.config.data; _i < _a.length; _i++) {
             var val = _a[_i];
-            var res = this.net.getOutput([val.x, val.y]);
-            var label = +(res[0] > 0.5);
-            if (val.label == label)
+            var res = this.net.getOutput(val.input);
+            if (res.every(function (x, i) { return x === val.output[i]; }))
                 correct++;
         }
         this.statusIterEle.innerHTML = this.stepNum.toString();
@@ -610,15 +632,17 @@ var Simulation = (function () {
             else
                 config[conf] = ele.value;
         }
-        Net.setLinearity(this.config.activation);
         if (this.net)
             this.net.learnRate = this.config.learningRate;
         this.netviz.showGradient = this.config.showGradient;
     };
     Simulation.prototype.randomizeData = function () {
-        var count = 4;
+        if (this.config.netLayers[0].neuronCount !== 2 || this.config.simType !== SimulationType.BinaryClassification)
+            throw "can't create random data for this network";
+        var count = Math.random() * 5 + 4;
+        this.config.data = [];
         for (var i = 0; i < count; i++) {
-            this.config.data[i] = { x: Math.random() * 2, y: Math.random() * 2, label: +(Math.random() > 0.5) };
+            this.config.data[i] = { input: [Math.random() * 2, Math.random() * 2], output: [+(Math.random() > 0.5)] };
         }
         this.draw();
     };
@@ -638,4 +662,23 @@ var Simulation = (function () {
 ///<reference path='NetworkVisualization.ts' />
 var simulation;
 $(document).ready(function () { return simulation = new Simulation(); });
+function checkSanity() {
+    var out = [-0.3180095069079748, -0.2749093166215802, -0.038532753589859546, 0.09576201205465842, -0.3460678329225116,
+        0.23218797637289554, -0.33191669283980774, 0.5140297481331861, -0.1518989898989732];
+    var inp = [-0.3094657452311367, -0.2758470894768834, 0.005968799814581871, 0.13201188389211893, -0.33257930004037917,
+        0.24626848078332841, -0.35734778200276196, 0.489376779878512, -0.2165879353415221];
+    simulation.stop();
+    simulation.config.netLayers = [
+        { neuronCount: 2 },
+        { neuronCount: 2, activation: "sigmoid" },
+        { neuronCount: 1, activation: "sigmoid" }
+    ];
+    simulation.net.connections.forEach(function (e, i) { return e.weight = inp[i]; });
+    for (var i = 0; i < 1000; i++)
+        simulation.step();
+    var realout = simulation.net.connections.map(function (e) { return e.weight; });
+    if (realout.every(function (e, i) { return e !== out[i]; }))
+        throw "insanity!";
+    return "ok";
+}
 //# sourceMappingURL=program.js.map

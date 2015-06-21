@@ -1,6 +1,6 @@
 ///<reference path='Transform.ts' />
-interface Data {
-	x: double; y: double; label: int;
+interface TrainingData {
+	input:double[]; output:double[];
 }
 
 class NetworkVisualization {
@@ -15,7 +15,7 @@ class NetworkVisualization {
 
 	constructor(
 			public canvas: HTMLCanvasElement, 
-			public trafo: Transform, public data: Data[],
+			public trafo: Transform, public sim: Simulation,
 			public netOutput: (x: double, y: double) => double,
 			public backgroundResolution: int) {
 		this.ctx = <CanvasRenderingContext2D>this.canvas.getContext('2d');
@@ -33,14 +33,18 @@ class NetworkVisualization {
 
 	drawDataPoints() {
 		this.ctx.strokeStyle = "#000";
-		for (let val of this.data) {
-			this.ctx.fillStyle = this.colors.fg[val.label | 0];
-			this.ctx.beginPath();
-			this.ctx.arc(this.trafo.toCanvas.x(val.x), this.trafo.toCanvas.y(val.y), 5, 0, 2 * Math.PI);
-			this.ctx.fill();
-			this.ctx.arc(this.trafo.toCanvas.x(val.x), this.trafo.toCanvas.y(val.y), 5, 0, 2 * Math.PI);
-			this.ctx.stroke();
+		for (let val of this.sim.config.data) {
+			this.drawDataPoint(val.input[0],val.input[1],val.output[0]);
 		}
+	}
+	
+	drawDataPoint(x:double, y:double, label:int) {
+		this.ctx.fillStyle = this.colors.fg[label | 0];
+		this.ctx.beginPath();
+		this.ctx.arc(this.trafo.toCanvas.x(x), this.trafo.toCanvas.y(y), 5, 0, 2 * Math.PI);
+		this.ctx.fill();
+		this.ctx.arc(this.trafo.toCanvas.x(x), this.trafo.toCanvas.y(y), 5, 0, 2 * Math.PI);
+		this.ctx.stroke();
 	}
 	drawBackground() {
 		for (let x = 0; x < this.canvas.width; x += this.backgroundResolution) {
@@ -85,22 +89,30 @@ class NetworkVisualization {
 	}
 	canvasClicked(evt: MouseEvent) {
 		if ((Date.now()-this.mouseDownTime) > 200) return;
+		if(this.sim.config.netLayers[0].neuronCount !== 2) {
+			throw "data modification not supported for !=2 inputs";
+		}
+		let data = this.sim.config.data;
 		let rect = this.canvas.getBoundingClientRect();
 		let x = this.trafo.toReal.x(evt.clientX - rect.left);
 		let y = this.trafo.toReal.y(evt.clientY - rect.top);
 		if (evt.button == 2 || evt.shiftKey) {
 			//remove nearest
 			let nearestDist = Infinity, nearest = -1;
-			for (let i = 0; i < this.data.length; i++) {
-				let p = this.data[i];
-				let dx = p.x - x, dy = p.y - y, dist = dx * dx + dy * dy;
+			for (let i = 0; i < data.length; i++) {
+				let p = data[i];
+				let dx = p.input[0] - x, dy = p.input[1] - y, dist = dx * dx + dy * dy;
 				if (dist < nearestDist) nearest = i, nearestDist = dist; 
 			}
-			if (nearest >= 0) this.data.splice(nearest, 1);
+			if (nearest >= 0) data.splice(nearest, 1);
 		} else {
-			let label = evt.button == 0 ? 0 : 1;
-			if(evt.ctrlKey) label = label == 0 ? 1 : 0;
-			this.data.push({ x: x, y: y, label: label });
+			if(this.sim.config.simType == SimulationType.AutoEncoder) {
+				data.push({input:[x, y], output:[x, y]});
+			} else if(this.sim.config.simType == SimulationType.BinaryClassification) {
+				let label = evt.button == 0 ? 0 : 1;
+				if(evt.ctrlKey) label = label == 0 ? 1 : 0;
+				data.push({ input:[x, y], output: [label] });
+			}
 		}
 		this.draw();
 		evt.preventDefault();
