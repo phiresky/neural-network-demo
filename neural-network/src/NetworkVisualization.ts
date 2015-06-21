@@ -9,7 +9,8 @@ class NetworkVisualization {
 	colors = {
 		bg: ["#f88", "#8f8"],
 		fg: ["#f00", "#0f0"],
-		gradient: (val: number) => "rgb(" + [((1 - val) * 256) | 0, (val * 256) | 0, 100] + ")"
+		gradient: (val: number) => "rgb(" +
+			[(((1 - val) * (256-60)) | 0) + 60, ((val * (256-60)) | 0) + 60, 60] + ")"
 	}
 
 	constructor(

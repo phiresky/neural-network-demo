@@ -86,7 +86,7 @@ module Presets {
 				{ input: [0.12, 0.94], output: [1] },
 				{ input: [2.05, 0.32], output: [1] },
 				{ input: [1.97, 0.55], output: [0] }]
-		}
+		},
 		"Auto-Encoder": {
 			simType: SimulationType.AutoEncoder,
 			stepsPerFrame: 1,

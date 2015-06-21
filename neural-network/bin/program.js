@@ -357,7 +357,8 @@ var NetworkVisualization = (function () {
         this.colors = {
             bg: ["#f88", "#8f8"],
             fg: ["#f00", "#0f0"],
-            gradient: function (val) { return "rgb(" + [((1 - val) * 256) | 0, (val * 256) | 0, 100] + ")"; }
+            gradient: function (val) { return "rgb(" +
+                [(((1 - val) * (256 - 60)) | 0) + 60, ((val * (256 - 60)) | 0) + 60, 60] + ")"; }
         };
         this.ctx = this.canvas.getContext('2d');
         this.canvasResized();
