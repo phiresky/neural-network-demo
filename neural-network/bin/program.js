@@ -357,7 +357,7 @@ var NetworkVisualization = (function () {
         this.colors = {
             bg: ["#f88", "#8f8"],
             fg: ["#f00", "#0f0"],
-            gradient: function (val) { return "rgb(" + [((1 - val) * 256) | 0, (val * 256) | 0, 0] + ")"; }
+            gradient: function (val) { return "rgb(" + [((1 - val) * 256) | 0, (val * 256) | 0, 100] + ")"; }
         };
         this.ctx = this.canvas.getContext('2d');
         this.canvasResized();
@@ -373,24 +373,58 @@ var NetworkVisualization = (function () {
     };
     NetworkVisualization.prototype.drawDataPoints = function () {
         this.ctx.strokeStyle = "#000";
-        for (var _i = 0, _a = this.sim.config.data; _i < _a.length; _i++) {
-            var val = _a[_i];
-            this.drawDataPoint(val.input[0], val.input[1], val.output[0]);
+        if (this.sim.config.simType === SimulationType.BinaryClassification) {
+            for (var _i = 0, _a = this.sim.config.data; _i < _a.length; _i++) {
+                var val = _a[_i];
+                this.drawDataPoint(val.input[0], val.input[1], val.output[0]);
+            }
+        }
+        else if (this.sim.config.simType === SimulationType.AutoEncoder) {
+            for (var _b = 0, _c = this.sim.config.data; _b < _c.length; _b++) {
+                var val = _c[_b];
+                var ix = val.input[0], iy = val.input[1];
+                var out = this.sim.net.getOutput(val.input);
+                var ox = out[0], oy = out[1];
+                this.drawLine(ix, iy, ox, oy, "black");
+                this.drawDataPoint(ix, iy, 1);
+                this.drawDataPoint(ox, oy, 0);
+            }
+        }
+        else {
+            throw "can't draw this";
         }
     };
+    NetworkVisualization.prototype.drawLine = function (x, y, x2, y2, color) {
+        x = this.trafo.toCanvas.x(x);
+        x2 = this.trafo.toCanvas.x(x2);
+        y = this.trafo.toCanvas.y(y);
+        y2 = this.trafo.toCanvas.y(y2);
+        this.ctx.strokeStyle = color;
+        this.ctx.beginPath();
+        this.ctx.moveTo(x, y);
+        this.ctx.lineTo(x2, y2);
+        this.ctx.stroke();
+    };
     NetworkVisualization.prototype.drawDataPoint = function (x, y, label) {
+        x = this.trafo.toCanvas.x(x);
+        y = this.trafo.toCanvas.y(y);
         this.ctx.fillStyle = this.colors.fg[label | 0];
         this.ctx.beginPath();
-        this.ctx.arc(this.trafo.toCanvas.x(x), this.trafo.toCanvas.y(y), 5, 0, 2 * Math.PI);
+        this.ctx.arc(x, y, 5, 0, 2 * Math.PI);
         this.ctx.fill();
-        this.ctx.arc(this.trafo.toCanvas.x(x), this.trafo.toCanvas.y(y), 5, 0, 2 * Math.PI);
+        this.ctx.arc(x, y, 5, 0, 2 * Math.PI);
         this.ctx.stroke();
     };
     NetworkVisualization.prototype.drawBackground = function () {
+        if (this.sim.config.simType == SimulationType.AutoEncoder) {
+            this.ctx.fillStyle = "white";
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            return;
+        }
         for (var x = 0; x < this.canvas.width; x += this.backgroundResolution) {
             for (var y = 0; y < this.canvas.height; y += this.backgroundResolution) {
                 var val = this.netOutput(this.trafo.toReal.x(x), this.trafo.toReal.y(y));
-                if (this.showGradient) {
+                if (this.sim.config.showGradient) {
                     this.ctx.fillStyle = this.colors.gradient(val);
                 }
                 else
@@ -462,31 +496,23 @@ var NetworkVisualization = (function () {
     };
     return NetworkVisualization;
 })();
-///<reference path='../lib/typings/jquery/jquery.d.ts' />
-///<reference path='Net.ts' />
-///<reference path='NetworkGraph.ts' />
-///<reference path='NetworkVisualization.ts' />
+///<reference path='Simulation.ts' />
 var SimulationType;
 (function (SimulationType) {
     SimulationType[SimulationType["BinaryClassification"] = 0] = "BinaryClassification";
     SimulationType[SimulationType["AutoEncoder"] = 1] = "AutoEncoder";
 })(SimulationType || (SimulationType = {}));
-var Simulation = (function () {
-    function Simulation() {
-        var _this = this;
-        this.backgroundResolution = 10;
-        this.stepNum = 0;
-        this.running = false;
-        this.runningId = -1;
-        this.restartTimeout = -1;
-        this.hiddenLayerDiv = $("#neuronCountModifier div").eq(1).clone();
-        this.config = {
+var Presets;
+(function (Presets) {
+    var presets = {
+        "Default": {
             stepsPerFrame: 50,
             learningRate: 0.05,
             showGradient: false,
             bias: true,
             autoRestartTime: 5000,
             autoRestart: true,
+            iterationsPerClick: 5000,
             simType: SimulationType.BinaryClassification,
             data: [
                 { input: [0, 0], output: [0] },
@@ -499,7 +525,58 @@ var Simulation = (function () {
                 { neuronCount: 2, activation: "sigmoid" },
                 { neuronCount: 1, activation: "sigmoid" }
             ]
-        };
+        },
+        "XOR": {},
+        "Auto-Encoder": {
+            simType: SimulationType.AutoEncoder,
+            stepsPerFrame: 1,
+            iterationsPerClick: 1,
+            data: [
+                { input: [2.25, 0.19], output: [2.25, 0.19] },
+                { input: [1.37, 0.93], output: [1.37, 0.93] },
+                { input: [0.62, 1.46], output: [0.62, 1.46] },
+                { input: [-0.23, 2.16], output: [-0.23, 2.16] },
+                { input: [-0.55, 2.44], output: [-0.55, 2.44] },
+                { input: [1.04, 1.05], output: [1.04, 1.05] },
+                { input: [1.70, 0.85], output: [1.70, 0.85] },
+                { input: [2.01, 0.46], output: [2.01, 0.46] },
+                { input: [0.40, 1.73], output: [0.40, 1.73] },
+                { input: [2.73, 0.01], output: [2.73, 0.01] },
+                { input: [2.86, -0.25], output: [2.86, -0.25] },
+                { input: [0.14, 2.07], output: [0.14, 2.07] }],
+            netLayers: [
+                { neuronCount: 2 },
+                { neuronCount: 1, activation: "sigmoid" },
+                { neuronCount: 2, activation: "linear" }
+            ],
+            showGradient: true
+        }
+    };
+    function get(name) {
+        return $.extend({}, presets["Default"], presets[name]);
+    }
+    Presets.get = get;
+    function printDataPoints() {
+        return window.simulation.config.data.map(function (e) { return '{input:[' + e.input.map(function (x) { return x.toFixed(2); })
+            + '], output:[' + e.input.map(function (x) { return x.toFixed(2); }) + ']},'; }).join("\n");
+    }
+    Presets.printDataPoints = printDataPoints;
+})(Presets || (Presets = {}));
+///<reference path='../lib/typings/jquery/jquery.d.ts' />
+///<reference path='Net.ts' />
+///<reference path='NetworkGraph.ts' />
+///<reference path='NetworkVisualization.ts' />
+///<reference path='Presets.ts' />
+var Simulation = (function () {
+    function Simulation() {
+        var _this = this;
+        this.backgroundResolution = 10;
+        this.stepNum = 0;
+        this.running = false;
+        this.runningId = -1;
+        this.restartTimeout = -1;
+        this.hiddenLayerDiv = $("#neuronCountModifier div").eq(1).clone();
+        this.config = Presets.get('XOR');
         this.statusIterEle = document.getElementById('statusIteration');
         this.statusCorrectEle = document.getElementById('statusCorrect');
         this.aniFrameCallback = this.animationStep.bind(this);
@@ -539,6 +616,11 @@ var Simulation = (function () {
             _this.config.netLayers[layer].activation = e.target.value;
             _this.initializeNet();
         });
+        $("#presetLoader").on("click", "a", function (e) {
+            var name = e.target.textContent;
+            _this.config = Presets.get(name);
+            _this.initializeNet();
+        });
         this.reset();
         this.run();
     }
@@ -551,6 +633,8 @@ var Simulation = (function () {
         console.log("net:" + JSON.stringify(this.net.connections.map(function (c) { return c.weight; })));
         this.stepNum = 0;
         this.netgraph.loadNetwork(this.net);
+        this.draw();
+        this.updateStatusLine();
     };
     Simulation.prototype.step = function () {
         this.stepNum++;
@@ -581,7 +665,6 @@ var Simulation = (function () {
         this.stop();
         this.loadConfig();
         this.initializeNet();
-        this.draw();
     };
     Simulation.prototype.updateStatusLine = function () {
         var _this = this;
@@ -627,8 +710,7 @@ var Simulation = (function () {
     };
     Simulation.prototype.iterations = function () {
         this.stop();
-        var count = +$("#iterations").val();
-        for (var i = 0; i < count; i++)
+        for (var i = 0; i < this.config.iterationsPerClick; i++)
             this.step();
         this.draw();
         this.updateStatusLine();
@@ -646,7 +728,6 @@ var Simulation = (function () {
         }
         if (this.net)
             this.net.learnRate = this.config.learningRate;
-        this.netviz.showGradient = this.config.showGradient;
     };
     Simulation.prototype.randomizeData = function () {
         if (this.config.netLayers[0].neuronCount !== 2 || this.config.simType !== SimulationType.BinaryClassification)

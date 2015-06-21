@@ -2,10 +2,7 @@
 ///<reference path='Net.ts' />
 ///<reference path='NetworkGraph.ts' />
 ///<reference path='NetworkVisualization.ts' />
-enum SimulationType {
-	BinaryClassification,
-	AutoEncoder
-}
+///<reference path='Presets.ts' />
 interface LayerConfig {
 	neuronCount: int;
 	activation?: string;
@@ -21,27 +18,7 @@ class Simulation {
 	net: Net.NeuralNet;
 	hiddenLayerDiv: JQuery = $("#neuronCountModifier div").eq(1).clone();
 
-	config = {
-		stepsPerFrame: 50,
-		learningRate: 0.05,
-		showGradient: false,
-		bias: true,
-		autoRestartTime: 5000,
-		autoRestart: true,
-		simType: SimulationType.BinaryClassification,
-		data: <TrainingData[]>[
-			{ input: [0, 0], output: [0] },
-			{ input: [0, 1], output: [1] },
-			{ input: [1, 0], output: [1] },
-			{ input: [1, 1], output: [0] }
-		],
-		netLayers: <LayerConfig[]>[
-			{ neuronCount: 2 },
-			{ neuronCount: 2, activation: "sigmoid" },
-			{ neuronCount: 1, activation: "sigmoid" }
-		]
-		//lossType: "svm"
-	};
+	config = Presets.get('XOR');
 
 	constructor() {
 		let canvas = <HTMLCanvasElement>$("#neuralOutputCanvas")[0];
@@ -81,6 +58,11 @@ class Simulation {
 			this.config.netLayers[layer].activation = (<HTMLSelectElement>e.target).value;
 			this.initializeNet();
 		});
+		$("#presetLoader").on("click", "a", e => {
+			let name = e.target.textContent;
+			this.config = Presets.get(name);
+			this.initializeNet();
+		});
 		this.reset();
 		this.run();
 	}
@@ -93,6 +75,8 @@ class Simulation {
 		console.log("net:" + JSON.stringify(this.net.connections.map(c => c.weight)));
 		this.stepNum = 0;
 		this.netgraph.loadNetwork(this.net);
+		this.draw();
+		this.updateStatusLine();
 	}
 
 	statusIterEle = document.getElementById('statusIteration');
@@ -128,7 +112,6 @@ class Simulation {
 		this.stop();
 		this.loadConfig();
 		this.initializeNet();
-		this.draw();
 	}
 
 	updateStatusLine() {
@@ -174,8 +157,7 @@ class Simulation {
 
 	iterations() {
 		this.stop();
-		var count = +$("#iterations").val();
-		for (var i = 0; i < count; i++)
+		for (var i = 0; i < this.config.iterationsPerClick; i++)
 			this.step();
 		this.draw();
 		this.updateStatusLine();
@@ -190,7 +172,6 @@ class Simulation {
 			else config[conf] = ele.value;
 		}
 		if (this.net) this.net.learnRate = this.config.learningRate;
-		this.netviz.showGradient = this.config.showGradient;
 	}
 
 	randomizeData() {
