@@ -534,6 +534,11 @@ var Simulation = (function () {
             $("#layerCount").text(_this.config.netLayers.length);
             _this.initializeNet();
         });
+        $("#neuronCountModifier").on("change", "select", function (e) {
+            var layer = $(e.target.parentNode).index();
+            _this.config.netLayers[layer].activation = e.target.value;
+            _this.initializeNet();
+        });
         this.reset();
         this.run();
     }
