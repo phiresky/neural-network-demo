@@ -7,8 +7,8 @@ enum SimulationType {
 	AutoEncoder
 }
 interface LayerConfig {
-	neuronCount:int;
-	activation?:string;
+	neuronCount: int;
+	activation?: string;
 }
 class Simulation {
 	netviz: NetworkVisualization;
@@ -17,10 +17,10 @@ class Simulation {
 	stepNum = 0;
 	running = false; runningId = -1;
 	restartTimeout = -1;
-	
+
 	net: Net.NeuralNet;
 	hiddenLayerDiv: JQuery = $("#neuronCountModifier div").eq(1).clone();
-	
+
 	config = {
 		stepsPerFrame: 50,
 		learningRate: 0.05,
@@ -30,15 +30,15 @@ class Simulation {
 		autoRestart: true,
 		simType: SimulationType.BinaryClassification,
 		data: <TrainingData[]>[
-			{ input:[0, 0], output: [0] },
-			{ input:[0, 1], output: [1] },
-			{ input:[1, 0], output: [1] },
-			{ input:[1, 1], output: [0] }
+			{ input: [0, 0], output: [0] },
+			{ input: [0, 1], output: [1] },
+			{ input: [1, 0], output: [1] },
+			{ input: [1, 1], output: [0] }
 		],
 		netLayers: <LayerConfig[]>[
-			{neuronCount:2},
-			{neuronCount:2, activation:"sigmoid"},
-			{neuronCount:1, activation:"sigmoid"}
+			{ neuronCount: 2 },
+			{ neuronCount: 2, activation: "sigmoid" },
+			{ neuronCount: 1, activation: "sigmoid" }
 		]
 		//lossType: "svm"
 	};
@@ -58,20 +58,20 @@ class Simulation {
 			let inc = e.target.textContent == '+';
 			let layer = $(e.target.parentNode).index();
 			let newval = this.config.netLayers[layer].neuronCount + (inc ? 1 : -1);
-			if(newval < 1) return;
+			if (newval < 1) return;
 			this.config.netLayers[layer].neuronCount = newval;
 			$("#neuronCountModifier .neuronCount").eq(layer).text(newval);
 			this.initializeNet();
 		});
-		$("#layerCountModifier").on("click","button", e=> {
-			let inc = e.target.textContent  == '+';
-			if(!inc) {
-				if(this.config.netLayers.length == 2) return;
+		$("#layerCountModifier").on("click", "button", e=> {
+			let inc = e.target.textContent == '+';
+			if (!inc) {
+				if (this.config.netLayers.length == 2) return;
 				this.config.netLayers.splice(1, 1);
 				$("#neuronCountModifier div").eq(1).remove();
 			} else {
 				$("#neuronCountModifier div").eq(1).before(this.hiddenLayerDiv.clone());
-				this.config.netLayers.splice(1, 0, {activation:'sigmoid',neuronCount:2});
+				this.config.netLayers.splice(1, 0, { activation: 'sigmoid', neuronCount: 2 });
 			}
 			$("#layerCount").text(this.config.netLayers.length);
 			this.initializeNet();
@@ -80,8 +80,8 @@ class Simulation {
 		this.run();
 	}
 
-	initializeNet(weights?:double[]) {
-		if(this.net) this.stop();
+	initializeNet(weights?: double[]) {
+		if (this.net) this.stop();
 		//let cache = [0.18576880730688572,-0.12869677506387234,0.08548374730162323,-0.19820863520726562,-0.09532690420746803,-0.3415223266929388,-0.309354952769354,-0.157513455953449];
 		//let cache = [-0.04884958150796592,-0.3569231238216162,0.11143312812782824,0.43614205135963857,0.3078767384868115,-0.22759653301909566,0.09250503336079419,0.3279339636210352];
 		this.net = new Net.NeuralNet(this.config.netLayers, ["x", "y"], this.config.learningRate, this.config.bias, undefined, weights);
@@ -125,24 +125,24 @@ class Simulation {
 		this.initializeNet();
 		this.draw();
 	}
-	
+
 	updateStatusLine() {
 		let correct = 0;
-		switch(this.config.simType) {
+		switch (this.config.simType) {
 			case SimulationType.BinaryClassification:
 				for (var val of this.config.data) {
-				let res = this.net.getOutput(val.input);
-				if(+(res[0]>0.5) == val.output[0]) correct++;
-			}
-			this.statusCorrectEle.innerHTML = `${correct}/${this.config.data.length}`;
-			break;
+					let res = this.net.getOutput(val.input);
+					if (+(res[0] > 0.5) == val.output[0]) correct++;
+				}
+				this.statusCorrectEle.innerHTML = `${correct}/${this.config.data.length}`;
+				break;
 			case SimulationType.AutoEncoder:
 				this.statusCorrectEle.innerHTML = `?`
-			break;
+				break;
 		}
-		
+
 		this.statusIterEle.innerHTML = this.stepNum.toString();
-		
+
 		if (correct == this.config.data.length) {
 			if (this.config.autoRestart && this.running && this.restartTimeout == -1) {
 				this.restartTimeout = setTimeout(() => {
@@ -189,12 +189,12 @@ class Simulation {
 	}
 
 	randomizeData() {
-		if(this.config.netLayers[0].neuronCount !== 2 || this.config.simType !== SimulationType.BinaryClassification)
+		if (this.config.netLayers[0].neuronCount !== 2 || this.config.simType !== SimulationType.BinaryClassification)
 			throw "can't create random data for this network";
-		let count = Math.random()*5 + 4;
+		let count = Math.random() * 5 + 4;
 		this.config.data = [];
 		for (let i = 0; i < count; i++) {
-			this.config.data[i] = { input:[Math.random() * 2, Math.random() * 2], output:[+(Math.random() > 0.5)] };
+			this.config.data[i] = { input: [Math.random() * 2, Math.random() * 2], output: [+(Math.random() > 0.5)] };
 		}
 		this.draw();
 	}

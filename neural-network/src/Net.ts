@@ -38,15 +38,15 @@ module Net {
 	var NonLinearities: { [name: string]: ActivationFunction } = {
 		sigmoid: {
 			f: (x: double) => 1 / (1 + Math.exp(-x)),
-			df: (x: double) => {x = 1 / (1 + Math.exp(-x)); return x * (1 - x)}
+			df: (x: double) => { x = 1 / (1 + Math.exp(-x)); return x * (1 - x) }
 		},
 		tanh: {
 			f: (x: double) => tanh(x),
-			df: (x: double) => {x = tanh(x); return 1 - x * x}
+			df: (x: double) => { x = tanh(x); return 1 - x * x }
 		},
 		linear: {
 			f: (x: double) => x,
-			df: (x:double) => 1
+			df: (x: double) => 1
 		}
 	}
 
@@ -112,9 +112,9 @@ module Net {
 			for (var i = 0; i < this.outputs.length; i++)
 				this.outputs[i].targetOutput = expectedOutput[i];
 			for (let i = this.layers.length - 1; i > 0; i--) {
-				for(let neuron of this.layers[i]) {
+				for (let neuron of this.layers[i]) {
 					neuron.calculateError();
-					for(let conn of neuron.inputs)
+					for (let conn of neuron.inputs)
 						conn.calculateDeltaWeight(this.learnRate);
 				}
 			}

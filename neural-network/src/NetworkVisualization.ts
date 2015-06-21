@@ -1,6 +1,6 @@
 ///<reference path='Transform.ts' />
 interface TrainingData {
-	input:double[]; output:double[];
+	input: double[]; output: double[];
 }
 
 class NetworkVisualization {
@@ -14,10 +14,10 @@ class NetworkVisualization {
 	}
 
 	constructor(
-			public canvas: HTMLCanvasElement, 
-			public trafo: Transform, public sim: Simulation,
-			public netOutput: (x: double, y: double) => double,
-			public backgroundResolution: int) {
+		public canvas: HTMLCanvasElement,
+		public trafo: Transform, public sim: Simulation,
+		public netOutput: (x: double, y: double) => double,
+		public backgroundResolution: int) {
 		this.ctx = <CanvasRenderingContext2D>this.canvas.getContext('2d');
 		this.canvasResized();
 		window.addEventListener('resize', this.canvasResized.bind(this));
@@ -34,11 +34,11 @@ class NetworkVisualization {
 	drawDataPoints() {
 		this.ctx.strokeStyle = "#000";
 		for (let val of this.sim.config.data) {
-			this.drawDataPoint(val.input[0],val.input[1],val.output[0]);
+			this.drawDataPoint(val.input[0], val.input[1], val.output[0]);
 		}
 	}
-	
-	drawDataPoint(x:double, y:double, label:int) {
+
+	drawDataPoint(x: double, y: double, label: int) {
 		this.ctx.fillStyle = this.colors.fg[label | 0];
 		this.ctx.beginPath();
 		this.ctx.arc(this.trafo.toCanvas.x(x), this.trafo.toCanvas.y(y), 5, 0, 2 * Math.PI);
@@ -53,7 +53,7 @@ class NetworkVisualization {
 
 				if (this.showGradient) {
 					this.ctx.fillStyle = this.colors.gradient(val);
-				} else this.ctx.fillStyle = this.colors.bg[+(val>0.5)];
+				} else this.ctx.fillStyle = this.colors.bg[+(val > 0.5)];
 				this.ctx.fillRect(x, y, this.backgroundResolution, this.backgroundResolution);
 			}
 		}
@@ -88,8 +88,8 @@ class NetworkVisualization {
 		this.canvas.height = $(this.canvas).height();
 	}
 	canvasClicked(evt: MouseEvent) {
-		if ((Date.now()-this.mouseDownTime) > 200) return;
-		if(this.sim.config.netLayers[0].neuronCount !== 2) {
+		if ((Date.now() - this.mouseDownTime) > 200) return;
+		if (this.sim.config.netLayers[0].neuronCount !== 2) {
 			throw "data modification not supported for !=2 inputs";
 		}
 		let data = this.sim.config.data;
@@ -102,16 +102,16 @@ class NetworkVisualization {
 			for (let i = 0; i < data.length; i++) {
 				let p = data[i];
 				let dx = p.input[0] - x, dy = p.input[1] - y, dist = dx * dx + dy * dy;
-				if (dist < nearestDist) nearest = i, nearestDist = dist; 
+				if (dist < nearestDist) nearest = i, nearestDist = dist;
 			}
 			if (nearest >= 0) data.splice(nearest, 1);
 		} else {
-			if(this.sim.config.simType == SimulationType.AutoEncoder) {
-				data.push({input:[x, y], output:[x, y]});
-			} else if(this.sim.config.simType == SimulationType.BinaryClassification) {
+			if (this.sim.config.simType == SimulationType.AutoEncoder) {
+				data.push({ input: [x, y], output: [x, y] });
+			} else if (this.sim.config.simType == SimulationType.BinaryClassification) {
 				let label = evt.button == 0 ? 0 : 1;
-				if(evt.ctrlKey) label = label == 0 ? 1 : 0;
-				data.push({ input:[x, y], output: [label] });
+				if (evt.ctrlKey) label = label == 0 ? 1 : 0;
+				data.push({ input: [x, y], output: [label] });
 			}
 		}
 		this.draw();

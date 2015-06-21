@@ -581,14 +581,21 @@ var Simulation = (function () {
     Simulation.prototype.updateStatusLine = function () {
         var _this = this;
         var correct = 0;
-        for (var _i = 0, _a = this.config.data; _i < _a.length; _i++) {
-            var val = _a[_i];
-            var res = this.net.getOutput(val.input);
-            if (res.every(function (x, i) { return x === val.output[i]; }))
-                correct++;
+        switch (this.config.simType) {
+            case SimulationType.BinaryClassification:
+                for (var _i = 0, _a = this.config.data; _i < _a.length; _i++) {
+                    var val = _a[_i];
+                    var res = this.net.getOutput(val.input);
+                    if (+(res[0] > 0.5) == val.output[0])
+                        correct++;
+                }
+                this.statusCorrectEle.innerHTML = correct + "/" + this.config.data.length;
+                break;
+            case SimulationType.AutoEncoder:
+                this.statusCorrectEle.innerHTML = "?";
+                break;
         }
         this.statusIterEle.innerHTML = this.stepNum.toString();
-        this.statusCorrectEle.innerHTML = correct + "/" + this.config.data.length;
         if (correct == this.config.data.length) {
             if (this.config.autoRestart && this.running && this.restartTimeout == -1) {
                 this.restartTimeout = setTimeout(function () {

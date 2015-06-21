@@ -78,11 +78,7 @@
 					<div class="form-group">
 						<label for="activation" class="col-sm-6 control-label">Activation function</label>
 						<div class="col-sm-6">
-							<select class="form-control" id="activation" onchange="simulation.loadConfig()">
-								<option selected>sigmoid</option>
-								<option>tanh</option>
-								<!--<option>relu</option>-->
-							</select>
+							
 						</div>
 					</div>
 					<div class="form-group">
@@ -113,11 +109,23 @@
 							<span class='neuronCount'>2</span>&nbsp;neurons
 							<button class="btn btn-xs btn-default">+</button>
 							<button class="btn btn-xs btn-default">-</button>
+							<select class="btn btn-xs" id="activation">
+								<option selected>sigmoid</option>
+								<option>tanh</option>
+								<option>linear</option>
+								<!--<option>relu</option>-->
+							</select>
 						</div>
 						<div>Output layer:
 							<span class='neuronCount'>1</span>&nbsp;neuron
 							<button class="btn btn-xs btn-default">+</button>
 							<button class="btn btn-xs btn-default">-</button>
+							<select class="btn btn-xs" id="activation">
+								<option selected>sigmoid</option>
+								<option>tanh</option>
+								<option>linear</option>
+								<!--<option>relu</option>-->
+							</select>
 						</div>
 					</div>
 					<br>

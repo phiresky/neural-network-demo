@@ -11,8 +11,8 @@ class CanvasMouseNavigation implements Transform {
 	mousedown: boolean = false;
 	mousestart = { x: 0, y: 0 };
 	toReal = {
-		x: (x:double) => (x - this.offsetx) / this.scalex,
-		y: (y:double) => (y- this.offsety) / this.scaley
+		x: (x: double) => (x - this.offsetx) / this.scalex,
+		y: (y: double) => (y - this.offsety) / this.scaley
 	}
 	toCanvas = {
 		x: (c: double) => c * this.scalex + this.offsetx,

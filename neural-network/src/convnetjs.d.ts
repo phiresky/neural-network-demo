@@ -1,18 +1,18 @@
 declare module convnetjs {
 	interface Layer {
-		type:string,
-		num_neurons?:int,
+		type: string,
+		num_neurons?: int,
 		activation?: string
-		out_sx?:int,
-		out_sy?:int,
-		out_depth?:int,
-		num_classes?:int
+		out_sx?: int,
+		out_sy?: int,
+		out_depth?: int,
+		num_classes?: int
 	}
 	class Net {
-		makeLayers(layers: Layer[]):void;
+		makeLayers(layers: Layer[]): void;
 		forward(inp: Vol): Vol;
-		fromJSON(inp:any):void;
-		toJSON():any;
+		fromJSON(inp: any): void;
+		toJSON(): any;
 	}
 	interface Options {
 		learning_rate: double,
@@ -23,10 +23,10 @@ declare module convnetjs {
 	}
 	class Trainer {
 		constructor(net: Net, options: Options);
-		train(vol: Vol, label: int) : any;
+		train(vol: Vol, label: int): any;
 	}
 	class Vol {
-		constructor(sx: int, sy: int, depth: int, initValue?:double);
+		constructor(sx: int, sy: int, depth: int, initValue?: double);
 		sx: int; sy: int; depth: int;
 		w: Float64Array;
 		dw: Float64Array;
