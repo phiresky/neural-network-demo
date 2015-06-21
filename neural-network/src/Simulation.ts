@@ -63,7 +63,7 @@ class Simulation {
 			$("#neuronCountModifier .neuronCount").eq(layer).text(newval);
 			this.initializeNet();
 		});
-		$("#layerCountModifier").on("click", "button", e=> {
+		$("#layerCountModifier").on("click", "button", e => {
 			let inc = e.target.textContent == '+';
 			if (!inc) {
 				if (this.config.netLayers.length == 2) return;
@@ -74,6 +74,11 @@ class Simulation {
 				this.config.netLayers.splice(1, 0, { activation: 'sigmoid', neuronCount: 2 });
 			}
 			$("#layerCount").text(this.config.netLayers.length);
+			this.initializeNet();
+		});
+		$("#neuronCountModifier").on("change", "select", e => {
+			let layer = $(e.target.parentNode).index();
+			this.config.netLayers[layer].activation = (<HTMLSelectElement>e.target).value;
 			this.initializeNet();
 		});
 		this.reset();
