@@ -10,7 +10,7 @@ class NetworkVisualization {
 		bg: ["#f88", "#8f8"],
 		fg: ["#f00", "#0f0"],
 		gradient: (val: number) => "rgb(" +
-			[(((1 - val) * (256-60)) | 0) + 60, ((val * (256-60)) | 0) + 60, 60] + ")"
+			[(((1 - val) * (256 - 60)) | 0) + 60, ((val * (256 - 60)) | 0) + 60, 60] + ")"
 	}
 
 	constructor(
@@ -50,8 +50,8 @@ class NetworkVisualization {
 			throw "can't draw this"
 		}
 	}
-	
-	drawLine(x:double, y:double, x2:double, y2:double, color:string) {
+
+	drawLine(x: double, y: double, x2: double, y2: double, color: string) {
 		x = this.trafo.toCanvas.x(x); x2 = this.trafo.toCanvas.x(x2);
 		y = this.trafo.toCanvas.y(y); y2 = this.trafo.toCanvas.y(y2);
 		this.ctx.strokeStyle = color;
@@ -78,7 +78,7 @@ class NetworkVisualization {
 		}
 		for (let x = 0; x < this.canvas.width; x += this.backgroundResolution) {
 			for (let y = 0; y < this.canvas.height; y += this.backgroundResolution) {
-				let val = this.netOutput(this.trafo.toReal.x(x), this.trafo.toReal.y(y));
+				let val = this.netOutput(this.trafo.toReal.x(x + this.backgroundResolution / 2), this.trafo.toReal.y(y + this.backgroundResolution / 2));
 
 				if (this.sim.config.showGradient) {
 					this.ctx.fillStyle = this.colors.gradient(val);
