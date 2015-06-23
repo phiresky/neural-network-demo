@@ -3,8 +3,12 @@ enum SimulationType {
 	BinaryClassification,
 	AutoEncoder
 }
+interface Configuration {
+	[name: string]: any;
+	data?: TrainingData[];
+}
 module Presets {
-	let presets: { [name: string]: {} } = {
+	let presets: { [name: string]: Configuration } = {
 		"Default": {
 			stepsPerFrame: 50,
 			learningRate: 0.05,
@@ -116,15 +120,15 @@ module Presets {
 		return $.extend(true, {}, presets["Default"], presets[name]);
 	}
 	export function printPreset(parent = presets["Default"]) {
-		let config = (<any>window).simulation.config;
-		let outconf = {};
+		let config = <Configuration>(<any>window).simulation.config;
+		let outconf: any = {};
 		for (let prop in config) {
 			if (config[prop] !== parent[prop]) outconf[prop] = config[prop];
 		}
-		outconf["data"] = config.data.map(
+		outconf.data = config.data.map(
 			e => '{input:[' + e.input.map(x=> x.toFixed(2))
 				+ '], output:[' +
-				(config.simType == SimulationType.BinaryClassification
+				(config["simType"] == SimulationType.BinaryClassification
 					? e.output
 					: e.input.map(x=> x.toFixed(2)))
 				+ ']},').join("\n");

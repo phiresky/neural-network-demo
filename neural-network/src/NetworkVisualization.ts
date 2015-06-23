@@ -6,11 +6,17 @@ interface TrainingData {
 class NetworkVisualization {
 	ctx: CanvasRenderingContext2D;
 	mouseDownTime = 0; // ignore clicks if dragged
-	colors = {
-		bg: ["#f88", "#8f8"],
-		fg: ["#f00", "#0f0"],
-		gradient: (val: number) => "rgb(" +
-			[(((1 - val) * (256 - 60)) | 0) + 60, ((val * (256 - 60)) | 0) + 60, 60] + ")"
+	static colors = {
+		binaryClassify: {
+			bg: ["#f88", "#8f8"],
+			fg: ["#f00", "#0f0"],
+			gradient: (val: number) => "rgb(" +
+				[(((1 - val) * (256 - 60)) | 0) + 60, ((val * (256 - 60)) | 0) + 60, 60] + ")"
+		},
+		autoencoder: {
+			input: '#2188e0',
+			output: '#ff931f'
+		}
 	}
 
 	constructor(
@@ -35,7 +41,7 @@ class NetworkVisualization {
 		this.ctx.strokeStyle = "#000";
 		if (this.sim.config.simType === SimulationType.BinaryClassification) {
 			for (let val of this.sim.config.data) {
-				this.drawDataPoint(val.input[0], val.input[1], val.output[0]);
+				this.drawPoint(val.input[0], val.input[1], NetworkVisualization.colors.binaryClassify.fg[val.output[0]|0]);
 			}
 		} else if (this.sim.config.simType === SimulationType.AutoEncoder) {
 			for (let val of this.sim.config.data) {
@@ -43,8 +49,8 @@ class NetworkVisualization {
 				let out = this.sim.net.getOutput(val.input);
 				let ox = out[0], oy = out[1];
 				this.drawLine(ix, iy, ox, oy, "black");
-				this.drawDataPoint(ix, iy, 1);
-				this.drawDataPoint(ox, oy, 0);
+				this.drawPoint(ix, iy, NetworkVisualization.colors.autoencoder.input);
+				this.drawPoint(ox, oy, NetworkVisualization.colors.autoencoder.output);
 			}
 		} else {
 			throw "can't draw this"
@@ -61,9 +67,9 @@ class NetworkVisualization {
 		this.ctx.stroke();
 	}
 
-	drawDataPoint(x: double, y: double, label: int) {
+	drawPoint(x: double, y: double, color: string) {
 		x = this.trafo.toCanvas.x(x); y = this.trafo.toCanvas.y(y);
-		this.ctx.fillStyle = this.colors.fg[label | 0];
+		this.ctx.fillStyle = color;
 		this.ctx.beginPath();
 		this.ctx.arc(x, y, 5, 0, 2 * Math.PI);
 		this.ctx.fill();
@@ -81,8 +87,8 @@ class NetworkVisualization {
 				let val = this.netOutput(this.trafo.toReal.x(x + this.backgroundResolution / 2), this.trafo.toReal.y(y + this.backgroundResolution / 2));
 
 				if (this.sim.config.showGradient) {
-					this.ctx.fillStyle = this.colors.gradient(val);
-				} else this.ctx.fillStyle = this.colors.bg[+(val > 0.5)];
+					this.ctx.fillStyle = NetworkVisualization.colors.binaryClassify.gradient(val);
+				} else this.ctx.fillStyle = NetworkVisualization.colors.binaryClassify.bg[+(val > 0.5)];
 				this.ctx.fillRect(x, y, this.backgroundResolution, this.backgroundResolution);
 			}
 		}

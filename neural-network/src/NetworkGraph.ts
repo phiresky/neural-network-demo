@@ -50,10 +50,10 @@ class NetworkGraph {
 				let color = '#000';
 				if (neuron instanceof Net.InputNeuron) {
 					type = 'Input: '+neuron.name;
-					color = '#008';
+					color = NetworkVisualization.colors.autoencoder.input;
 				} if (neuron instanceof Net.OutputNeuron) {
 					type = 'Output Neuron ' + (nid+1);
-					color = '#800';
+					color = NetworkVisualization.colors.autoencoder.output;
 				}
 				nodes.push({
 					id: neuron.id,
