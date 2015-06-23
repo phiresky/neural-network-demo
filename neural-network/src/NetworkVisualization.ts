@@ -2,10 +2,10 @@
 interface TrainingData {
 	input: double[]; output: double[];
 }
-
 class NetworkVisualization {
 	ctx: CanvasRenderingContext2D;
 	mouseDownTime = 0; // ignore clicks if dragged
+	inputMode = 0; //classifier:0=red,1=green,2=remove;autoenc:0=add,2=remove
 	static colors = {
 		binaryClassify: {
 			bg: ["#f88", "#8f8"],
@@ -41,7 +41,7 @@ class NetworkVisualization {
 		this.ctx.strokeStyle = "#000";
 		if (this.sim.config.simType === SimulationType.BinaryClassification) {
 			for (let val of this.sim.config.data) {
-				this.drawPoint(val.input[0], val.input[1], NetworkVisualization.colors.binaryClassify.fg[val.output[0]|0]);
+				this.drawPoint(val.input[0], val.input[1], NetworkVisualization.colors.binaryClassify.fg[val.output[0] | 0]);
 			}
 		} else if (this.sim.config.simType === SimulationType.AutoEncoder) {
 			for (let val of this.sim.config.data) {
@@ -131,7 +131,7 @@ class NetworkVisualization {
 		let rect = this.canvas.getBoundingClientRect();
 		let x = this.trafo.toReal.x(evt.clientX - rect.left);
 		let y = this.trafo.toReal.y(evt.clientY - rect.top);
-		if (evt.button == 2 || evt.shiftKey) {
+		if (this.inputMode == 2 || evt.button == 2 || evt.shiftKey) {
 			//remove nearest
 			let nearestDist = Infinity, nearest = -1;
 			for (let i = 0; i < data.length; i++) {
@@ -141,11 +141,14 @@ class NetworkVisualization {
 			}
 			if (nearest >= 0) data.splice(nearest, 1);
 		} else {
+			// add data point
 			if (this.sim.config.simType == SimulationType.AutoEncoder) {
 				data.push({ input: [x, y], output: [x, y] });
 			} else if (this.sim.config.simType == SimulationType.BinaryClassification) {
-				let label = evt.button == 0 ? 0 : 1;
-				if (evt.ctrlKey || evt.metaKey || evt.altKey) label = label == 0 ? 1 : 0;
+				let inv = (x: int) => x == 0 ? 1 : 0;
+				let label = this.inputMode;
+				if (evt.button != 0) label = inv(label);
+				if (evt.ctrlKey || evt.metaKey || evt.altKey) label = inv(label);
 				data.push({ input: [x, y], output: [label] });
 			}
 		}

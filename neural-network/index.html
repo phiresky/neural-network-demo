@@ -23,7 +23,18 @@
 	<div class="row">
 		<div class="col-sm-6"></div>
 		<div class="col-sm-6">
-			<p class="small">Left-Click adds red points. Middle-Click/Ctrl-Click adds green points. Right-Click/Ctrl-Click removes.</p>
+			<ul class="nav nav-pills" id="dataInputSwitch">
+				<li class="active">
+					<a>Add Red</a>
+				</li>
+				<li>
+					<a>Add Green</a>
+				</li>
+				<li>
+					<a>Remove</a>
+				</li>
+			</ul>
+			<br>
 		</div>
 	</div>
 	<div class="row">
@@ -102,6 +113,15 @@
 				<div class="col-sm-6">
 					<h4>Net</h4>
 					<div class="form-group">
+						<label for="simType" class="col-sm-6 control-label">Network Type</label>
+						<div class="col-sm-6">
+							<select class="form-control" id="simType" onchange="simulation.loadConfig();simulation.initializeNet();">
+								<option selected value=0>Binary Classification</option>
+								<option value=1>Auto-Encoder</option>
+							</select>
+						</div>
+					</div>
+					<div class="form-group">
 						<label for="learningRate" class="col-sm-6 control-label">Learning Rate</label>
 						<div class="col-sm-6 form-control-static">
 							<span id="learningRateVal" style='margin-right:1em;'>0.05</span>
@@ -129,7 +149,7 @@
 							<span class='neuronCount'>2</span>&nbsp;neurons
 							<button class="btn btn-xs btn-default">+</button>
 							<button class="btn btn-xs btn-default">-</button>
-							<select class="btn btn-xs activation">
+							<select class="btn btn-xs btn-default activation">
 								<option selected>sigmoid</option>
 								<option>tanh</option>
 								<option>linear</option>
@@ -140,7 +160,7 @@
 							<span class='neuronCount'>1</span>&nbsp;neuron
 							<button class="btn btn-xs btn-default">+</button>
 							<button class="btn btn-xs btn-default">-</button>
-							<select class="btn btn-xs activation">
+							<select class="btn btn-xs btn-default activation">
 								<option selected>sigmoid</option>
 								<option>tanh</option>
 								<option>linear</option>
@@ -151,11 +171,12 @@
 				</div>
 				<br>
 				<button class="btn btn-default" onclick="simulation.loadConfig()">Load config</button>
-				<button class="btn btn-default" onclick="simulation.randomizeData()">Randomize input data</button>
 			</div>
 		</div>
 	</div>
-	<footer class=small><a href="https://github.com/phiresky/kogsys-demos/">Source on GitHub</a></footer>
+	<footer class=small>
+		<a href="https://github.com/phiresky/kogsys-demos/">Source on GitHub</a>
+	</footer>
 </div>
 <script src="lib/jquery.min.js"></script>
 <script src="lib/bootstrap.min.js"></script>

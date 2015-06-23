@@ -260,11 +260,11 @@ var NetworkGraph = (function () {
                 var color = '#000';
                 if (neuron instanceof Net.InputNeuron) {
                     type = 'Input: ' + neuron.name;
-                    color = '#008';
+                    color = NetworkVisualization.colors.autoencoder.input;
                 }
                 if (neuron instanceof Net.OutputNeuron) {
                     type = 'Output Neuron ' + (nid + 1);
-                    color = '#800';
+                    color = NetworkVisualization.colors.autoencoder.output;
                 }
                 nodes.push({
                     id: neuron.id,
@@ -354,12 +354,7 @@ var NetworkVisualization = (function () {
         this.netOutput = netOutput;
         this.backgroundResolution = backgroundResolution;
         this.mouseDownTime = 0; // ignore clicks if dragged
-        this.colors = {
-            bg: ["#f88", "#8f8"],
-            fg: ["#f00", "#0f0"],
-            gradient: function (val) { return "rgb(" +
-                [(((1 - val) * (256 - 60)) | 0) + 60, ((val * (256 - 60)) | 0) + 60, 60] + ")"; }
-        };
+        this.inputMode = 0; //classifier:0=red,1=green,2=remove;autoenc:0=add,2=remove
         this.ctx = this.canvas.getContext('2d');
         this.canvasResized();
         window.addEventListener('resize', this.canvasResized.bind(this));
@@ -377,7 +372,7 @@ var NetworkVisualization = (function () {
         if (this.sim.config.simType === SimulationType.BinaryClassification) {
             for (var _i = 0, _a = this.sim.config.data; _i < _a.length; _i++) {
                 var val = _a[_i];
-                this.drawDataPoint(val.input[0], val.input[1], val.output[0]);
+                this.drawPoint(val.input[0], val.input[1], NetworkVisualization.colors.binaryClassify.fg[val.output[0] | 0]);
             }
         }
         else if (this.sim.config.simType === SimulationType.AutoEncoder) {
@@ -387,8 +382,8 @@ var NetworkVisualization = (function () {
                 var out = this.sim.net.getOutput(val.input);
                 var ox = out[0], oy = out[1];
                 this.drawLine(ix, iy, ox, oy, "black");
-                this.drawDataPoint(ix, iy, 1);
-                this.drawDataPoint(ox, oy, 0);
+                this.drawPoint(ix, iy, NetworkVisualization.colors.autoencoder.input);
+                this.drawPoint(ox, oy, NetworkVisualization.colors.autoencoder.output);
             }
         }
         else {
@@ -406,10 +401,10 @@ var NetworkVisualization = (function () {
         this.ctx.lineTo(x2, y2);
         this.ctx.stroke();
     };
-    NetworkVisualization.prototype.drawDataPoint = function (x, y, label) {
+    NetworkVisualization.prototype.drawPoint = function (x, y, color) {
         x = this.trafo.toCanvas.x(x);
         y = this.trafo.toCanvas.y(y);
-        this.ctx.fillStyle = this.colors.fg[label | 0];
+        this.ctx.fillStyle = color;
         this.ctx.beginPath();
         this.ctx.arc(x, y, 5, 0, 2 * Math.PI);
         this.ctx.fill();
@@ -424,12 +419,12 @@ var NetworkVisualization = (function () {
         }
         for (var x = 0; x < this.canvas.width; x += this.backgroundResolution) {
             for (var y = 0; y < this.canvas.height; y += this.backgroundResolution) {
-                var val = this.netOutput(this.trafo.toReal.x(x), this.trafo.toReal.y(y));
+                var val = this.netOutput(this.trafo.toReal.x(x + this.backgroundResolution / 2), this.trafo.toReal.y(y + this.backgroundResolution / 2));
                 if (this.sim.config.showGradient) {
-                    this.ctx.fillStyle = this.colors.gradient(val);
+                    this.ctx.fillStyle = NetworkVisualization.colors.binaryClassify.gradient(val);
                 }
                 else
-                    this.ctx.fillStyle = this.colors.bg[+(val > 0.5)];
+                    this.ctx.fillStyle = NetworkVisualization.colors.binaryClassify.bg[+(val > 0.5)];
                 this.ctx.fillRect(x, y, this.backgroundResolution, this.backgroundResolution);
             }
         }
@@ -469,7 +464,7 @@ var NetworkVisualization = (function () {
         var rect = this.canvas.getBoundingClientRect();
         var x = this.trafo.toReal.x(evt.clientX - rect.left);
         var y = this.trafo.toReal.y(evt.clientY - rect.top);
-        if (evt.button == 2 || evt.shiftKey) {
+        if (this.inputMode == 2 || evt.button == 2 || evt.shiftKey) {
             //remove nearest
             var nearestDist = Infinity, nearest = -1;
             for (var i = 0; i < data.length; i++) {
@@ -482,18 +477,34 @@ var NetworkVisualization = (function () {
                 data.splice(nearest, 1);
         }
         else {
+            // add data point
             if (this.sim.config.simType == SimulationType.AutoEncoder) {
                 data.push({ input: [x, y], output: [x, y] });
             }
             else if (this.sim.config.simType == SimulationType.BinaryClassification) {
-                var label = evt.button == 0 ? 0 : 1;
+                var inv = function (x) { return x == 0 ? 1 : 0; };
+                var label = this.inputMode;
+                if (evt.button != 0)
+                    label = inv(label);
                 if (evt.ctrlKey || evt.metaKey || evt.altKey)
-                    label = label == 0 ? 1 : 0;
+                    label = inv(label);
                 data.push({ input: [x, y], output: [label] });
             }
         }
         this.draw();
         evt.preventDefault();
+    };
+    NetworkVisualization.colors = {
+        binaryClassify: {
+            bg: ["#f88", "#8f8"],
+            fg: ["#f00", "#0f0"],
+            gradient: function (val) { return "rgb(" +
+                [(((1 - val) * (256 - 60)) | 0) + 60, ((val * (256 - 60)) | 0) + 60, 60] + ")"; }
+        },
+        autoencoder: {
+            input: '#2188e0',
+            output: '#ff931f'
+        }
     };
     return NetworkVisualization;
 })();
@@ -623,9 +634,9 @@ var Presets;
             if (config[prop] !== parent[prop])
                 outconf[prop] = config[prop];
         }
-        outconf["data"] = config.data.map(function (e) { return '{input:[' + e.input.map(function (x) { return x.toFixed(2); })
+        outconf.data = config.data.map(function (e) { return '{input:[' + e.input.map(function (x) { return x.toFixed(2); })
             + '], output:[' +
-            (config.simType == SimulationType.BinaryClassification
+            (config["simType"] == SimulationType.BinaryClassification
                 ? e.output
                 : e.input.map(function (x) { return x.toFixed(2); }))
             + ']},'; }).join("\n");
@@ -725,6 +736,13 @@ var Simulation = (function () {
             _this.setConfig();
             _this.initializeNet();
         });
+        $("#dataInputSwitch").on("click", "a", function (e) {
+            $("#dataInputSwitch li.active").removeClass("active");
+            var li = $(e.target).parent();
+            li.addClass("active");
+            var mode = li.index();
+            _this.netviz.inputMode = mode;
+        });
         this.reset();
         this.run();
     }
@@ -732,6 +750,9 @@ var Simulation = (function () {
         if (this.net)
             this.stop();
         this.net = new Net.NeuralNet(this.config.netLayers, ["x", "y"], this.config.learningRate, this.config.bias, undefined, weights);
+        var isBinClass = this.config.simType == SimulationType.BinaryClassification;
+        $("#dataInputSwitch > li").eq(1).toggle(isBinClass);
+        $("#dataInputSwitch > li > a").eq(0).text(isBinClass ? "Add Red" : "Add point");
         console.log("net:" + JSON.stringify(this.net.connections.map(function (c) { return c.weight; })));
         this.stepNum = 0;
         this.netgraph.loadNetwork(this.net);
@@ -823,6 +844,7 @@ var Simulation = (function () {
     };
     Simulation.prototype.loadConfig = function () {
         var config = this.config;
+        var oldConfig = $.extend({}, config);
         for (var conf in config) {
             var ele = document.getElementById(conf);
             if (!ele)
@@ -834,6 +856,8 @@ var Simulation = (function () {
             else
                 config[conf] = ele.value;
         }
+        if (oldConfig.simType != config.simType)
+            config.data = [];
         if (this.net)
             this.net.learnRate = this.config.learningRate;
     };

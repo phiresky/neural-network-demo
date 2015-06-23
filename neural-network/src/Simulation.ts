@@ -95,6 +95,13 @@ class Simulation {
 			this.setConfig();
 			this.initializeNet();
 		});
+		$("#dataInputSwitch").on("click","a", e => {
+			$("#dataInputSwitch li.active").removeClass("active");
+			let li = $(e.target).parent();
+			li.addClass("active");
+			let mode = li.index();
+			this.netviz.inputMode = mode;
+		});
 		this.reset();
 		this.run();
 	}
@@ -102,6 +109,9 @@ class Simulation {
 	initializeNet(weights?: double[]) {
 		if (this.net) this.stop();
 		this.net = new Net.NeuralNet(this.config.netLayers, ["x", "y"], this.config.learningRate, this.config.bias, undefined, weights);
+		let isBinClass = this.config.simType == SimulationType.BinaryClassification;
+		$("#dataInputSwitch > li").eq(1).toggle(isBinClass);
+		$("#dataInputSwitch > li > a").eq(0).text(isBinClass?"Add Red":"Add point");
 		console.log("net:" + JSON.stringify(this.net.connections.map(c => c.weight)));
 		this.stepNum = 0;
 		this.netgraph.loadNetwork(this.net);
@@ -199,6 +209,7 @@ class Simulation {
 
 	loadConfig() { // from gui
 		let config = <any>this.config;
+		let oldConfig = $.extend({}, config);
 		for (let conf in config) {
 			let ele = <HTMLInputElement>document.getElementById(conf);
 			if (!ele) continue;
@@ -207,6 +218,7 @@ class Simulation {
 				config[conf] = +ele.value;
 			else config[conf] = ele.value;
 		}
+		if(oldConfig.simType != config.simType) config.data = [];
 		if (this.net) this.net.learnRate = this.config.learningRate;
 	}
 	setConfig() { // in gui

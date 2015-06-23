@@ -6,6 +6,15 @@ enum SimulationType {
 interface Configuration {
 	[name: string]: any;
 	data?: TrainingData[];
+	netLayers?: LayerConfig[];
+	learningRate?: number;
+	bias?: boolean;
+	simType?: SimulationType;
+	autoRestart?: boolean;
+	autoRestartTime?: int;
+	stepsPerFrame?: int;
+	iterationsPerClick?: int;
+	showGradient?: boolean;
 }
 module Presets {
 	let presets: { [name: string]: Configuration } = {
@@ -116,7 +125,7 @@ module Presets {
 			showGradient: true
 		}
 	}
-	export function get(name: string) {
+	export function get(name: string): Configuration {
 		return $.extend(true, {}, presets["Default"], presets[name]);
 	}
 	export function printPreset(parent = presets["Default"]) {
