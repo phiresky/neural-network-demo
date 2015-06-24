@@ -4,7 +4,9 @@ enum SimulationType {
 	AutoEncoder
 }
 interface Configuration {
-	[name: string]: any;
+	[property: string]: any;
+	name: string;
+	parent?: string; // inherit from
 	data?: TrainingData[];
 	netLayers?: LayerConfig[];
 	learningRate?: number;
@@ -17,8 +19,9 @@ interface Configuration {
 	showGradient?: boolean;
 }
 module Presets {
-	let presets: { [name: string]: Configuration } = {
-		"Default": {
+	let presets: Configuration[] = [
+		{
+			name:"Default",
 			stepsPerFrame: 50,
 			learningRate: 0.05,
 			showGradient: false,
@@ -39,10 +42,12 @@ module Presets {
 				{ neuronCount: 1, activation: "sigmoid" }
 			]
 		},
-		"XOR": {
+		{
+			name:"XOR"
 			//defaults only
 		},
-		"Circular data": {
+		{
+			name:"Circular data",
 			"netLayers": [
 				{ "neuronCount": 2 },
 				{ "neuronCount": 3, "activation": "sigmoid" },
@@ -100,7 +105,7 @@ module Presets {
 				{ input: [2.05, 0.32], output: [1] },
 				{ input: [1.97, 0.55], output: [0] }]
 		},
-		"Auto-Encoder": {
+		{name:"Auto-Encoder for linear data",
 			simType: SimulationType.AutoEncoder,
 			stepsPerFrame: 1,
 			iterationsPerClick: 1,
@@ -123,24 +128,137 @@ module Presets {
 				{ neuronCount: 2, activation: "linear" }
 			],
 			showGradient: true
+		},
+		{
+			name:"Auto-Encoder for x^2",
+			parent:"Auto-Encoder for circular data",
+			"netLayers": [
+				{
+					"neuronCount": 2
+				},
+				{
+					"activation": "sigmoid",
+					"neuronCount": 2
+				},
+				{
+					"activation": "linear",
+					"neuronCount": 1
+				},
+				{
+					"neuronCount": 2,
+					"activation": "sigmoid"
+				},
+				{
+					"neuronCount": 2,
+					"activation": "linear"
+				}
+			],
+			data:(<number[]>Array.apply(null,Array(17)))
+				.map((e,i) => (i-8)/8).map(x => ({input:[x,x*x],output:[x,x*x]}))
+		},
+		{
+			name:"Auto-Encoder for circular data",
+			"stepsPerFrame": 500,
+			"learningRate": 0.01,
+			"showGradient": true,
+			"autoRestart": false,
+			"iterationsPerClick": 10000,
+			"simType": 1,
+			"netLayers": [
+				{
+					"neuronCount": 2
+				},
+				{
+					"activation": "sigmoid",
+					"neuronCount": 3
+				},
+				{
+					"activation": "linear",
+					"neuronCount": 1
+				},
+				{
+					"neuronCount": 3,
+					"activation": "sigmoid"
+				},
+				{
+					"neuronCount": 2,
+					"activation": "linear"
+				}
+			],
+			data: [{ input: [-0.83, 0.55], output: [-0.83, 0.55] },
+				{ input: [-0.98, 0.21], output: [-0.98, 0.21] },
+				{ input: [-0.77, -0.64], output: [-0.77, -0.64] },
+				{ input: [0.95, 0.31], output: [0.95, 0.31] },
+				{ input: [-0.86, -0.51], output: [-0.86, -0.51] },
+				{ input: [0.99, -0.11], output: [0.99, -0.11] },
+				{ input: [0.97, 0.24], output: [0.97, 0.24] },
+				{ input: [0.85, 0.52], output: [0.85, 0.52] },
+				{ input: [-0.99, 0.15], output: [-0.99, 0.15] },
+				{ input: [0.62, 0.78], output: [0.62, 0.78] },
+				{ input: [0.46, -0.89], output: [0.46, -0.89] },
+				{ input: [-0.68, -0.73], output: [-0.68, -0.73] },
+				{ input: [0.60, -0.80], output: [0.60, -0.80] },
+				{ input: [0.38, 0.92], output: [0.38, 0.92] },
+				{ input: [0.76, 0.65], output: [0.76, 0.65] },
+				{ input: [0.33, -0.94], output: [0.33, -0.94] },
+				{ input: [-0.99, -0.17], output: [-0.99, -0.17] },
+				{ input: [-0.99, -0.17], output: [-0.99, -0.17] },
+				{ input: [-0.97, -0.26], output: [-0.97, -0.26] },
+				{ input: [-0.79, -0.61], output: [-0.79, -0.61] },
+				{ input: [-0.03, -1.00], output: [-0.03, -1.00] },
+				{ input: [0.58, 0.81], output: [0.58, 0.81] },
+				{ input: [-0.67, -0.74], output: [-0.67, -0.74] },
+				{ input: [0.14, 0.99], output: [0.14, 0.99] },
+				{ input: [0.13, -0.99], output: [0.13, -0.99] },
+				{ input: [0.76, 0.65], output: [0.76, 0.65] },
+				{ input: [-0.49, 0.87], output: [-0.49, 0.87] },
+				{ input: [-0.28, 0.96], output: [-0.28, 0.96] },
+				{ input: [0.47, -0.88], output: [0.47, -0.88] },
+				{ input: [-0.03, 1.00], output: [-0.03, 1.00] },
+				{ input: [-0.70, 0.71], output: [-0.70, 0.71] },
+				{ input: [0.38, 0.93], output: [0.38, 0.93] },
+				{ input: [0.62, 0.79], output: [0.62, 0.79] },
+				{ input: [0.72, -0.69], output: [0.72, -0.69] },
+				{ input: [-0.41, -0.91], output: [-0.41, -0.91] },
+				{ input: [0.74, -0.67], output: [0.74, -0.67] },
+				{ input: [0.44, 0.90], output: [0.44, 0.90] },
+				{ input: [-0.99, -0.16], output: [-0.99, -0.16] },
+				{ input: [0.62, 0.78], output: [0.62, 0.78] },
+				{ input: [0.95, -0.39], output: [0.95, -0.39] },
+				{ input: [0.86, -0.53], output: [0.86, -0.53] }]
 		}
+	];
+	export function getNames(): string[] {
+		return presets.map(p => p.name).filter(c => c !== "Default");
 	}
 	export function get(name: string): Configuration {
-		return $.extend(true, {}, presets["Default"], presets[name]);
+		let chain:{}[] = [];
+		let preset = presets.filter(p => p.name === name)[0];
+		chain.unshift(preset);
+		while(true) {
+			var parentName = preset.parent || "Default";
+			preset = presets.filter(p => p.name === parentName)[0];
+			chain.unshift(preset);
+			if(parentName === "Default") break;
+		}
+		chain.unshift({});
+		console.log("loading chain="+chain.map((c:any) => c.name));
+		return $.extend.apply($, chain);
 	}
-	export function printPreset(parent = presets["Default"]) {
+	export function printPreset(parentName = "Default") {
+		let parent = presets.filter(p => p.name === parentName)[0];
 		let config = <Configuration>(<any>window).simulation.config;
 		let outconf: any = {};
 		for (let prop in config) {
 			if (config[prop] !== parent[prop]) outconf[prop] = config[prop];
 		}
-		outconf.data = config.data.map(
+		/*outconf.data = config.data.map(
 			e => '{input:[' + e.input.map(x=> x.toFixed(2))
 				+ '], output:[' +
 				(config["simType"] == SimulationType.BinaryClassification
 					? e.output
 					: e.input.map(x=> x.toFixed(2)))
-				+ ']},').join("\n");
+				+ ']},').join("\n");*/
 		return outconf;
 	}
 }

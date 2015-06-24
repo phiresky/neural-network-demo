@@ -4,8 +4,7 @@ interface TrainingData {
 }
 class NetworkVisualization {
 	ctx: CanvasRenderingContext2D;
-	mouseDownTime = 0; // ignore clicks if dragged
-	inputMode = 0; //classifier:0=red,1=green,2=remove;autoenc:0=add,2=remove
+	inputMode = 0; //classifier:0=red,1=green,2=remove,3=move view;autoenc:0=add,1 unused
 	static colors = {
 		binaryClassify: {
 			bg: ["#f88", "#8f8"],
@@ -28,7 +27,6 @@ class NetworkVisualization {
 		this.canvasResized();
 		window.addEventListener('resize', this.canvasResized.bind(this));
 		canvas.addEventListener("click", this.canvasClicked.bind(this));
-		canvas.addEventListener("mousedown", () => this.mouseDownTime = Date.now());
 		canvas.addEventListener("contextmenu", this.canvasClicked.bind(this));
 	}
 	draw() {
@@ -123,7 +121,6 @@ class NetworkVisualization {
 		this.canvas.height = $(this.canvas).height();
 	}
 	canvasClicked(evt: MouseEvent) {
-		if ((Date.now() - this.mouseDownTime) > 200) return;
 		if (this.sim.config.netLayers[0].neuronCount !== 2) {
 			throw "data modification not supported for !=2 inputs";
 		}
@@ -140,7 +137,7 @@ class NetworkVisualization {
 				if (dist < nearestDist) nearest = i, nearestDist = dist;
 			}
 			if (nearest >= 0) data.splice(nearest, 1);
-		} else {
+		} else if(this.inputMode < 2) {
 			// add data point
 			if (this.sim.config.simType == SimulationType.AutoEncoder) {
 				data.push({ input: [x, y], output: [x, y] });
@@ -152,7 +149,7 @@ class NetworkVisualization {
 				data.push({ input: [x, y], output: [label] });
 			}
 		}
-		this.draw();
 		evt.preventDefault();
+		this.draw();
 	}
 }

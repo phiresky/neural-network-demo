@@ -3,7 +3,7 @@
 ///<reference path='NetworkGraph.ts' />
 ///<reference path='NetworkVisualization.ts' />
 ///<reference path='Presets.ts' />
-
+interface JQuery { slider: any };
 class NeuronGui {
 	layerDiv: JQuery = $("#neuronCountModifier > div").eq(1).clone();
 
@@ -80,22 +80,24 @@ class Simulation {
 	constructor() {
 		let canvas = <HTMLCanvasElement>$("#neuralOutputCanvas")[0];
 		this.netviz = new NetworkVisualization(canvas,
-			new CanvasMouseNavigation(canvas, () => this.draw()),
+			new CanvasMouseNavigation(canvas, () => this.netviz.inputMode == 3, () => this.draw()),
 			this,
 			(x, y) => this.net.getOutput([x, y])[0],
 			this.backgroundResolution);
 		this.netgraph = new NetworkGraph($("#neuralNetworkGraph")[0]);
 		(<any>$("#learningRate")).slider({
 			min: 0.01, max: 1, step: 0.005, scale: "logarithmic", value: 0.05
-		}).on('slide', (e: any) => $("#learningRateVal").text(e.value.toFixed(2)));
+		}).on('change', (e: any) => $("#learningRateVal").text(e.value.newValue.toFixed(3)));
 		this.neuronGui = new NeuronGui(this);
+		for (let name of Presets.getNames())
+			$("#presetLoader").append($("<li>").append($("<a>").text(name)));
 		$("#presetLoader").on("click", "a", e => {
 			let name = e.target.textContent;
 			this.config = Presets.get(name);
 			this.setConfig();
 			this.initializeNet();
 		});
-		$("#dataInputSwitch").on("click","a", e => {
+		$("#dataInputSwitch").on("click", "a", e => {
 			$("#dataInputSwitch li.active").removeClass("active");
 			let li = $(e.target).parent();
 			li.addClass("active");
@@ -111,7 +113,7 @@ class Simulation {
 		this.net = new Net.NeuralNet(this.config.netLayers, ["x", "y"], this.config.learningRate, this.config.bias, undefined, weights);
 		let isBinClass = this.config.simType == SimulationType.BinaryClassification;
 		$("#dataInputSwitch > li").eq(1).toggle(isBinClass);
-		$("#dataInputSwitch > li > a").eq(0).text(isBinClass?"Add Red":"Add point");
+		$("#dataInputSwitch > li > a").eq(0).text(isBinClass ? "Add Red" : "Add point").click();
 		console.log("net:" + JSON.stringify(this.net.connections.map(c => c.weight)));
 		this.stepNum = 0;
 		this.netgraph.loadNetwork(this.net);
@@ -214,11 +216,11 @@ class Simulation {
 			let ele = <HTMLInputElement>document.getElementById(conf);
 			if (!ele) continue;
 			if (ele.type == 'checkbox') config[conf] = ele.checked;
-			else if(typeof config[conf] === 'number')
+			else if (typeof config[conf] === 'number')
 				config[conf] = +ele.value;
 			else config[conf] = ele.value;
 		}
-		if(oldConfig.simType != config.simType) config.data = [];
+		if (oldConfig.simType != config.simType) config.data = [];
 		if (this.net) this.net.learnRate = this.config.learningRate;
 	}
 	setConfig() { // in gui
@@ -229,6 +231,8 @@ class Simulation {
 			if (ele.type == 'checkbox') ele.checked = config[conf];
 			else ele.value = config[conf];
 		}
+		$("#learningRate").slider('setValue', this.config.learningRate);
+		$("#learningRateVal").text(this.config.learningRate.toFixed(3));
 		this.neuronGui.regenerate();
 	}
 
