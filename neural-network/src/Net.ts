@@ -96,8 +96,7 @@ module Net {
 			if (weights) weights.forEach((w, i) => this.connections[i].weight = w);
 		}
 		setInputsAndCalculate(inputVals: double[]) {
-			if (inputVals.length != this.inputs.length - +this.bias) throw "invalid input size";
-			for (let i = 0; i < inputVals.length; i++)
+			for (let i = 0; i < this.inputCount; i++)
 				this.inputs[i].output = inputVals[i];
 			for (let layer of this.layers.slice(1)) for (let neuron of layer)
 				neuron.calculateOutput();
@@ -159,9 +158,13 @@ module Net {
 		}
 	}
 	export class InputNeuron extends Neuron {
-		constructor(id: int, public name: string, output: number = 0) {
+		constant: boolean = false; // value won't change
+		constructor(id: int, public name: string, constantOutput?: number) {
 			super(null, id);
-			this.output = output;
+			if (constantOutput !== undefined) {
+				this.output = constantOutput;
+				this.constant = true;
+			}
 		}
 		calculateOutput() { }
 		calculateWeightedInputs() { }

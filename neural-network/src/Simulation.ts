@@ -1,9 +1,36 @@
 ///<reference path='../lib/typings/jquery/jquery.d.ts' />
+///<reference path='../lib/typings/jquery-handsontable/jquery-handsontable.d.ts' />
 ///<reference path='Net.ts' />
 ///<reference path='NetworkGraph.ts' />
 ///<reference path='NetworkVisualization.ts' />
 ///<reference path='Presets.ts' />
 interface JQuery { slider: any };
+
+class TableEditor {
+	constructor(container: JQuery, config: Configuration) {
+		let data: (number|string)[][] = [config.inputNames.concat(config.outputNames)];
+		config.data.forEach(t => data.push(t.input.concat(t.output)));
+		container.handsontable({
+			data: data,
+			customBorders: [
+				{
+					range: {
+						from: { row: 0, col: config.netLayers[0].neuronCount },
+						to: { row: 100, col: config.netLayers[0].neuronCount }
+					},
+					left: { width: 2, color: 'black' }
+				}
+			],
+			minSpareRows: 1,
+			cells: (row, col, prop) => {
+				if (row > 0) return { type: 'numeric', format: '0.[000]'};
+			},
+			allowInvalid:false
+		});
+		let hot = container.handsontable('getInstance');
+
+	}
+}
 class NeuronGui {
 	layerDiv: JQuery = $("#neuronCountModifier > div").eq(1).clone();
 
@@ -78,7 +105,7 @@ class Simulation {
 	config = Presets.get('XOR');
 
 	constructor() {
-		let canvas = <HTMLCanvasElement>$("#neuralOutputCanvas")[0];
+		let canvas = <HTMLCanvasElement>$("#neuralInputOutput canvas")[0];
 		this.netviz = new NetworkVisualization(canvas,
 			new CanvasMouseNavigation(canvas, () => this.netviz.inputMode == 3, () => this.draw()),
 			this,
@@ -102,7 +129,16 @@ class Simulation {
 			let li = $(e.target).parent();
 			li.addClass("active");
 			let mode = li.index();
+			if (this.netviz.inputMode == mode) return;
 			this.netviz.inputMode = mode;
+			if (mode == 4) {
+				let newDiv = $("<div class='fullsize'>");
+				$("#neuralInputOutput > *").replaceWith(newDiv);
+				new TableEditor(newDiv, this.config);
+			} else {
+				$("#neuralInputOutput > *").replaceWith(this.netviz.canvas);
+				this.draw();
+			}
 		});
 		this.reset();
 		this.run();
@@ -235,17 +271,7 @@ class Simulation {
 		$("#learningRateVal").text(this.config.learningRate.toFixed(3));
 		this.neuronGui.regenerate();
 	}
-
-	randomizeData() {
-		if (this.config.netLayers[0].neuronCount !== 2 || this.config.simType !== SimulationType.BinaryClassification)
-			throw "can't create random data for this network";
-		let count = Math.random() * 5 + 4;
-		this.config.data = [];
-		for (let i = 0; i < count; i++) {
-			this.config.data[i] = { input: [Math.random() * 2, Math.random() * 2], output: [+(Math.random() > 0.5)] };
-		}
-		this.draw();
-	}
+	
 	runtoggle() {
 		if (this.running) this.stop();
 		else this.run();

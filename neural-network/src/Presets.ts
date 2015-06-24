@@ -8,6 +8,8 @@ interface Configuration {
 	name: string;
 	parent?: string; // inherit from
 	data?: TrainingData[];
+	inputNames?: string[];
+	outputNames?: string[];
 	netLayers?: LayerConfig[];
 	learningRate?: number;
 	bias?: boolean;
@@ -30,6 +32,8 @@ module Presets {
 			autoRestart: true,
 			iterationsPerClick: 5000,
 			simType: SimulationType.BinaryClassification,
+			inputNames: ["x","y"],
+			outputNames: ["x XOR y"],
 			data: <TrainingData[]>[
 				{ input: [0, 0], output: [0] },
 				{ input: [0, 1], output: [1] },
@@ -53,6 +57,8 @@ module Presets {
 				{ "neuronCount": 3, "activation": "sigmoid" },
 				{ "neuronCount": 1, "activation": "sigmoid" }
 			],
+			inputNames: ["x","y"],
+			outputNames: ["Class"],
 			data: [{ input: [1.46, 1.36], output: [0] },
 				{ input: [1.14, 1.26], output: [0] },
 				{ input: [0.96, 0.97], output: [0] },
@@ -109,6 +115,7 @@ module Presets {
 			simType: SimulationType.AutoEncoder,
 			stepsPerFrame: 1,
 			iterationsPerClick: 1,
+			parent:"Auto-Encoder for circular data",
 			data: <TrainingData[]>[
 				{ input: [2.25, 0.19], output: [2.25, 0.19] },
 				{ input: [1.37, 0.93], output: [1.37, 0.93] },
@@ -127,6 +134,7 @@ module Presets {
 				{ neuronCount: 1, activation: "sigmoid" },
 				{ neuronCount: 2, activation: "linear" }
 			],
+			
 			showGradient: true
 		},
 		{
@@ -160,8 +168,6 @@ module Presets {
 			name:"Auto-Encoder for circular data",
 			"stepsPerFrame": 500,
 			"learningRate": 0.01,
-			"showGradient": true,
-			"autoRestart": false,
 			"iterationsPerClick": 10000,
 			"simType": 1,
 			"netLayers": [
@@ -185,6 +191,8 @@ module Presets {
 					"activation": "linear"
 				}
 			],
+			inputNames: ["x","y"],
+			outputNames: ["x","y"],
 			data: [{ input: [-0.83, 0.55], output: [-0.83, 0.55] },
 				{ input: [-0.98, 0.21], output: [-0.98, 0.21] },
 				{ input: [-0.77, -0.64], output: [-0.77, -0.64] },

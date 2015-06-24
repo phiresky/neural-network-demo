@@ -190,11 +190,14 @@ var Net;
     Net.Neuron = Neuron;
     var InputNeuron = (function (_super) {
         __extends(InputNeuron, _super);
-        function InputNeuron(id, name, output) {
-            if (output === void 0) { output = 0; }
+        function InputNeuron(id, name, constantOutput) {
             _super.call(this, null, id);
             this.name = name;
-            this.output = output;
+            this.constant = false; // value won't change
+            if (constantOutput !== undefined) {
+                this.output = constantOutput;
+                this.constant = true;
+            }
         }
         InputNeuron.prototype.calculateOutput = function () { };
         InputNeuron.prototype.calculateWeightedInputs = function () { };
@@ -260,7 +263,10 @@ var NetworkGraph = (function () {
                 var color = '#000';
                 if (neuron instanceof Net.InputNeuron) {
                     type = 'Input: ' + neuron.name;
-                    color = NetworkVisualization.colors.autoencoder.input;
+                    if (neuron.constant)
+                        color = NetworkVisualization.colors.autoencoder.bias;
+                    else
+                        color = NetworkVisualization.colors.autoencoder.input;
                 }
                 if (neuron instanceof Net.OutputNeuron) {
                     type = 'Output Neuron ' + (nid + 1);
@@ -502,7 +508,8 @@ var NetworkVisualization = (function () {
         },
         autoencoder: {
             input: '#2188e0',
-            output: '#ff931f'
+            output: '#ff931f',
+            bias: '#008'
         }
     };
     return NetworkVisualization;
@@ -526,6 +533,8 @@ var Presets;
             autoRestart: true,
             iterationsPerClick: 5000,
             simType: SimulationType.BinaryClassification,
+            inputNames: ["x", "y"],
+            outputNames: ["x XOR y"],
             data: [
                 { input: [0, 0], output: [0] },
                 { input: [0, 1], output: [1] },
@@ -548,6 +557,8 @@ var Presets;
                 { "neuronCount": 3, "activation": "sigmoid" },
                 { "neuronCount": 1, "activation": "sigmoid" }
             ],
+            inputNames: ["x", "y"],
+            outputNames: ["Class"],
             data: [{ input: [1.46, 1.36], output: [0] },
                 { input: [1.14, 1.26], output: [0] },
                 { input: [0.96, 0.97], output: [0] },
@@ -604,6 +615,7 @@ var Presets;
             simType: SimulationType.AutoEncoder,
             stepsPerFrame: 1,
             iterationsPerClick: 1,
+            parent: "Auto-Encoder for circular data",
             data: [
                 { input: [2.25, 0.19], output: [2.25, 0.19] },
                 { input: [1.37, 0.93], output: [1.37, 0.93] },
@@ -655,8 +667,6 @@ var Presets;
             name: "Auto-Encoder for circular data",
             "stepsPerFrame": 500,
             "learningRate": 0.01,
-            "showGradient": true,
-            "autoRestart": false,
             "iterationsPerClick": 10000,
             "simType": 1,
             "netLayers": [
@@ -680,6 +690,8 @@ var Presets;
                     "activation": "linear"
                 }
             ],
+            inputNames: ["x", "y"],
+            outputNames: ["x", "y"],
             data: [{ input: [-0.83, 0.55], output: [-0.83, 0.55] },
                 { input: [-0.98, 0.21], output: [-0.98, 0.21] },
                 { input: [-0.77, -0.64], output: [-0.77, -0.64] },
@@ -764,11 +776,37 @@ var Presets;
     Presets.printPreset = printPreset;
 })(Presets || (Presets = {}));
 ///<reference path='../lib/typings/jquery/jquery.d.ts' />
+///<reference path='../lib/typings/jquery-handsontable/jquery-handsontable.d.ts' />
 ///<reference path='Net.ts' />
 ///<reference path='NetworkGraph.ts' />
 ///<reference path='NetworkVisualization.ts' />
 ///<reference path='Presets.ts' />
 ;
+var TableEditor = (function () {
+    function TableEditor(container, config) {
+        var data = [config.inputNames.concat(config.outputNames)];
+        config.data.forEach(function (t) { return data.push(t.input.concat(t.output)); });
+        container.handsontable({
+            data: data,
+            customBorders: [
+                {
+                    range: {
+                        from: { row: 0, col: config.netLayers[0].neuronCount },
+                        to: { row: 100, col: config.netLayers[0].neuronCount }
+                    },
+                    left: { width: 2, color: 'black' }
+                }
+            ],
+            minSpareRows: 1,
+            cells: function (row, col, prop) {
+                if (row > 0)
+                    return { type: 'numeric' };
+            }
+        });
+        var hot = container.handsontable('getInstance');
+    }
+    return TableEditor;
+})();
 var NeuronGui = (function () {
     function NeuronGui(sim) {
         var _this = this;
@@ -843,7 +881,7 @@ var Simulation = (function () {
         this.statusIterEle = document.getElementById('statusIteration');
         this.statusCorrectEle = document.getElementById('statusCorrect');
         this.aniFrameCallback = this.animationStep.bind(this);
-        var canvas = $("#neuralOutputCanvas")[0];
+        var canvas = $("#neuralInputOutput canvas")[0];
         this.netviz = new NetworkVisualization(canvas, new CanvasMouseNavigation(canvas, function () { return _this.netviz.inputMode == 3; }, function () { return _this.draw(); }), this, function (x, y) { return _this.net.getOutput([x, y])[0]; }, this.backgroundResolution);
         this.netgraph = new NetworkGraph($("#neuralNetworkGraph")[0]);
         $("#learningRate").slider({
@@ -865,7 +903,17 @@ var Simulation = (function () {
             var li = $(e.target).parent();
             li.addClass("active");
             var mode = li.index();
+            if (_this.netviz.inputMode == mode)
+                return;
             _this.netviz.inputMode = mode;
+            if (mode == 4) {
+                var newDiv = $("<div class='fullsize'>");
+                $("#neuralInputOutput > *").replaceWith(newDiv);
+                new TableEditor(newDiv, _this.config);
+            }
+            else {
+                $("#neuralInputOutput > *").replaceWith(_this.netviz.canvas);
+            }
         });
         this.reset();
         this.run();

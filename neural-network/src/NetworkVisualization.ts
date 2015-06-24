@@ -14,7 +14,8 @@ class NetworkVisualization {
 		},
 		autoencoder: {
 			input: '#2188e0',
-			output: '#ff931f'
+			output: '#ff931f',
+			bias: '#008'
 		}
 	}
 
