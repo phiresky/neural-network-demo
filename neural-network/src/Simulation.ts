@@ -33,7 +33,7 @@ class TableEditor {
 	}
 	reparseData() {
 		let data: number[][] = this.hot.getData();
-		let headers = <string[]><any>data.slice(0, 1);
+		let headers = <string[]><any>data[0];
 		let ic = sim.config.inputLayer.neuronCount, oc = sim.config.outputLayer.neuronCount
 		sim.config.inputLayer.names = headers.slice(0, ic);
 		sim.config.outputLayer.names = headers.slice(ic, ic+oc);
@@ -43,7 +43,6 @@ class TableEditor {
 	loadData(sim: Simulation) {
 		let data: (number|string)[][] = [sim.config.inputLayer.names.concat(sim.config.outputLayer.names)];
 		sim.config.data.forEach(t => data.push(t.input.concat(t.output)));
-		console.log(data);
 		this.hot.loadData(data);
 		this.hot.updateSettings({customBorders: [
 				{
