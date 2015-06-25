@@ -1,8 +1,4 @@
 ///<reference path='Simulation.ts' />
-enum SimulationType {
-	BinaryClassification,
-	AutoEncoder
-}
 interface Configuration {
 	[property: string]: any;
 	name: string;
@@ -13,7 +9,6 @@ interface Configuration {
 	hiddenLayers?: LayerConfig[];
 	learningRate?: number;
 	bias?: boolean;
-	simType?: SimulationType;
 	autoRestart?: boolean;
 	autoRestartTime?: int;
 	stepsPerFrame?: int;
@@ -31,7 +26,6 @@ module Presets {
 			autoRestartTime: 5000,
 			autoRestart: true,
 			iterationsPerClick: 5000,
-			simType: SimulationType.BinaryClassification,
 			data: <TrainingData[]>[
 				{ input: [0, 0], output: [0] },
 				{ input: [0, 1], output: [1] },
@@ -107,8 +101,8 @@ module Presets {
 				{ input: [2.05, 0.32], output: [1] },
 				{ input: [1.97, 0.55], output: [0] }]
 		},
-		{name:"Auto-Encoder for linear data",
-			simType: SimulationType.AutoEncoder,
+		{
+			name:"Auto-Encoder for linear data",
 			stepsPerFrame: 1,
 			iterationsPerClick: 1,
 			parent:"Auto-Encoder for circular data",
@@ -156,7 +150,6 @@ module Presets {
 			"stepsPerFrame": 500,
 			"learningRate": 0.01,
 			"iterationsPerClick": 10000,
-			"simType": 1,
 			inputLayer:{neuronCount:2,names:["x","y"]},
 			outputLayer:{neuronCount:2,activation:"linear",names:["x","y"]},
 			hiddenLayers: [

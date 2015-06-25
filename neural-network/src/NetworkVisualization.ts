@@ -48,11 +48,11 @@ class NetworkVisualization {
 
 	drawDataPoints() {
 		this.ctx.strokeStyle = "#000";
-		if (this.sim.config.simType === SimulationType.BinaryClassification) {
+		if (this.sim.config.outputLayer.neuronCount === 1) {
 			for (let val of this.sim.config.data) {
 				this.drawPoint(val.input[0], val.input[1], NetworkVisualization.colors.binaryClassify.fg[val.output[0] | 0]);
 			}
-		} else if (this.sim.config.simType === SimulationType.AutoEncoder) {
+		} else if (this.sim.config.outputLayer.neuronCount === 2) {
 			for (let val of this.sim.config.data) {
 				let ix = val.input[0], iy = val.input[1];
 				let out = this.sim.net.getOutput(val.input);
@@ -91,8 +91,9 @@ class NetworkVisualization {
 		return;
 	}
 	drawBackground() {
-		if (this.sim.config.simType == SimulationType.AutoEncoder) {
+		if (this.sim.config.outputLayer.neuronCount === 2) {
 			this.clear('white');
+			return;
 		}
 		for (let x = 0; x < this.canvas.width; x += this.backgroundResolution) {
 			for (let y = 0; y < this.canvas.height; y += this.backgroundResolution) {
@@ -150,9 +151,9 @@ class NetworkVisualization {
 			if (nearest >= 0) data.splice(nearest, 1);
 		} else if(this.inputMode < 2) {
 			// add data point
-			if (this.sim.config.simType == SimulationType.AutoEncoder) {
+			if (this.sim.config.outputLayer.neuronCount === 2) {
 				data.push({ input: [x, y], output: [x, y] });
-			} else if (this.sim.config.simType == SimulationType.BinaryClassification) {
+			} else if (this.sim.config.outputLayer.neuronCount === 1) {
 				let inv = (x: int) => x == 0 ? 1 : 0;
 				let label = this.inputMode;
 				if (evt.button != 0) label = inv(label);

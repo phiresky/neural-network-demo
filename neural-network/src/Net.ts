@@ -3,7 +3,6 @@ module Net {
 	type double = number;
 	let _nextGaussian: double;
 	export function randomGaussian(mean = 0, standardDeviation = 1) {
-
 		if (_nextGaussian !== undefined) {
 			var nextGaussian = _nextGaussian;
 			_nextGaussian = undefined;

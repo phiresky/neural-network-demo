@@ -189,7 +189,7 @@ class Simulation {
 	initializeNet(weights?: double[]) {
 		if (this.net) this.stop();
 		this.net = new Net.NeuralNet(this.config.inputLayer, this.config.hiddenLayers, this.config.outputLayer, this.config.learningRate, this.config.bias, undefined, weights);
-		let isBinClass = this.config.simType == SimulationType.BinaryClassification;
+		let isBinClass = this.config.outputLayer.neuronCount === 1;
 		$("#dataInputSwitch > li").eq(1).toggle(isBinClass);
 		let firstButton = $("#dataInputSwitch > li > a").eq(0);
 		firstButton.text(isBinClass ? "Add Red" : "Add point")
@@ -238,21 +238,24 @@ class Simulation {
 
 	updateStatusLine() {
 		let correct = 0;
-		switch (this.config.simType) {
-			case SimulationType.BinaryClassification:
-				for (var val of this.config.data) {
-					let res = this.net.getOutput(val.input);
-					if (+(res[0] > 0.5) == val.output[0]) correct++;
+		if(this.config.outputLayer.neuronCount === 1) {
+			for (var val of this.config.data) {
+				let res = this.net.getOutput(val.input);
+				if (+(res[0] > 0.5) == val.output[0]) correct++;
+			}
+			this.statusCorrectEle.innerHTML = `Correct: ${correct}/${this.config.data.length}`;
+		} else {
+			let sum = 0;
+			for(let val of this.config.data) {
+				let res = this.net.getOutput(val.input);
+				let sum1 = 0;
+				for(let i = 0; i < this.net.outputs.length; i++) {
+					let dist = res[i] - val.output[i];
+					sum1 += dist * dist;
 				}
-				this.statusCorrectEle.innerHTML = `Correct: ${correct}/${this.config.data.length}`;
-				break;
-			case SimulationType.AutoEncoder:
-				let avgDist = (<TrainingData[]>this.config.data)
-					.map(point => ({ a: point.output, b: this.net.getOutput(point.input) }))
-					.map(x => ({ dx: x.a[0] - x.b[0], dy: x.a[1] - x.b[1] }))
-					.reduce((a, b) => a + Math.sqrt(b.dx * b.dx + b.dy * b.dy), 0) / this.config.data.length;
-				this.statusCorrectEle.innerHTML = `Avg. distance: ${avgDist.toFixed(2) }`;
-				break;
+				sum += Math.sqrt(sum1);
+			}
+			this.statusCorrectEle.innerHTML = `Avg. distance: ${(sum/this.config.data.length).toFixed(2) }`;
 		}
 
 		this.statusIterEle.innerHTML = this.stepNum.toString();
