@@ -8,7 +8,7 @@ interface JQuery { slider: any };
 declare var Handsontable:any;
 class TableEditor {
 	hot: any; // handsontable instance
-	constructor(public container: JQuery) {
+	constructor(public container: JQuery, sim:Simulation) {
 		let headerRenderer = function firstRowRenderer(instance:any, td:HTMLTableCellElement) {
 			Handsontable.renderers.TextRenderer.apply(this, arguments);
 			td.style.fontWeight = 'bold';
@@ -25,7 +25,7 @@ class TableEditor {
 			afterChange: this.afterChange.bind(this)
 		});
 		this.hot = container.handsontable('getInstance');
-		this.loadData();
+		this.loadData(sim);
 	}
 	afterChange(changes:[number,number,number,number][], reason:string) {
 		if(reason === 'loadData') return;
@@ -40,7 +40,7 @@ class TableEditor {
 		sim.config.data = data.slice(1).filter(row => row.every(cell => typeof cell === 'number'))
 			.map(row => <TrainingData>{ input: row.slice(0, ic), output: row.slice(ic, ic+oc) });
 	}
-	loadData() {
+	loadData(sim: Simulation) {
 		let data: (number|string)[][] = [sim.config.inputLayer.names.concat(sim.config.outputLayer.names)];
 		sim.config.data.forEach(t => data.push(t.input.concat(t.output)));
 		console.log(data);
@@ -174,7 +174,7 @@ class Simulation {
 			this.initializeNet();
 		});
 
-		this.table = new TableEditor($("<div class='fullsize'>"));
+		this.table = new TableEditor($("<div class='fullsize'>"), this);
 		$("#dataInputSwitch").on("click", "a", e => {
 			$("#dataInputSwitch li.active").removeClass("active");
 			let li = $(e.target).parent();
@@ -184,7 +184,7 @@ class Simulation {
 			this.netviz.inputMode = mode;
 			if (mode == InputMode.Table) {
 				$("#neuralInputOutput > *").replaceWith(this.table.container);
-				this.table.loadData();
+				this.table.loadData(this);
 			} else {
 				this.table.reparseData();
 				$("#neuralInputOutput > *").replaceWith(this.netviz.canvas);
@@ -206,7 +206,7 @@ class Simulation {
 		console.log("net:" + JSON.stringify(this.net.connections.map(c => c.weight)));
 		this.stepNum = 0;
 		this.netgraph.loadNetwork(this.net);
-		this.table.loadData();
+		this.table.loadData(this);
 		this.draw();
 		this.updateStatusLine();
 	}

@@ -55,9 +55,9 @@
 				<div id="neuralNetworkGraph"></div>
 			</div>
 			<div class="h3">
-				<button class="btn btn-danger" id="runButton" onclick="simulation.runtoggle()">Stop</button>
-				<button class="btn btn-warning" onclick="simulation.reset()">Reset / Reload</button>
-				<button class="btn btn-default" onclick="simulation.iterations()">Step</button>
+				<button class="btn btn-danger" id="runButton" onclick="sim.runtoggle()">Stop</button>
+				<button class="btn btn-warning" onclick="sim.reset()">Reset / Reload</button>
+				<button class="btn btn-default" onclick="sim.iterations()">Step</button>
 				<div class="btn-group pull-right">
 					<button class="btn btn-default dropdown-toggle" data-toggle="dropdown">Load preset
 						<span class="caret"></span>
@@ -92,25 +92,25 @@
 					<div class="form-group">
 						<label for="iterationsPerClick" class="col-sm-6 control-label">Iterations per click on "Step"</label>
 						<div class="col-sm-6">
-							<input class="form-control" type=number min=0 max=10000 id=iterationsPerClick value=5000 onchange="simulation.loadConfig()">
+							<input class="form-control" type=number min=0 max=10000 id=iterationsPerClick value=5000 onchange="sim.loadConfig()">
 						</div>
 					</div>
 					<div class="form-group">
 						<label for="stepsPerFrame" class="col-sm-6 control-label">Steps per Frame</label>
 						<div class="col-sm-6">
-							<input class="form-control" type=number min=1 max=1000 id=stepsPerFrame value=50 onchange="simulation.loadConfig()">
+							<input class="form-control" type=number min=1 max=1000 id=stepsPerFrame value=50 onchange="sim.loadConfig()">
 						</div>
 					</div>
 					<div class="form-group">
 						<label for="showGradient" class="col-sm-6 control-label">Auto restart after 5 seconds</label>
 						<div class="col-sm-6 form-control-static">
-							<input type=checkbox checked id="autoRestart" onchange='simulation.loadConfig();'>
+							<input type=checkbox checked id="autoRestart" onchange='sim.loadConfig();'>
 						</div>
 					</div>
 					<div class="form-group">
 						<label for="showGradient" class="col-sm-6 control-label">Show class propabilities as gradient</label>
 						<div class="col-sm-6 form-control-static">
-							<input type=checkbox id="showGradient" onchange='simulation.loadConfig();simulation.draw();'>
+							<input type=checkbox id="showGradient" onchange='sim.loadConfig();sim.draw();'>
 						</div>
 					</div>
 				</div>
@@ -120,13 +120,13 @@
 						<label for="learningRate" class="col-sm-6 control-label">Learning Rate</label>
 						<div class="col-sm-6 form-control-static">
 							<span id="learningRateVal" style='margin-right:1em;'>0.05</span>
-							<input class="form-control" type=number min=0.000 max=1 step=0.01 id=learningRate value=0.05 onchange="simulation.loadConfig();">
+							<input class="form-control" type=number min=0.000 max=1 step=0.01 id=learningRate value=0.05 onchange="sim.loadConfig();">
 						</div>
 					</div>
 					<div class="form-group">
 						<label for="bias" class="col-sm-6 control-label">Add bias input</label>
 						<div class="col-sm-6 form-control-static">
-							<input type=checkbox checked id="bias" onchange='simulation.loadConfig();simulation.initializeNet();'>
+							<input type=checkbox checked id="bias" onchange='sim.loadConfig();sim.initializeNet();'>
 						</div>
 					</div>
 					<div id='layerCountModifier'>
@@ -167,7 +167,7 @@
 					</div>
 				</div>
 				<br>
-				<button class="btn btn-default" onclick="simulation.loadConfig()">Load config</button>
+				<button class="btn btn-default" onclick="sim.loadConfig()">Load config</button>
 			</div>
 		</div>
 	</div>
