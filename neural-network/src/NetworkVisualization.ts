@@ -25,7 +25,6 @@ class NetworkVisualization {
 	constructor(
 		public canvas: HTMLCanvasElement,
 		public trafo: Transform, public sim: Simulation,
-		public netOutput: (x: double, y: double) => double,
 		public backgroundResolution: int) {
 		this.ctx = <CanvasRenderingContext2D>this.canvas.getContext('2d');
 		this.canvasResized();
@@ -97,7 +96,7 @@ class NetworkVisualization {
 		}
 		for (let x = 0; x < this.canvas.width; x += this.backgroundResolution) {
 			for (let y = 0; y < this.canvas.height; y += this.backgroundResolution) {
-				let val = this.netOutput(this.trafo.toReal.x(x + this.backgroundResolution / 2), this.trafo.toReal.y(y + this.backgroundResolution / 2));
+				let val = this.sim.net.getOutput([this.trafo.toReal.x(x + this.backgroundResolution / 2), this.trafo.toReal.y(y + this.backgroundResolution / 2)])[0];
 
 				if (this.sim.config.showGradient) {
 					this.ctx.fillStyle = NetworkVisualization.colors.binaryClassify.gradient(val);

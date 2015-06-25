@@ -5,14 +5,20 @@
 ///<reference path='NetworkVisualization.ts' />
 ///<reference path='Presets.ts' />
 interface JQuery { slider: any };
-
+declare var Handsontable:any;
 class TableEditor {
-	hot: any;
-	constructor(public container: JQuery, public config: Configuration) {
+	hot: any; // handsontable instance
+	constructor(public container: JQuery) {
+		let headerRenderer = function firstRowRenderer(instance:any, td:HTMLTableCellElement) {
+			Handsontable.renderers.TextRenderer.apply(this, arguments);
+			td.style.fontWeight = 'bold';
+			td.style.background = '#CCC';
+		}
 		container.handsontable({
 			minSpareRows: 1,
 			cells: (row, col, prop) => {
 				if (row > 0) return { type: 'numeric', format: '0.[000]' };
+				else return {renderer:headerRenderer};
 			},
 			customBorders: true,
 			allowInvalid: false,
@@ -27,19 +33,23 @@ class TableEditor {
 	}
 	reparseData() {
 		let data: number[][] = this.hot.getData();
-		let inputCount = this.config.inputLayer.neuronCount;
-		this.config.data = data.filter(row => row.every(cell => typeof cell === 'number'))
-			.map(row => <TrainingData>{ input: row.slice(0, inputCount), output: row.slice(inputCount) });
+		let headers = <string[]><any>data.slice(0, 1);
+		let ic = sim.config.inputLayer.neuronCount, oc = sim.config.outputLayer.neuronCount
+		sim.config.inputLayer.names = headers.slice(0, ic);
+		sim.config.outputLayer.names = headers.slice(ic, ic+oc);
+		sim.config.data = data.slice(1).filter(row => row.every(cell => typeof cell === 'number'))
+			.map(row => <TrainingData>{ input: row.slice(0, ic), output: row.slice(ic, ic+oc) });
 	}
 	loadData() {
-		let data: (number|string)[][] = [this.config.inputLayer.names.concat(this.config.outputLayer.names)];
-		this.config.data.forEach(t => data.push(t.input.concat(t.output)));
+		let data: (number|string)[][] = [sim.config.inputLayer.names.concat(sim.config.outputLayer.names)];
+		sim.config.data.forEach(t => data.push(t.input.concat(t.output)));
+		console.log(data);
 		this.hot.loadData(data);
 		this.hot.updateSettings({customBorders: [
 				{
 					range: {
-						from: { row: 0, col: this.config.inputLayer.neuronCount },
-						to: { row: 100, col: this.config.inputLayer.neuronCount }
+						from: { row: 0, col: sim.config.inputLayer.neuronCount },
+						to: { row: 100, col: sim.config.inputLayer.neuronCount }
 					},
 					left: { width: 2, color: 'black' }
 				}
@@ -149,7 +159,6 @@ class Simulation {
 		this.netviz = new NetworkVisualization(canvas,
 			new CanvasMouseNavigation(canvas, () => this.netviz.inputMode == 3, () => this.draw()),
 			this,
-			(x, y) => this.net.getOutput([x, y])[0],
 			this.backgroundResolution);
 		this.netgraph = new NetworkGraph($("#neuralNetworkGraph")[0]);
 		(<any>$("#learningRate")).slider({
@@ -165,7 +174,7 @@ class Simulation {
 			this.initializeNet();
 		});
 
-		this.table = new TableEditor($("<div class='fullsize'>"), this.config);
+		this.table = new TableEditor($("<div class='fullsize'>"));
 		$("#dataInputSwitch").on("click", "a", e => {
 			$("#dataInputSwitch li.active").removeClass("active");
 			let li = $(e.target).parent();
