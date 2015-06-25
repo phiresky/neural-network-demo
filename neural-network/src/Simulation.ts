@@ -22,7 +22,7 @@ class TableEditor {
 				if (row >= this.headerCount) return { type: 'numeric', format: '0.[000]' };
 				else return {renderer:headerRenderer};
 			},
-			customBorders: true,
+			//customBorders: true,
 			allowInvalid: false,
 			afterChange: this.afterChange.bind(this)
 		});
@@ -64,7 +64,7 @@ class TableEditor {
 		data[0][ic + oc] = 'Actual Output';
 		sim.config.data.forEach(t => data.push(t.input.concat(t.output)));
 		this.hot.loadData(data);
-		this.hot.updateSettings({customBorders: [
+		/*this.hot.updateSettings({customBorders: [
 				{
 					range: {
 						from: { row: 0, col: ic },
@@ -79,7 +79,7 @@ class TableEditor {
 					left: { width: 2, color: 'black' }
 				}
 			]});
-		this.hot.runHooks('afterInit');
+		this.hot.runHooks('afterInit');*/
 	}
 }
 class NeuronGui {
