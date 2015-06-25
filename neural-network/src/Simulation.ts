@@ -7,28 +7,44 @@
 interface JQuery { slider: any };
 
 class TableEditor {
-	constructor(container: JQuery, config: Configuration) {
-		let data: (number|string)[][] = [config.inputNames.concat(config.outputNames)];
-		config.data.forEach(t => data.push(t.input.concat(t.output)));
+	hot: any;
+	constructor(public container: JQuery, public config: Configuration) {
 		container.handsontable({
-			data: data,
-			customBorders: [
+			minSpareRows: 1,
+			cells: (row, col, prop) => {
+				if (row > 0) return { type: 'numeric', format: '0.[000]' };
+			},
+			customBorders: true,
+			allowInvalid: false,
+			afterChange: this.afterChange.bind(this)
+		});
+		this.hot = container.handsontable('getInstance');
+		this.loadData();
+	}
+	afterChange(changes:[number,number,number,number][], reason:string) {
+		if(reason === 'loadData') return;
+		this.reparseData();
+	}
+	reparseData() {
+		let data: number[][] = this.hot.getData();
+		let inputCount = this.config.netLayers[0].neuronCount;
+		this.config.data = data.filter(row => row.every(cell => typeof cell === 'number'))
+			.map(row => <TrainingData>{ input: row.slice(0, inputCount), output: row.slice(inputCount) });
+	}
+	loadData() {
+		let data: (number|string)[][] = [this.config.inputNames.concat(this.config.outputNames)];
+		this.config.data.forEach(t => data.push(t.input.concat(t.output)));
+		this.hot.loadData(data);
+		this.hot.updateSettings({customBorders: [
 				{
 					range: {
-						from: { row: 0, col: config.netLayers[0].neuronCount },
-						to: { row: 100, col: config.netLayers[0].neuronCount }
+						from: { row: 0, col: this.config.netLayers[0].neuronCount },
+						to: { row: 100, col: this.config.netLayers[0].neuronCount }
 					},
 					left: { width: 2, color: 'black' }
 				}
-			],
-			minSpareRows: 1,
-			cells: (row, col, prop) => {
-				if (row > 0) return { type: 'numeric', format: '0.[000]'};
-			},
-			allowInvalid:false
-		});
-		let hot = container.handsontable('getInstance');
-
+			]});
+		this.hot.render();
 	}
 }
 class NeuronGui {
@@ -54,6 +70,17 @@ class NeuronGui {
 			if (newval < 1) return;
 			sim.config.netLayers[layer].neuronCount = newval;
 			this.setNeuronCount(layer, newval);
+			if(layer == 0) {
+				sim.config.inputNames = [];
+				for(let i = 0; i < newval; i++)
+					sim.config.inputNames.push("Input "+(i+1));
+				sim.config.data = [];
+			} if(layer == sim.config.netLayers.length - 1) {
+				sim.config.outputNames = [];
+				for(let i = 0; i < newval; i++)
+					sim.config.outputNames.push("Output "+(i+1));
+				sim.config.data = [];
+			} 
 			sim.initializeNet();
 		});
 		$("#layerCountModifier").on("click", "button", e => {
@@ -102,6 +129,7 @@ class Simulation {
 
 	net: Net.NeuralNet;
 	neuronGui: NeuronGui;
+	table: TableEditor;
 	config = Presets.get('XOR');
 
 	constructor() {
@@ -124,6 +152,8 @@ class Simulation {
 			this.setConfig();
 			this.initializeNet();
 		});
+
+		this.table = new TableEditor($("<div class='fullsize'>"), this.config);
 		$("#dataInputSwitch").on("click", "a", e => {
 			$("#dataInputSwitch li.active").removeClass("active");
 			let li = $(e.target).parent();
@@ -131,11 +161,11 @@ class Simulation {
 			let mode = li.index();
 			if (this.netviz.inputMode == mode) return;
 			this.netviz.inputMode = mode;
-			if (mode == 4) {
-				let newDiv = $("<div class='fullsize'>");
-				$("#neuralInputOutput > *").replaceWith(newDiv);
-				new TableEditor(newDiv, this.config);
+			if (mode == InputMode.Table) {
+				$("#neuralInputOutput > *").replaceWith(this.table.container);
+				this.table.loadData();
 			} else {
+				this.table.reparseData();
 				$("#neuralInputOutput > *").replaceWith(this.netviz.canvas);
 				this.draw();
 			}
@@ -149,14 +179,16 @@ class Simulation {
 		this.net = new Net.NeuralNet(this.config.netLayers, ["x", "y"], this.config.learningRate, this.config.bias, undefined, weights);
 		let isBinClass = this.config.simType == SimulationType.BinaryClassification;
 		$("#dataInputSwitch > li").eq(1).toggle(isBinClass);
-		$("#dataInputSwitch > li > a").eq(0).text(isBinClass ? "Add Red" : "Add point").click();
+		let firstButton = $("#dataInputSwitch > li > a").eq(0);
+		firstButton.text(isBinClass ? "Add Red" : "Add point")
+		if (this.netviz.inputMode != InputMode.Table) firstButton.click();
 		console.log("net:" + JSON.stringify(this.net.connections.map(c => c.weight)));
 		this.stepNum = 0;
 		this.netgraph.loadNetwork(this.net);
+		this.table.loadData();
 		this.draw();
 		this.updateStatusLine();
 	}
-
 	statusIterEle = document.getElementById('statusIteration');
 	statusCorrectEle = document.getElementById('statusCorrect');
 	step() {
@@ -271,7 +303,7 @@ class Simulation {
 		$("#learningRateVal").text(this.config.learningRate.toFixed(3));
 		this.neuronGui.regenerate();
 	}
-	
+
 	runtoggle() {
 		if (this.running) this.stop();
 		else this.run();

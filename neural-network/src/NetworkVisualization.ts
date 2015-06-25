@@ -2,9 +2,12 @@
 interface TrainingData {
 	input: double[]; output: double[];
 }
+enum InputMode {
+	InputPrimary, InputSecondary, Remove, Move, Table
+}
 class NetworkVisualization {
 	ctx: CanvasRenderingContext2D;
-	inputMode = 0; //classifier:0=red,1=green,2=remove,3=move view;autoenc:0=add,1 unused
+	inputMode:InputMode = 0;
 	static colors = {
 		binaryClassify: {
 			bg: ["#f88", "#8f8"],
@@ -31,6 +34,13 @@ class NetworkVisualization {
 		canvas.addEventListener("contextmenu", this.canvasClicked.bind(this));
 	}
 	draw() {
+		if(this.sim.config.netLayers[0].neuronCount != 2 || this.sim.config.netLayers[this.sim.config.netLayers.length - 1].neuronCount > 2) {
+			this.clear('white');
+			this.ctx.fillStyle = 'black';
+			this.ctx.fillText("Cannot draw this data",this.canvas.width/2,this.canvas.height/2);
+			return;
+		}
+		
 		this.drawBackground();
 		this.drawCoordinateSystem();
 		this.drawDataPoints();
@@ -75,11 +85,14 @@ class NetworkVisualization {
 		this.ctx.arc(x, y, 5, 0, 2 * Math.PI);
 		this.ctx.stroke();
 	}
+	clear(color:string) {
+		this.ctx.fillStyle = "white";
+		this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+		return;
+	}
 	drawBackground() {
 		if (this.sim.config.simType == SimulationType.AutoEncoder) {
-			this.ctx.fillStyle = "white";
-			this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-			return;
+			this.clear('white');
 		}
 		for (let x = 0; x < this.canvas.width; x += this.backgroundResolution) {
 			for (let y = 0; y < this.canvas.height; y += this.backgroundResolution) {
