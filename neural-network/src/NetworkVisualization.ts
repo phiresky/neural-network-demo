@@ -34,7 +34,7 @@ class NetworkVisualization {
 		canvas.addEventListener("contextmenu", this.canvasClicked.bind(this));
 	}
 	draw() {
-		if(this.sim.config.netLayers[0].neuronCount != 2 || this.sim.config.netLayers[this.sim.config.netLayers.length - 1].neuronCount > 2) {
+		if(this.sim.config.inputLayer.neuronCount != 2 || this.sim.config.outputLayer.neuronCount > 2) {
 			this.clear('white');
 			this.ctx.fillStyle = 'black';
 			this.ctx.fillText("Cannot draw this data",this.canvas.width/2,this.canvas.height/2);
@@ -135,9 +135,6 @@ class NetworkVisualization {
 		this.canvas.height = $(this.canvas).height();
 	}
 	canvasClicked(evt: MouseEvent) {
-		if (this.sim.config.netLayers[0].neuronCount !== 2) {
-			throw "data modification not supported for !=2 inputs";
-		}
 		let data = this.sim.config.data;
 		let rect = this.canvas.getBoundingClientRect();
 		let x = this.trafo.toReal.x(evt.clientX - rect.left);

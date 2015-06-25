@@ -62,24 +62,15 @@ module Net {
 		inputs: InputNeuron[];
 		outputs: OutputNeuron[];
 		connections: NeuronConnection[] = [];
-		learnRate: number = 0.01;
-		bias: boolean;
-		inputCount: int;
-		constructor(layout: LayerConfig[], inputnames: string[], learnRate: number,
-			bias = true, startWeight = () => Math.random() - 0.5, weights?: double[]) {
-			this.learnRate = learnRate;
-			layout = layout.slice();
-			if (layout.length < 2) throw "Need at least two layers";
+		constructor(input:InputLayerConfig, hidden: LayerConfig[], output:OutputLayerConfig, public learnRate: number,
+				public bias = true, startWeight = () => Math.random() - 0.5, weights?: double[]) {
 			let nid = 0;
-			this.inputCount = layout.shift().neuronCount;
-			this.inputs = makeArray(this.inputCount, () => new InputNeuron(nid, inputnames[nid++]));
-			this.layers.push(this.inputs);
-			while (layout.length > 1) {
-				var layer = layout.shift();
+			this.inputs = makeArray(input.neuronCount, () => new InputNeuron(nid, input.names[nid++]));
+			this.layers.push(this.inputs.slice());
+			for(var layer of hidden) {
 				this.layers.push(makeArray(layer.neuronCount, () => new Neuron(layer.activation, nid++)));
 			}
-			let outputLayer = layout.shift();
-			this.outputs = makeArray(outputLayer.neuronCount, () => new OutputNeuron(outputLayer.activation, nid++));
+			this.outputs = makeArray(output.neuronCount, () => new OutputNeuron(output.activation, nid, output.names[nid++]));
 			this.layers.push(this.outputs);
 			this.bias = bias;
 			for (let i = 0; i < this.layers.length - 1; i++) {
@@ -98,7 +89,7 @@ module Net {
 			if (weights) weights.forEach((w, i) => this.connections[i].weight = w);
 		}
 		setInputsAndCalculate(inputVals: double[]) {
-			for (let i = 0; i < this.inputCount; i++)
+			for (let i = 0; i < this.inputs.length; i++)
 				this.inputs[i].output = inputVals[i];
 			for (let layer of this.layers.slice(1)) for (let neuron of layer)
 				neuron.calculateOutput();
@@ -174,6 +165,9 @@ module Net {
 	}
 	export class OutputNeuron extends Neuron {
 		targetOutput: double;
+		constructor(public activation:string, id:int, public name:string) {
+			super(activation, id);
+		}
 
 		calculateError() {
 			this.error = NonLinearities[this.activation].df(this.weightedInputs) * (this.targetOutput - this.output);

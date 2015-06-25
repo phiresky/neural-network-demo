@@ -16,11 +16,9 @@ function checkSanity() {
 	let inp = [-0.3094657452311367, -0.2758470894768834, 0.005968799814581871, 0.13201188389211893, -0.33257930004037917,
 		0.24626848078332841, -0.35734778200276196, 0.489376779878512, -0.2165879353415221];
 	simulation.stop();
-	simulation.config.netLayers = [
-		{ neuronCount: 2 },
-		{ neuronCount: 2, activation: "sigmoid" },
-		{ neuronCount: 1, activation: "sigmoid" }
-	];
+	simulation.config.inputLayer = { neuronCount: 2, names: ['', ''] };
+	simulation.config.hiddenLayers = [{ neuronCount: 2, activation: "sigmoid" }];
+	simulation.config.outputLayer = { neuronCount: 1, activation: "sigmoid", names: [''] };
 	simulation.net.connections.forEach((e, i) => e.weight = inp[i]);
 	for (var i = 0; i < 1000; i++) simulation.step();
 	let realout = simulation.net.connections.map(e => e.weight);

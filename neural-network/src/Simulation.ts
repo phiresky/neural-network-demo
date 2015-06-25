@@ -27,19 +27,19 @@ class TableEditor {
 	}
 	reparseData() {
 		let data: number[][] = this.hot.getData();
-		let inputCount = this.config.netLayers[0].neuronCount;
+		let inputCount = this.config.inputLayer.neuronCount;
 		this.config.data = data.filter(row => row.every(cell => typeof cell === 'number'))
 			.map(row => <TrainingData>{ input: row.slice(0, inputCount), output: row.slice(inputCount) });
 	}
 	loadData() {
-		let data: (number|string)[][] = [this.config.inputNames.concat(this.config.outputNames)];
+		let data: (number|string)[][] = [this.config.inputLayer.names.concat(this.config.outputLayer.names)];
 		this.config.data.forEach(t => data.push(t.input.concat(t.output)));
 		this.hot.loadData(data);
 		this.hot.updateSettings({customBorders: [
 				{
 					range: {
-						from: { row: 0, col: this.config.netLayers[0].neuronCount },
-						to: { row: 100, col: this.config.netLayers[0].neuronCount }
+						from: { row: 0, col: this.config.inputLayer.neuronCount },
+						to: { row: 100, col: this.config.inputLayer.neuronCount }
 					},
 					left: { width: 2, color: 'black' }
 				}
@@ -51,73 +51,84 @@ class NeuronGui {
 	layerDiv: JQuery = $("#neuronCountModifier > div").eq(1).clone();
 
 	removeLayer() {
-		$("#neuronCountModifier > div").eq(1).remove();
+		$("#hiddenLayersModify > div").eq(0).remove();
 	}
 	addLayer() {
-		$("#neuronCountModifier > div").eq(1).before(this.layerDiv.clone());
-	}
-	setNeuronCount(layer: int, newval: int) {
-		$("#neuronCountModifier .neuronCount").eq(layer).text(newval);
+		$("#hiddenLayersModify > div").eq(0).before(this.layerDiv.clone());
 	}
 	setActivation(layer: int, activ: string) {
-		$("#neuronCountModifier > div").eq(layer).children("select.activation").val(activ);
+		
 	}
 	constructor(public sim: Simulation) {
-		$("#neuronCountModifier").on("click", "button", e => {
+		$("#hiddenLayersModify").on("click", "button", e => {
 			let inc = e.target.textContent == '+';
 			let layer = $(e.target.parentNode).index();
-			let newval = sim.config.netLayers[layer].neuronCount + (inc ? 1 : -1);
+			let newval = sim.config.hiddenLayers[layer].neuronCount + (inc ? 1 : -1);
 			if (newval < 1) return;
-			sim.config.netLayers[layer].neuronCount = newval;
-			this.setNeuronCount(layer, newval);
-			if(layer == 0) {
-				sim.config.inputNames = [];
-				for(let i = 0; i < newval; i++)
-					sim.config.inputNames.push("Input "+(i+1));
-				sim.config.data = [];
-			} if(layer == sim.config.netLayers.length - 1) {
-				sim.config.outputNames = [];
-				for(let i = 0; i < newval; i++)
-					sim.config.outputNames.push("Output "+(i+1));
-				sim.config.data = [];
-			} 
+			sim.config.hiddenLayers[layer].neuronCount = newval;
+			$("#hiddenLayersModify .neuronCount").eq(layer).text(newval);
+			sim.initializeNet();
+		});
+		$("#inputLayerModify,#outputLayerModify").on("click", "button", e => {
+			let isInput = $(e.target).closest("#inputLayerModify").length > 0;
+			let targetLayer = isInput ? sim.config.inputLayer : sim.config.outputLayer;
+			let inc = e.target.textContent == '+';
+			let newval = targetLayer.neuronCount + (inc ? 1 : -1);
+			if (newval < 1) return;
+			targetLayer.neuronCount = newval;
+			$("#inputLayerModify .neuronCount").text(newval);
+			targetLayer.names = [];
+			for(let i = 0; i < newval; i++)
+				targetLayer.names.push("Input "+(i+1));
+			sim.config.data = [];
 			sim.initializeNet();
 		});
 		$("#layerCountModifier").on("click", "button", e => {
 			let inc = e.target.textContent == '+';
 			if (!inc) {
-				if (sim.config.netLayers.length == 2) return;
-				sim.config.netLayers.splice(1, 1);
+				if (sim.config.hiddenLayers.length == 0) return;
+				sim.config.hiddenLayers.shift();
 				this.removeLayer();
 			} else {
+				sim.config.hiddenLayers.unshift({ activation: 'sigmoid', neuronCount: 2 });
 				this.addLayer();
-				sim.config.netLayers.splice(1, 0, { activation: 'sigmoid', neuronCount: 2 });
 			}
-			$("#layerCount").text(sim.config.netLayers.length);
+			$("#layerCount").text(sim.config.hiddenLayers.length);
 			sim.initializeNet();
 		});
-		$("#neuronCountModifier").on("change", "select", e => {
+		$("#outputLayerModify").on("change","select" ,e=> {
+			sim.config.outputLayer.activation = (<any>e.target).value;
+			sim.initializeNet();
+		});
+		$("#hiddenLayersModify").on("change","select" ,e=> {
 			let layer = $(e.target.parentNode).index();
-			sim.config.netLayers[layer].activation = (<HTMLSelectElement>e.target).value;
+			sim.config.hiddenLayers[layer].activation = (<HTMLSelectElement>e.target).value;
 			sim.initializeNet();
 		});
 	}
 	regenerate() {
-		let targetCount = this.sim.config.netLayers.length;
-		while ($("#neuronCountModifier > div").length > targetCount)
+		let targetCount = this.sim.config.hiddenLayers.length;
+		while ($("#hiddenLayersModify > div").length > targetCount)
 			this.removeLayer();
-		while ($("#neuronCountModifier > div").length < targetCount)
+		while ($("#hiddenLayersModify > div").length < targetCount)
 			this.addLayer();
-		this.sim.config.netLayers.forEach(
+		this.sim.config.hiddenLayers.forEach(
 			(c: LayerConfig, i: int) => {
-				this.setNeuronCount(i, c.neuronCount);
-				this.setActivation(i, c.activation);
+				$("#hiddenLayersModify .neuronCount").eq(i).text(c.neuronCount);
+				$("#hiddenLayersModify > div").eq(i).children("select.activation").val(c.activation);
 			});
 	}
 }
+interface InputLayerConfig {
+	neuronCount: int;
+	names: string[];
+}
 interface LayerConfig {
 	neuronCount: int;
-	activation?: string;
+	activation: string;
+}
+interface OutputLayerConfig extends LayerConfig {
+	names: string[];
 }
 class Simulation {
 	netviz: NetworkVisualization;
@@ -176,7 +187,7 @@ class Simulation {
 
 	initializeNet(weights?: double[]) {
 		if (this.net) this.stop();
-		this.net = new Net.NeuralNet(this.config.netLayers, ["x", "y"], this.config.learningRate, this.config.bias, undefined, weights);
+		this.net = new Net.NeuralNet(this.config.inputLayer, this.config.hiddenLayers, this.config.outputLayer, this.config.learningRate, this.config.bias, undefined, weights);
 		let isBinClass = this.config.simType == SimulationType.BinaryClassification;
 		$("#dataInputSwitch > li").eq(1).toggle(isBinClass);
 		let firstButton = $("#dataInputSwitch > li > a").eq(0);

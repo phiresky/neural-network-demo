@@ -8,9 +8,9 @@ interface Configuration {
 	name: string;
 	parent?: string; // inherit from
 	data?: TrainingData[];
-	inputNames?: string[];
-	outputNames?: string[];
-	netLayers?: LayerConfig[];
+	inputLayer?: InputLayerConfig;
+	outputLayer?: OutputLayerConfig;
+	hiddenLayers?: LayerConfig[];
 	learningRate?: number;
 	bias?: boolean;
 	simType?: SimulationType;
@@ -32,18 +32,16 @@ module Presets {
 			autoRestart: true,
 			iterationsPerClick: 5000,
 			simType: SimulationType.BinaryClassification,
-			inputNames: ["x","y"],
-			outputNames: ["x XOR y"],
 			data: <TrainingData[]>[
 				{ input: [0, 0], output: [0] },
 				{ input: [0, 1], output: [1] },
 				{ input: [1, 0], output: [1] },
 				{ input: [1, 1], output: [0] }
 			],
-			netLayers: <LayerConfig[]>[
-				{ neuronCount: 2 },
+			inputLayer: {neuronCount: 2, names: ["x","y"]},
+			outputLayer: { neuronCount: 1, activation: "sigmoid", names:["x XOR y"] },
+			hiddenLayers: [
 				{ neuronCount: 2, activation: "sigmoid" },
-				{ neuronCount: 1, activation: "sigmoid" }
 			]
 		},
 		{
@@ -52,13 +50,11 @@ module Presets {
 		},
 		{
 			name:"Circular data",
-			"netLayers": [
-				{ "neuronCount": 2 },
-				{ "neuronCount": 3, "activation": "sigmoid" },
-				{ "neuronCount": 1, "activation": "sigmoid" }
+			hiddenLayers: [
+				{ "neuronCount": 3, "activation": "sigmoid" },	
 			],
-			inputNames: ["x","y"],
-			outputNames: ["Class"],
+			inputLayer: {neuronCount: 2, names:["x","y"]},
+			outputLayer:{neuronCount: 1, "activation": "sigmoid" , names: ["Class"]},
 			data: [{ input: [1.46, 1.36], output: [0] },
 				{ input: [1.14, 1.26], output: [0] },
 				{ input: [0.96, 0.97], output: [0] },
@@ -116,7 +112,7 @@ module Presets {
 			stepsPerFrame: 1,
 			iterationsPerClick: 1,
 			parent:"Auto-Encoder for circular data",
-			data: <TrainingData[]>[
+			data: [
 				{ input: [2.25, 0.19], output: [2.25, 0.19] },
 				{ input: [1.37, 0.93], output: [1.37, 0.93] },
 				{ input: [0.62, 1.46], output: [0.62, 1.46] },
@@ -129,10 +125,8 @@ module Presets {
 				{ input: [2.73, 0.01], output: [2.73, 0.01] },
 				{ input: [2.86, -0.25], output: [2.86, -0.25] },
 				{ input: [0.14, 2.07], output: [0.14, 2.07] }],
-			netLayers: <LayerConfig[]>[
-				{ neuronCount: 2 },
+			hiddenLayers: [
 				{ neuronCount: 1, activation: "sigmoid" },
-				{ neuronCount: 2, activation: "linear" }
 			],
 			
 			showGradient: true
@@ -140,10 +134,7 @@ module Presets {
 		{
 			name:"Auto-Encoder for x^2",
 			parent:"Auto-Encoder for circular data",
-			"netLayers": [
-				{
-					"neuronCount": 2
-				},
+			netLayers: [
 				{
 					"activation": "sigmoid",
 					"neuronCount": 2
@@ -156,10 +147,6 @@ module Presets {
 					"neuronCount": 2,
 					"activation": "sigmoid"
 				},
-				{
-					"neuronCount": 2,
-					"activation": "linear"
-				}
 			],
 			data:(<number[]>Array.apply(null,Array(17)))
 				.map((e,i) => (i-8)/8).map(x => ({input:[x,x*x],output:[x,x*x]}))
@@ -170,10 +157,9 @@ module Presets {
 			"learningRate": 0.01,
 			"iterationsPerClick": 10000,
 			"simType": 1,
-			"netLayers": [
-				{
-					"neuronCount": 2
-				},
+			inputLayer:{neuronCount:2,names:["x","y"]},
+			outputLayer:{neuronCount:2,activation:"linear",names:["x","y"]},
+			hiddenLayers: [
 				{
 					"activation": "sigmoid",
 					"neuronCount": 3
@@ -186,13 +172,7 @@ module Presets {
 					"neuronCount": 3,
 					"activation": "sigmoid"
 				},
-				{
-					"neuronCount": 2,
-					"activation": "linear"
-				}
 			],
-			inputNames: ["x","y"],
-			outputNames: ["x","y"],
 			data: [{ input: [-0.83, 0.55], output: [-0.83, 0.55] },
 				{ input: [-0.98, 0.21], output: [-0.98, 0.21] },
 				{ input: [-0.77, -0.64], output: [-0.77, -0.64] },
