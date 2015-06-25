@@ -205,8 +205,9 @@ class Simulation {
 			let li = $(e.target).parent();
 			li.addClass("active");
 			let mode = li.index();
-			if (this.netviz.inputMode == mode) return;
+			let modeSwitched = ((this.netviz.inputMode == InputMode.Table) != (mode == InputMode.Table));
 			this.netviz.inputMode = mode;
+			if(!modeSwitched) return;
 			if (mode == InputMode.Table) {
 				$("#neuralInputOutput > *").replaceWith(this.table.container);
 				this.table.loadData(this);
