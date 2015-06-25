@@ -48,7 +48,7 @@ class TableEditor {
 	}
 }
 class NeuronGui {
-	layerDiv: JQuery = $("#neuronCountModifier > div").eq(1).clone();
+	layerDiv: JQuery = $("#hiddenLayersModify > div").clone();
 
 	removeLayer() {
 		$("#hiddenLayersModify > div").eq(0).remove();
@@ -71,15 +71,16 @@ class NeuronGui {
 		});
 		$("#inputLayerModify,#outputLayerModify").on("click", "button", e => {
 			let isInput = $(e.target).closest("#inputLayerModify").length > 0;
+			let name = isInput?"input":"output";
 			let targetLayer = isInput ? sim.config.inputLayer : sim.config.outputLayer;
 			let inc = e.target.textContent == '+';
 			let newval = targetLayer.neuronCount + (inc ? 1 : -1);
 			if (newval < 1) return;
 			targetLayer.neuronCount = newval;
-			$("#inputLayerModify .neuronCount").text(newval);
+			$(`#${name}LayerModify .neuronCount`).text(newval);
 			targetLayer.names = [];
 			for(let i = 0; i < newval; i++)
-				targetLayer.names.push("Input "+(i+1));
+				targetLayer.names.push(`${name} ${i+1}`);
 			sim.config.data = [];
 			sim.initializeNet();
 		});
@@ -93,7 +94,7 @@ class NeuronGui {
 				sim.config.hiddenLayers.unshift({ activation: 'sigmoid', neuronCount: 2 });
 				this.addLayer();
 			}
-			$("#layerCount").text(sim.config.hiddenLayers.length);
+			$("#layerCount").text(sim.config.hiddenLayers.length + 2);
 			sim.initializeNet();
 		});
 		$("#outputLayerModify").on("change","select" ,e=> {

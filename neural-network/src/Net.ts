@@ -50,9 +50,9 @@ module Net {
 		}
 	}
 
-	function makeArray<T>(len: int, supplier: () => T): T[] {
+	function makeArray<T>(len: int, supplier: (i:int) => T): T[] {
 		var arr = new Array<T>(len);
-		for (let i = 0; i < len; i++) arr[i] = supplier();
+		for (let i = 0; i < len; i++) arr[i] = supplier(i);
 		return arr;
 	}
 
@@ -65,12 +65,12 @@ module Net {
 		constructor(input:InputLayerConfig, hidden: LayerConfig[], output:OutputLayerConfig, public learnRate: number,
 				public bias = true, startWeight = () => Math.random() - 0.5, weights?: double[]) {
 			let nid = 0;
-			this.inputs = makeArray(input.neuronCount, () => new InputNeuron(nid, input.names[nid++]));
+			this.inputs = makeArray(input.neuronCount, i => new InputNeuron(nid++, input.names[i]));
 			this.layers.push(this.inputs.slice());
 			for(var layer of hidden) {
-				this.layers.push(makeArray(layer.neuronCount, () => new Neuron(layer.activation, nid++)));
+				this.layers.push(makeArray(layer.neuronCount, i => new Neuron(layer.activation, nid++)));
 			}
-			this.outputs = makeArray(output.neuronCount, () => new OutputNeuron(output.activation, nid, output.names[nid++]));
+			this.outputs = makeArray(output.neuronCount, i => new OutputNeuron(output.activation, nid++, output.names[i]));
 			this.layers.push(this.outputs);
 			this.bias = bias;
 			for (let i = 0; i < this.layers.length - 1; i++) {

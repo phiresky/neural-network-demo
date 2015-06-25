@@ -54,7 +54,7 @@ class NetworkGraph {
 						color = NetworkVisualization.colors.autoencoder.bias;
 					else color = NetworkVisualization.colors.autoencoder.input;
 				} if (neuron instanceof Net.OutputNeuron) {
-					type = 'Output Neuron ' + (nid+1);
+					type = 'Output: '+neuron.name;
 					color = NetworkVisualization.colors.autoencoder.output;
 				}
 				nodes.push({
