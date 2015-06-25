@@ -64,13 +64,15 @@ module Net {
 		connections: NeuronConnection[] = [];
 		learnRate: number = 0.01;
 		bias: boolean;
+		inputCount: int;
 		constructor(layout: LayerConfig[], inputnames: string[], learnRate: number,
 			bias = true, startWeight = () => Math.random() - 0.5, weights?: double[]) {
 			this.learnRate = learnRate;
 			layout = layout.slice();
 			if (layout.length < 2) throw "Need at least two layers";
 			let nid = 0;
-			this.inputs = makeArray(layout.shift().neuronCount, () => new InputNeuron(nid, inputnames[nid++]));
+			this.inputCount = layout.shift().neuronCount;
+			this.inputs = makeArray(this.inputCount, () => new InputNeuron(nid, inputnames[nid++]));
 			this.layers.push(this.inputs);
 			while (layout.length > 1) {
 				var layer = layout.shift();
