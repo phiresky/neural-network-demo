@@ -11,6 +11,7 @@
 		width:100%;
 		height:400px;
 	}
+	#neuralInputOutput canvas { border:1px solid gray;}
 	#neuralNetworkGraph {
 		 height:400px;
 		 border:1px solid gray;
@@ -22,13 +23,17 @@
 	.fullsize.handsontable { overflow:hidden}
 	a:hover{cursor:pointer;}
 	footer{color:gray}
-	ul.nav li:nth-child(5) { border-left: 1px solid lightgray; }
+	ul.nav li:nth-child(4) { border-right: 1px solid lightgray; }
+	ul.nav > li > a { padding: 8px 12px;}
+	h3#presetName { margin-top:10px;}
 </style>
 <div class="container">
 	<h1>Neural Network demo</h1>
 	<hr>
 	<div class="row">
-		<div class="col-sm-6"></div>
+		<div class="col-sm-6">
+			<h3 id='presetName'>Preset: Binary Classifier for XOR</h3>
+		</div>
 		<div class="col-sm-6">
 			<ul class="nav nav-pills" id="dataInputSwitch">
 				<li class="active">

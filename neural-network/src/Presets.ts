@@ -39,11 +39,11 @@ module Presets {
 			]
 		},
 		{
-			name:"XOR"
+			name:"Binary Classifier for XOR"
 			//defaults only
 		},
 		{
-			name:"Circular data",
+			name:"Binary Classifier for circular data",
 			hiddenLayers: [
 				{ "neuronCount": 3, "activation": "sigmoid" },	
 			],
@@ -213,7 +213,7 @@ module Presets {
 		return presets.map(p => p.name).filter(c => c !== "Default");
 	}
 	export function get(name: string): Configuration {
-		let chain:{}[] = [];
+		let chain:any[] = [];
 		let preset = presets.filter(p => p.name === name)[0];
 		chain.unshift(preset);
 		while(true) {
@@ -223,6 +223,7 @@ module Presets {
 			if(parentName === "Default") break;
 		}
 		chain.unshift({});
+		chain.unshift(true);
 		console.log("loading chain="+chain.map((c:any) => c.name));
 		return $.extend.apply($, chain);
 	}

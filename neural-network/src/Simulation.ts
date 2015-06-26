@@ -177,7 +177,7 @@ class Simulation {
 	net: Net.NeuralNet;
 	neuronGui: NeuronGui;
 	table: TableEditor;
-	config = Presets.get('XOR');
+	config = Presets.get('Binary Classifier for XOR');
 
 	constructor() {
 		let canvas = <HTMLCanvasElement>$("#neuralInputOutput canvas")[0];
@@ -194,6 +194,7 @@ class Simulation {
 			$("#presetLoader").append($("<li>").append($("<a>").text(name)));
 		$("#presetLoader").on("click", "a", e => {
 			let name = e.target.textContent;
+			$("#presetName").text(`Preset: ${name}`);
 			this.config = Presets.get(name);
 			this.setConfig();
 			this.initializeNet();
@@ -269,7 +270,7 @@ class Simulation {
 
 	reset() {
 		this.stop();
-		this.loadConfig();
+		this.loadConfig(true);
 		this.initializeNet();
 	}
 
@@ -329,7 +330,7 @@ class Simulation {
 		this.updateStatusLine();
 	}
 
-	loadConfig() { // from gui
+	loadConfig(nochange = false) { // from gui
 		let config = <any>this.config;
 		let oldConfig = $.extend({}, config);
 		for (let conf in config) {
@@ -342,6 +343,7 @@ class Simulation {
 		}
 		if (oldConfig.simType != config.simType) config.data = [];
 		if (this.net) this.net.learnRate = this.config.learningRate;
+		if (!nochange) $("#presetName").text("Custom Network");
 	}
 	setConfig() { // in gui
 		let config = <any>this.config;
