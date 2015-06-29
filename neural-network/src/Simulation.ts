@@ -27,6 +27,11 @@ class TableEditor {
 			afterChange: this.afterChange.bind(this)
 		});
 		this.hot = container.handsontable('getInstance');
+		$("<div>").addClass("btn btn-default")
+			.css({position:"absolute",right:"2em",bottom:"2em"})
+			.text("Remove all")
+			.click(e => {sim.config.data = []; this.loadData(sim)})
+			.appendTo(container);
 		this.loadData(sim);
 	}
 	afterChange(changes: [number, number, number, number][], reason: string) {
@@ -62,7 +67,9 @@ class TableEditor {
 		let ic = sim.config.inputLayer.neuronCount, oc = sim.config.outputLayer.neuronCount;
 		data[0][0] = 'Inputs';
 		data[0][ic] = 'Expected Output';
+		data[0][ic + oc + oc -1] = ' ';
 		data[0][ic + oc] = 'Actual Output';
+
 		sim.config.data.forEach(t => data.push(t.input.concat(t.output)));
 		this.hot.loadData(data);
 		/*this.hot.updateSettings({customBorders: [
@@ -215,11 +222,13 @@ class Simulation {
 			this.netviz.inputMode = mode;
 			if (!modeSwitched) return;
 			if (mode == InputMode.Table) {
-				$("#neuralInputOutput > *").replaceWith(this.table.container);
+				$("#neuralInputOutput > *").detach(); // keep event handlers
+				$("#neuralInputOutput").append(this.table.container);
 				this.table.loadData(this);
 			} else {
 				this.table.reparseData();
-				$("#neuralInputOutput > *").replaceWith(this.netviz.canvas);
+				$("#neuralInputOutput > *").detach();
+				$("#neuralInputOutput").append(this.netviz.canvas);
 				this.draw();
 			}
 		});
@@ -234,7 +243,7 @@ class Simulation {
 		$("#dataInputSwitch > li").eq(1).toggle(isBinClass);
 		let firstButton = $("#dataInputSwitch > li > a").eq(0);
 		firstButton.text(isBinClass ? "Add Red" : "Add point")
-		if (this.netviz.inputMode != InputMode.Table) firstButton.click();
+		if (!isBinClass && this.netviz.inputMode == 1) firstButton.click();
 		console.log("net:" + JSON.stringify(this.net.connections.map(c => c.weight)));
 		this.stepNum = 0;
 		this.netgraph.loadNetwork(this.net);
