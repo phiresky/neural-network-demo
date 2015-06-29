@@ -2,7 +2,7 @@
 	"compilerOptions": {
 		"target": "ES5",
 		"out": "bin/program.js",
-		"watch": true,
+		"watch": false,
 		"sourceMap": true,
 		"noImplicitAny": true,
 		"module": "amd"
