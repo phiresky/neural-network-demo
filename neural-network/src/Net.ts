@@ -62,7 +62,7 @@ module Net {
 		outputs: OutputNeuron[];
 		connections: NeuronConnection[] = [];
 		constructor(input:InputLayerConfig, hidden: LayerConfig[], output:OutputLayerConfig, public learnRate: number,
-				public bias = true, startWeight = () => Math.random() - 0.5, weights?: double[]) {
+				public bias = true, startWeight = () => Math.random() - 0.5, public startWeights?: double[]) {
 			let nid = 0;
 			this.inputs = makeArray(input.neuronCount, i => new InputNeuron(nid++, input.names[i]));
 			this.layers.push(this.inputs.slice());
@@ -79,13 +79,15 @@ module Net {
 					inLayer.push(new InputNeuron(nid++, "1 (bias)", 1));
 
 				for (let input of inLayer) for (let output of outLayer) {
-					var conn = new Net.NeuronConnection(input, output, startWeight());
+					var conn = new Net.NeuronConnection(input, output);
 					input.outputs.push(conn);
 					output.inputs.push(conn);
 					this.connections.push(conn);
 				}
 			}
-			if (weights) weights.forEach((w, i) => this.connections[i].weight = w);
+			if (!this.startWeights) {
+				this.startWeights = this.connections.map(c => c.weight = startWeight());
+			} else this.startWeights.forEach((w, i) => this.connections[i].weight = w);
 		}
 		setInputsAndCalculate(inputVals: double[]) {
 			for (let i = 0; i < this.inputs.length; i++)
@@ -114,8 +116,8 @@ module Net {
 	}
 
 	export class NeuronConnection {
-		public deltaWeight = 0;
-		constructor(public inp: Neuron, public out: Neuron, public weight: double) {
+		public deltaWeight = 0; public weight = 0;
+		constructor(public inp: Neuron, public out: Neuron) {
 
 		}
 		calculateDeltaWeight(learnRate: double) {

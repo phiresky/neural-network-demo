@@ -212,6 +212,9 @@ module Presets {
 	export function getNames(): string[] {
 		return presets.map(p => p.name).filter(c => c !== "Default");
 	}
+	export function exists(name: string) {
+		return presets.filter(p => p.name === name)[0] !== undefined;
+	}
 	export function get(name: string): Configuration {
 		let chain:any[] = [];
 		let preset = presets.filter(p => p.name === name)[0];

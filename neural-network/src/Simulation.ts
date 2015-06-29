@@ -5,7 +5,7 @@
 ///<reference path='NetworkVisualization.ts' />
 ///<reference path='Presets.ts' />
 interface JQuery { slider: any };
-declare var Handsontable: any;
+declare var Handsontable: any, LZString: any;
 class TableEditor {
 	hot: any; // handsontable instance
 	headerCount = 2;
@@ -28,9 +28,9 @@ class TableEditor {
 		});
 		this.hot = container.handsontable('getInstance');
 		$("<div>").addClass("btn btn-default")
-			.css({position:"absolute",right:"2em",bottom:"2em"})
+			.css({ position: "absolute", right: "2em", bottom: "2em" })
 			.text("Remove all")
-			.click(e => {sim.config.data = []; this.loadData(sim)})
+			.click(e => { sim.config.data = []; this.loadData(sim) })
 			.appendTo(container);
 		this.loadData(sim);
 	}
@@ -67,7 +67,7 @@ class TableEditor {
 		let ic = sim.config.inputLayer.neuronCount, oc = sim.config.outputLayer.neuronCount;
 		data[0][0] = 'Inputs';
 		data[0][ic] = 'Expected Output';
-		data[0][ic + oc + oc -1] = ' ';
+		data[0][ic + oc + oc - 1] = ' ';
 		data[0][ic + oc] = 'Actual Output';
 
 		sim.config.data.forEach(t => data.push(t.input.concat(t.output)));
@@ -188,7 +188,7 @@ class Simulation {
 	net: Net.NeuralNet;
 	neuronGui: NeuronGui;
 	table: TableEditor;
-	config = Presets.get('Binary Classifier for XOR');
+	config: Configuration;
 
 	constructor() {
 		let canvas = <HTMLCanvasElement>$("#neuralInputOutput canvas")[0];
@@ -197,6 +197,7 @@ class Simulation {
 			this,
 			this.backgroundResolution);
 		this.netgraph = new NetworkGraph($("#neuralNetworkGraph")[0]);
+		
 		(<any>$("#learningRate")).slider({
 			min: 0.01, max: 1, step: 0.005, scale: "logarithmic", value: 0.05
 		}).on('change', (e: any) => $("#learningRateVal").text(e.value.newValue.toFixed(3)));
@@ -209,10 +210,10 @@ class Simulation {
 			this.config = Presets.get(name);
 			this.setConfig();
 			this.isCustom = false;
+			history.replaceState({}, "", "?" + $.param({ preset: name }));
 			this.initializeNet();
 		});
 
-		this.table = new TableEditor($("<div class='fullsize'>"), this);
 		$("#dataInputSwitch").on("click", "a", e => {
 			$("#dataInputSwitch li.active").removeClass("active");
 			let li = $(e.target).parent();
@@ -232,7 +233,15 @@ class Simulation {
 				this.draw();
 			}
 		});
-		this.reset();
+		let doSerialize = () => {
+			this.stop();
+			console.log("ser");
+			$("#urlExport").val(sim.serializeToUrl(+$("#exportWeights").val()));
+		};
+		$("#exportModal").on("shown.bs.modal", doSerialize);
+		$("#exportModal select").on("change", doSerialize);
+		this.deserializeFromUrl();
+		this.table = new TableEditor($("<div class='fullsize'>"), this);
 		this.run();
 	}
 
@@ -244,10 +253,9 @@ class Simulation {
 		let firstButton = $("#dataInputSwitch > li > a").eq(0);
 		firstButton.text(isBinClass ? "Add Red" : "Add point")
 		if (!isBinClass && this.netviz.inputMode == 1) firstButton.click();
-		console.log("net:" + JSON.stringify(this.net.connections.map(c => c.weight)));
 		this.stepNum = 0;
 		this.netgraph.loadNetwork(this.net);
-		this.table.loadData(this);
+		if(this.table) this.table.loadData(this);
 		this.draw();
 		this.updateStatusLine();
 	}
@@ -345,10 +353,10 @@ class Simulation {
 	}
 
 	setIsCustom() {
-		if(this.isCustom) return;
+		if (this.isCustom) return;
 		this.isCustom = true;
 		$("#presetName").text("Custom Network");
-		for(let name of ["input", "output"]) {
+		for (let name of ["input", "output"]) {
 			let layer = this.config[`${name}Layer`];
 			layer.names = [];
 			for (let i = 0; i < layer.neuronCount; i++)
@@ -388,5 +396,35 @@ class Simulation {
 	runtoggle() {
 		if (this.running) this.stop();
 		else this.run();
+	}
+
+	// 0 = no weights, 1 = current weights, 2 = start weights
+	serializeToUrl(exportWeights = 0) {
+		let url = location.protocol + '//' + location.host + location.pathname + "?";
+		let params:any = {};
+		if(exportWeights === 1) params.weights = LZString.compressToBase64(JSON.stringify(this.net.connections.map(c => c.weight)));
+		if(exportWeights === 2) params.weights = LZString.compressToBase64(JSON.stringify(this.net.startWeights));
+		if (this.isCustom) {
+			params.config = LZString.compressToBase64(JSON.stringify(this.config));
+		} else {
+			params.preset = this.config.name;
+		}
+		
+		return url + $.param(params);
+	}
+	deserializeFromUrl() {
+		function getUrlParameter(name: string) {
+			let match = RegExp('[?&]' + name + '=([^&]*)').exec(window.location.search);
+			return match && decodeURIComponent(match[1].replace(/\+/g, ' '));
+		}
+		let preset = getUrlParameter("preset"), config = getUrlParameter("config");
+		if(preset && Presets.exists(preset))
+			this.config = Presets.get(preset);
+		else if(config) this.config = JSON.parse(LZString.decompressFromBase64(config));
+		else
+			this.config = Presets.get("Binary Classifier for XOR");
+		let weights = getUrlParameter("weights");
+		if(weights) this.initializeNet(JSON.parse(LZString.decompressFromBase64(weights)));
+		else this.initializeNet();
 	}
 }

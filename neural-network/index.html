@@ -170,13 +170,34 @@
 					</div>
 				</div>
 				<br>
-				<button class="btn btn-default" onclick="sim.loadConfig()">Load config</button>
+				<button class="btn btn-default" onclick="sim.loadConfig()">Reload config</button>
+				<button class="btn btn-default" data-toggle="modal" data-target="#exportModal">Share / Export Network</button>
 			</div>
 		</div>
 	</div>
 	<footer class=small>
 		<a href="https://github.com/phiresky/kogsys-demos/">Source on GitHub</a>
 	</footer>
+</div>
+<div class="modal fade" id="exportModal">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal">&times;</button>
+				<h4 class="modal-title">Export / Share</h4>
+			</div>
+			<div class="modal-body">
+				<select id='exportWeights'>
+					<option selected value=0>Don't include weights</option>
+					<option value=1>Include current weights</option>
+					<option value=2>Include start weights</option>
+				</select>
+				<p>Copy this URL:
+					<input type=text id='urlExport' onclick='this.select();'>
+				</p>
+			</div>
+		</div>
+	</div>
 </div>
 <script src="bin/libs.min.js"></script>
 <script src="bin/program.min.js"></script>
