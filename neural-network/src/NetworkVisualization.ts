@@ -160,6 +160,7 @@ class NetworkVisualization {
 				data.push({ input: [x, y], output: [label] });
 			}
 		}
+		this.sim.setIsCustom();
 		evt.preventDefault();
 		this.draw();
 	}

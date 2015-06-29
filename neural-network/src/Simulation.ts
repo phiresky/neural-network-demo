@@ -5,13 +5,13 @@
 ///<reference path='NetworkVisualization.ts' />
 ///<reference path='Presets.ts' />
 interface JQuery { slider: any };
-declare var Handsontable:any;
+declare var Handsontable: any;
 class TableEditor {
 	hot: any; // handsontable instance
 	headerCount = 2;
 	lastUpdate = 0;
-	constructor(public container: JQuery, sim:Simulation) {
-		let headerRenderer = function firstRowRenderer(instance:any, td:HTMLTableCellElement) {
+	constructor(public container: JQuery, sim: Simulation) {
+		let headerRenderer = function firstRowRenderer(instance: any, td: HTMLTableCellElement) {
 			Handsontable.renderers.TextRenderer.apply(this, arguments);
 			td.style.fontWeight = 'bold';
 			td.style.background = '#CCC';
@@ -20,7 +20,7 @@ class TableEditor {
 			minSpareRows: 1,
 			cells: (row, col, prop) => {
 				if (row >= this.headerCount) return { type: 'numeric', format: '0.[000]' };
-				else return {renderer:headerRenderer};
+				else return { renderer: headerRenderer };
 			},
 			//customBorders: true,
 			allowInvalid: false,
@@ -29,8 +29,8 @@ class TableEditor {
 		this.hot = container.handsontable('getInstance');
 		this.loadData(sim);
 	}
-	afterChange(changes:[number,number,number,number][], reason:string) {
-		if(reason === 'loadData') return;
+	afterChange(changes: [number, number, number, number][], reason: string) {
+		if (reason === 'loadData') return;
 		this.reparseData();
 	}
 	reparseData() {
@@ -38,23 +38,24 @@ class TableEditor {
 		let headers = <string[]><any>data[1];
 		let ic = sim.config.inputLayer.neuronCount, oc = sim.config.outputLayer.neuronCount
 		sim.config.inputLayer.names = headers.slice(0, ic);
-		sim.config.outputLayer.names = headers.slice(ic, ic+oc);
-		sim.config.data = data.slice(2).map(row => row.slice(0, ic+oc)).filter(row => row.every(cell => typeof cell === 'number'))
+		sim.config.outputLayer.names = headers.slice(ic, ic + oc);
+		sim.config.data = data.slice(2).map(row => row.slice(0, ic + oc)).filter(row => row.every(cell => typeof cell === 'number'))
 			.map(row => <TrainingData>{ input: row.slice(0, ic), output: row.slice(ic) });
+		sim.setIsCustom();
 	}
 	updateRealOutput() {
-		if((Date.now()-this.lastUpdate)<500) return;
+		if ((Date.now() - this.lastUpdate) < 500) return;
 		this.lastUpdate = Date.now();
 		let xOffset = sim.config.inputLayer.neuronCount + sim.config.outputLayer.neuronCount;
-		let vals: [number,number,number][] = [];
-		for(let y = 0; y < sim.config.data.length; y++) {
+		let vals: [number, number, number][] = [];
+		for (let y = 0; y < sim.config.data.length; y++) {
 			let p = sim.config.data[y];
 			let op = sim.net.getOutput(p.input);
-			for(let x = 0; x < op.length; x++) {
+			for (let x = 0; x < op.length; x++) {
 				vals.push([y + this.headerCount, xOffset + x, op[x]]);
 			}
 		}
-		this.hot.setDataAtCell(vals,"loadData");
+		this.hot.setDataAtCell(vals, "loadData");
 	}
 	loadData(sim: Simulation) { // needs sim as arg because called from constructor
 		let data: (number|string)[][] = [[], sim.config.inputLayer.names.concat(sim.config.outputLayer.names).concat(sim.config.outputLayer.names)];
@@ -92,7 +93,7 @@ class NeuronGui {
 		$("#hiddenLayersModify > div").eq(0).before(this.layerDiv.clone());
 	}
 	setActivation(layer: int, activ: string) {
-		
+
 	}
 	constructor(public sim: Simulation) {
 		$("#hiddenLayersModify").on("click", "button", e => {
@@ -102,21 +103,20 @@ class NeuronGui {
 			if (newval < 1) return;
 			sim.config.hiddenLayers[layer].neuronCount = newval;
 			$("#hiddenLayersModify .neuronCount").eq(layer).text(newval);
+			sim.setIsCustom();
 			sim.initializeNet();
 		});
 		$("#inputLayerModify,#outputLayerModify").on("click", "button", e => {
 			let isInput = $(e.target).closest("#inputLayerModify").length > 0;
-			let name = isInput?"input":"output";
+			let name = isInput ? "input" : "output";
 			let targetLayer = isInput ? sim.config.inputLayer : sim.config.outputLayer;
 			let inc = e.target.textContent == '+';
 			let newval = targetLayer.neuronCount + (inc ? 1 : -1);
 			if (newval < 1) return;
 			targetLayer.neuronCount = newval;
 			$(`#${name}LayerModify .neuronCount`).text(newval);
-			targetLayer.names = [];
-			for(let i = 0; i < newval; i++)
-				targetLayer.names.push(`${name} ${i+1}`);
 			sim.config.data = [];
+			sim.setIsCustom()
 			sim.initializeNet();
 		});
 		$("#layerCountModifier").on("click", "button", e => {
@@ -130,15 +130,18 @@ class NeuronGui {
 				this.addLayer();
 			}
 			$("#layerCount").text(sim.config.hiddenLayers.length + 2);
+			sim.setIsCustom();
 			sim.initializeNet();
 		});
-		$("#outputLayerModify").on("change","select" ,e=> {
+		$("#outputLayerModify").on("change", "select", e=> {
 			sim.config.outputLayer.activation = (<any>e.target).value;
+			sim.setIsCustom()
 			sim.initializeNet();
 		});
-		$("#hiddenLayersModify").on("change","select" ,e=> {
+		$("#hiddenLayersModify").on("change", "select", e=> {
 			let layer = $(e.target.parentNode).index();
 			sim.config.hiddenLayers[layer].activation = (<HTMLSelectElement>e.target).value;
+			sim.setIsCustom()
 			sim.initializeNet();
 		});
 	}
@@ -173,6 +176,7 @@ class Simulation {
 	stepNum = 0;
 	running = false; runningId = -1;
 	restartTimeout = -1;
+	isCustom = false;
 
 	net: Net.NeuralNet;
 	neuronGui: NeuronGui;
@@ -197,6 +201,7 @@ class Simulation {
 			$("#presetName").text(`Preset: ${name}`);
 			this.config = Presets.get(name);
 			this.setConfig();
+			this.isCustom = false;
 			this.initializeNet();
 		});
 
@@ -208,7 +213,7 @@ class Simulation {
 			let mode = li.index();
 			let modeSwitched = ((this.netviz.inputMode == InputMode.Table) != (mode == InputMode.Table));
 			this.netviz.inputMode = mode;
-			if(!modeSwitched) return;
+			if (!modeSwitched) return;
 			if (mode == InputMode.Table) {
 				$("#neuralInputOutput > *").replaceWith(this.table.container);
 				this.table.loadData(this);
@@ -247,7 +252,7 @@ class Simulation {
 	}
 
 	draw() {
-		if(this.netviz.inputMode === InputMode.Table)
+		if (this.netviz.inputMode === InputMode.Table)
 			this.table.updateRealOutput();
 		else this.netviz.draw();
 		this.netgraph.update();
@@ -276,7 +281,7 @@ class Simulation {
 
 	updateStatusLine() {
 		let correct = 0;
-		if(this.config.outputLayer.neuronCount === 1) {
+		if (this.config.outputLayer.neuronCount === 1) {
 			for (var val of this.config.data) {
 				let res = this.net.getOutput(val.input);
 				if (+(res[0] > 0.5) == val.output[0]) correct++;
@@ -284,16 +289,16 @@ class Simulation {
 			this.statusCorrectEle.innerHTML = `Correct: ${correct}/${this.config.data.length}`;
 		} else {
 			let sum = 0;
-			for(let val of this.config.data) {
+			for (let val of this.config.data) {
 				let res = this.net.getOutput(val.input);
 				let sum1 = 0;
-				for(let i = 0; i < this.net.outputs.length; i++) {
+				for (let i = 0; i < this.net.outputs.length; i++) {
 					let dist = res[i] - val.output[i];
 					sum1 += dist * dist;
 				}
 				sum += Math.sqrt(sum1);
 			}
-			this.statusCorrectEle.innerHTML = `Avg. distance: ${(sum/this.config.data.length).toFixed(2) }`;
+			this.statusCorrectEle.innerHTML = `Avg. distance: ${(sum / this.config.data.length).toFixed(2) }`;
 		}
 
 		this.statusIterEle.innerHTML = this.stepNum.toString();
@@ -330,6 +335,19 @@ class Simulation {
 		this.updateStatusLine();
 	}
 
+	setIsCustom() {
+		if(this.isCustom) return;
+		this.isCustom = true;
+		$("#presetName").text("Custom Network");
+		for(let name of ["input", "output"]) {
+			let layer = this.config[`${name}Layer`];
+			layer.names = [];
+			for (let i = 0; i < layer.neuronCount; i++)
+				layer.names.push(`${name} ${i + 1}`);
+		}
+		this.table.loadData(this);
+	}
+
 	loadConfig(nochange = false) { // from gui
 		let config = <any>this.config;
 		let oldConfig = $.extend({}, config);
@@ -343,7 +361,7 @@ class Simulation {
 		}
 		if (oldConfig.simType != config.simType) config.data = [];
 		if (this.net) this.net.learnRate = this.config.learningRate;
-		if (!nochange) $("#presetName").text("Custom Network");
+		if (!nochange) this.setIsCustom();
 	}
 	setConfig() { // in gui
 		let config = <any>this.config;

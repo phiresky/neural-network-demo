@@ -223,9 +223,8 @@ module Presets {
 			if(parentName === "Default") break;
 		}
 		chain.unshift({});
-		chain.unshift(true);
 		console.log("loading chain="+chain.map((c:any) => c.name));
-		return $.extend.apply($, chain);
+		return JSON.parse(JSON.stringify($.extend.apply($, chain)));
 	}
 	export function printPreset(parentName = "Default") {
 		let parent = presets.filter(p => p.name === parentName)[0];
