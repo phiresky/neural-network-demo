@@ -23,6 +23,11 @@
 	ul.nav li:nth-child(4) { border-right: 1px solid lightgray; }
 	ul.nav > li > a { padding: 8px 12px;}
 	h3#presetName { margin-top:10px;}
+	#urlExport {
+		white-space: pre;
+		font-family: monospace;
+		width: 100%;
+	}
 </style>
 <div class="container">
 	<h1>Neural Network demo</h1>
@@ -193,7 +198,7 @@
 					<option value=2>Include start weights</option>
 				</select>
 				<p>Copy this URL:
-					<input type=text id='urlExport' onclick='this.select();'>
+					<textarea rows=10 id='urlExport' onclick='this.select();'></textarea>
 				</p>
 			</div>
 		</div>

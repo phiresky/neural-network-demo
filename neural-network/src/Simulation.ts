@@ -236,7 +236,7 @@ class Simulation {
 		let doSerialize = () => {
 			this.stop();
 			console.log("ser");
-			$("#urlExport").val(sim.serializeToUrl(+$("#exportWeights").val()));
+			$("#urlExport").text(sim.serializeToUrl(+$("#exportWeights").val()));
 		};
 		$("#exportModal").on("shown.bs.modal", doSerialize);
 		$("#exportModal select").on("change", doSerialize);
