@@ -28,7 +28,7 @@ class NetworkGraph {
 		}
 		this.graph = new vis.Network(this.networkGraphContainer, graphData, options);
 	}
-	loadNetwork(net:Net.NeuralNet) {
+	loadNetwork(net:Net.NeuralNet, showBias:boolean) {
 		if(this.net
 			&& this.net.layers.length == net.layers.length 
 			&& this.net.layers.every((layer,index) => layer.length == net.layers[index].length)) {
@@ -50,8 +50,10 @@ class NetworkGraph {
 				let color = '#000';
 				if (neuron instanceof Net.InputNeuron) {
 					type = 'Input: '+neuron.name;
-					if(neuron.constant)
+					if(neuron.constant) {
+						if(!showBias) continue;
 						color = NetworkVisualization.colors.autoencoder.bias;
+					}
 					else color = NetworkVisualization.colors.autoencoder.input;
 				} if (neuron instanceof Net.OutputNeuron) {
 					type = 'Output: '+neuron.name;

@@ -108,14 +108,14 @@ class Simulation {
 		if (this.net) this.stop();
 		this.errorHistory = [];
 		if (this.learnrateGraph) this.learnrateGraph.clear();
-		this.net = new Net.NeuralNet(this.config.inputLayer, this.config.hiddenLayers, this.config.outputLayer, this.config.learningRate, this.config.bias, undefined, weights);
+		this.net = new Net.NeuralNet(this.config.inputLayer, this.config.hiddenLayers, this.config.outputLayer, this.config.learningRate, true, undefined, weights);
 		let isBinClass = this.config.outputLayer.neuronCount === 1;
 		$("#dataInputSwitch > li").eq(1).toggle(isBinClass);
 		let firstButton = $("#dataInputSwitch > li > a").eq(0);
 		firstButton.text(isBinClass ? "Add Red" : "Add point")
 		if (!isBinClass && this.netviz.inputMode == 1) firstButton.click();
 		this.stepNum = 0;
-		this.netgraph.loadNetwork(this.net);
+		this.netgraph.loadNetwork(this.net, this.config.bias);
 		if (this.table) this.table.loadData(this);
 		this.draw();
 		this.updateStatusLine();

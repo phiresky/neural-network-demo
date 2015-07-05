@@ -22,7 +22,7 @@ module Presets {
 			stepsPerFrame: 50,
 			learningRate: 0.05,
 			showGradient: false,
-			bias: true,
+			bias: false,
 			autoRestartTime: 5000,
 			autoRestart: false,
 			iterationsPerClick: 5000,
