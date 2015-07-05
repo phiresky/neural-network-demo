@@ -1,3 +1,4 @@
+// this neural network uses stochastic gradient descent with the squared error as the loss function
 module Net {
 	type int = number;
 	type double = number;
@@ -100,6 +101,15 @@ module Net {
 		getOutput(inputVals: double[]) {
 			this.setInputsAndCalculate(inputVals);
 			return this.outputs.map(output => output.output);
+		}
+		// get root-mean-square error
+		getLoss(expectedOutput: double[]) {
+			let sum = 0;
+			for(let i = 0; i < this.outputs.length; i++) {
+				let neuron = this.outputs[i];
+				sum += Math.pow(neuron.output - expectedOutput[i], 2);
+			}
+			return Math.sqrt(sum/this.outputs.length);
 		}
 
 		train(inputVals: double[], expectedOutput: double[]) {

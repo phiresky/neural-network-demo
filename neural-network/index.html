@@ -24,8 +24,8 @@
 	a:hover{cursor:pointer;}
 	footer{color:gray}
 	ul.nav li:nth-child(4) { border-right: 1px solid lightgray; }
-	ul.nav > li > a { padding: 8px 12px;}
-	h3#presetName { margin-top:10px;}
+	ul.nav > li > a { padding: 10px 12px;}
+	h3.littleMargin { margin-top:10px;}
 	#urlExport {
 		white-space: pre;
 		font-family: monospace;
@@ -38,8 +38,10 @@
 	<hr>
 	<div class="row">
 		<div class="col-sm-6">
-			<h3 id='presetName'>Preset: Binary Classifier for XOR</h3>
-			
+			<h3 class='littleMargin'>
+				<span id='presetName'>Preset: Binary Classifier for XOR</span>
+				<button class="btn btn-sm btn-default" onclick='sim.showErrorGraph();'>Show error graph</button>
+			</h3>
 			<div>
 				<div id="neuralNetworkGraph"></div>
 			</div>
@@ -109,7 +111,7 @@
 						</div>
 					</div>
 					<div class="form-group">
-						<label for="showGradient" class="col-sm-6 control-label">Auto restart after 5 seconds</label>
+						<label for="autoRestart" class="col-sm-6 control-label">Auto restart after 5 seconds</label>
 						<div class="col-sm-6 form-control-static">
 							<input type=checkbox checked id="autoRestart" onchange='sim.loadConfig();'>
 						</div>

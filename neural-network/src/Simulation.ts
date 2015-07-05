@@ -17,7 +17,7 @@ interface LayerConfig {
 interface OutputLayerConfig extends LayerConfig {
 	names: string[];
 }
-class LearnRateGraph {
+class ErrorGraph {
 	chart: HighstockChartObject;
 	constructor(container: JQuery, data: [number, number][]) {
 		container.highcharts({
@@ -52,7 +52,7 @@ class Simulation {
 	neuronGui: NeuronGui;
 	table: TableEditor;
 	config: Configuration;
-	learnrateGraph: LearnRateGraph;
+	errorGraph: ErrorGraph;
 
 	constructor(autoRun: boolean) {
 		let canvas = <HTMLCanvasElement>$("#neuralInputOutput canvas")[0];
@@ -107,7 +107,7 @@ class Simulation {
 	initializeNet(weights?: double[]) {
 		if (this.net) this.stop();
 		this.errorHistory = [];
-		if (this.learnrateGraph) this.learnrateGraph.clear();
+		if (this.errorGraph) this.errorGraph.clear();
 		this.net = new Net.NeuralNet(this.config.inputLayer, this.config.hiddenLayers, this.config.outputLayer, this.config.learningRate, true, undefined, weights);
 		let isBinClass = this.config.outputLayer.neuronCount === 1;
 		$("#dataInputSwitch > li").eq(1).toggle(isBinClass);
@@ -160,7 +160,7 @@ class Simulation {
 	updateStatusLine() {
 		let correct = 0;
 		this.averageError = 0;
-		for (let val of this.config.data) {
+		/*for (let val of this.config.data) {
 			let res = this.net.getOutput(val.input);
 			let sum1 = 0;
 			for (let i = 0; i < this.net.outputs.length; i++) {
@@ -168,6 +168,11 @@ class Simulation {
 				sum1 += dist * dist;
 			}
 			this.averageError += Math.sqrt(sum1);
+		}
+		this.averageError /= this.config.data.length;*/
+		for (let val of this.config.data) {
+			this.net.setInputsAndCalculate(val.input);
+			this.averageError += this.net.getLoss(val.output);
 		}
 		this.averageError /= this.config.data.length;
 		if (this.config.outputLayer.neuronCount === 1) {
@@ -180,7 +185,7 @@ class Simulation {
 			this.statusCorrectEle.innerHTML = `Avg. error: ${(this.averageError).toFixed(2) }`;
 		}
 		this.errorHistory.push([this.stepNum, this.averageError]);
-		if (this.learnrateGraph) this.learnrateGraph.addPoint(this.stepNum, this.averageError);
+		if (this.errorGraph) this.errorGraph.addPoint(this.stepNum, this.averageError);
 		this.statusIterEle.innerHTML = this.stepNum.toString();
 
 		if (correct == this.config.data.length) {
@@ -188,8 +193,8 @@ class Simulation {
 				this.restartTimeout = setTimeout(() => {
 					this.stop();
 					this.restartTimeout = -1;
-					setTimeout(() => { this.reset(); this.run(); }, 1000);
-				}, this.config.autoRestartTime - 1);
+					setTimeout(() => { this.reset(); this.run(); }, 100);
+				}, this.config.autoRestartTime);
 			}
 		} else {
 			if (this.restartTimeout != -1) {
@@ -269,11 +274,11 @@ class Simulation {
 		else this.run();
 	}
 
-	showLearnrateGraph() {
+	showErrorGraph() {
 		let container = $("<div>");
 		$(this.netgraph.networkGraphContainer).children("*").detach();
 		$(this.netgraph.networkGraphContainer).append(container);
-		this.learnrateGraph = new LearnRateGraph(container, this.errorHistory)
+		this.errorGraph = new ErrorGraph(container, this.errorHistory)
 	}
 
 	// 0 = no weights, 1 = current weights, 2 = start weights

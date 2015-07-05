@@ -17,7 +17,7 @@ class NetworkGraph {
 		let options = {
 			nodes: { shape: 'dot' },
 			edges: { 
-				smooth: {type: 'curvedCW',roundness:0.2},
+				smooth: {type: 'curvedCW',roundness:0},
 				font:{align:'top', background:'white'},
 				/*scaling: {
 					label: {min:1,max:2}
