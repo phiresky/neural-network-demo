@@ -37,7 +37,7 @@ class TableEditor {
 		let _conf:Handsontable.Options;
 		_conf = {
 			minSpareRows: 1,
-			colWidths: 60,
+			colWidths: ic+oc+oc <= 6 ? 80 : 45,
 			cells: (row, col, prop) => {
 				if (row >= this.headerCount) return { type: 'numeric', format: '0.[000]' };
 				else {
