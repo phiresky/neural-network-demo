@@ -21,7 +21,7 @@ class ErrorGraph {
 	chart: HighstockChartObject;
 	constructor(container: JQuery, data: [number, number][]) {
 		container.highcharts({
-			title: { text: 'Average error' },
+			title: { text: 'Average RMSE' },
 			chart: { type: 'line', animation: false },
 			plotOptions: { line: { marker: { enabled: false } } },
 			legend: { enabled: false },
@@ -60,7 +60,7 @@ class Simulation {
 			new CanvasMouseNavigation(canvas, () => this.netviz.inputMode == 3, () => this.draw()),
 			this,
 			this.backgroundResolution);
-		this.netgraph = new NetworkGraph($("#neuralNetworkGraph")[0]);
+		this.netgraph = new NetworkGraph($("<div>").appendTo("#neuralNetworkGraph"));
 
 		(<any>$("#learningRate")).slider({
 			min: 0.01, max: 1, step: 0.005, scale: "logarithmic", value: 0.05
@@ -73,6 +73,11 @@ class Simulation {
 			this.loadPreset(name);
 			this.initializeNet();
 		});
+		
+		function replaceComponent(container:string, newEle:JQuery|HTMLElement) {
+			$(container).children().detach(); // keep event handlers
+			$(container).append(newEle);
+		}
 
 		$("#dataInputSwitch").on("click", "a", e => {
 			$("#dataInputSwitch li.active").removeClass("active");
@@ -83,14 +88,33 @@ class Simulation {
 			this.netviz.inputMode = mode;
 			if (!modeSwitched) return;
 			if (mode == InputMode.Table) {
-				$("#neuralInputOutput > *").detach(); // keep event handlers
-				$("#neuralInputOutput").append(this.table.container);
+				replaceComponent("#neuralInputOutput", this.table.container);
 				this.table.loadData(this);
 			} else {
 				this.table.reparseData();
-				$("#neuralInputOutput > *").detach();
-				$("#neuralInputOutput").append(this.netviz.canvas);
+				replaceComponent("#neuralInputOutput", this.netviz.canvas);
 				this.draw();
+			}
+		});
+		$("#netGraphSwitch").on("click", "a", e => {
+			let li = $(e.target).parent();
+			if(li.hasClass("active")) return;
+			$("#netGraphSwitch li.active").removeClass("active");
+			li.addClass("active");
+			let mode = li.index();
+			if(mode == 0) {
+				if(this.errorGraph)
+					this.errorGraph.chart.destroy(), this.errorGraph = null;
+				// network graph
+				replaceComponent("#neuralNetworkGraph", this.netgraph.container);
+			} else if(mode == 1) {
+				// error chart
+				let container = $("<div>");
+				replaceComponent("#neuralNetworkGraph", container);
+				this.errorGraph = new ErrorGraph(container, this.errorHistory);
+			} else if(mode == 2) {
+				// weights
+				// not impl
 			}
 		});
 		let doSerialize = () => {
@@ -272,13 +296,6 @@ class Simulation {
 	runtoggle() {
 		if (this.running) this.stop();
 		else this.run();
-	}
-
-	showErrorGraph() {
-		let container = $("<div>");
-		$(this.netgraph.networkGraphContainer).children("*").detach();
-		$(this.netgraph.networkGraphContainer).append(container);
-		this.errorGraph = new ErrorGraph(container, this.errorHistory)
 	}
 
 	// 0 = no weights, 1 = current weights, 2 = start weights

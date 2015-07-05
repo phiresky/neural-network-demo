@@ -6,7 +6,7 @@ class NetworkGraph {
 	nodes = new vis.DataSet();
 	edges = new vis.DataSet();
 	net:Net.NeuralNet;
-	constructor(public networkGraphContainer:HTMLElement) {
+	constructor(public container:JQuery) {
 		this.instantiateGraph();
 	}
 	instantiateGraph() {
@@ -26,7 +26,7 @@ class NetworkGraph {
 			layout: { hierarchical: { direction: "LR" } },
 			interaction: { dragNodes: false }
 		}
-		this.graph = new vis.Network(this.networkGraphContainer, graphData, options);
+		this.graph = new vis.Network(this.container[0], graphData, options);
 	}
 	loadNetwork(net:Net.NeuralNet, showBias:boolean) {
 		if(this.net
