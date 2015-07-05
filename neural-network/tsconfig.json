@@ -9,6 +9,7 @@
 	},
 	"files": [
 		"lib/typings/highcharts/highstock.d.ts",
+		"src/TabSwitchVis.ts",
 		"src/TableEditor.ts",
 		"src/NeuronGui.ts",
 		"src/main.ts"

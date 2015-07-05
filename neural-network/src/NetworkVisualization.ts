@@ -5,9 +5,11 @@ interface TrainingData {
 enum InputMode {
 	InputPrimary, InputSecondary, Remove, Move, Table
 }
-class NetworkVisualization {
+class NetworkVisualization implements Visualization {
+	canvas: HTMLCanvasElement;
 	ctx: CanvasRenderingContext2D;
 	inputMode: InputMode = 0;
+	trafo: Transform;
 	static colors = {
 		binaryClassify: {
 			bg: ["#f88", "#8f8"],
@@ -23,14 +25,18 @@ class NetworkVisualization {
 	}
 
 	constructor(
-		public canvas: HTMLCanvasElement,
-		public trafo: Transform, public sim: Simulation,
+		public container: JQuery, public sim: Simulation,
 		public backgroundResolution: int) {
+		this.canvas = <HTMLCanvasElement>$("<canvas class=fullsize>")[0];
+		this.canvas.width = 550;
+		this.canvas.height = 400;
+		this.trafo = new CanvasMouseNavigation(this.canvas, () => this.inputMode == 3, () => this.draw());
 		this.ctx = <CanvasRenderingContext2D>this.canvas.getContext('2d');
 		this.canvasResized();
 		window.addEventListener('resize', this.canvasResized.bind(this));
-		canvas.addEventListener("click", this.canvasClicked.bind(this));
-		canvas.addEventListener("contextmenu", this.canvasClicked.bind(this));
+		this.canvas.addEventListener("click", this.canvasClicked.bind(this));
+		this.canvas.addEventListener("contextmenu", this.canvasClicked.bind(this));
+		$(this.canvas).appendTo(container);
 	}
 	draw() {
 		if (this.sim.config.inputLayer.neuronCount != 2 || this.sim.config.outputLayer.neuronCount > 2) {
@@ -131,6 +137,7 @@ class NetworkVisualization {
 		ctx.stroke();
 	}
 	canvasResized() {
+		console.log("res");
 		this.canvas.width = $(this.canvas).width();
 		this.canvas.height = $(this.canvas).height();
 	}
@@ -163,5 +170,13 @@ class NetworkVisualization {
 		this.sim.setIsCustom(false);
 		evt.preventDefault();
 		this.draw();
+	}
+	onView(previouslyHidden: boolean, mode: int) {
+		if(previouslyHidden) this.canvasResized();
+		this.inputMode = mode;
+		this.draw();
+	}
+	onHide() {
+		
 	}
 }

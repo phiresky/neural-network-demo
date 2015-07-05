@@ -1,5 +1,5 @@
 declare var Handsontable: any, LZString: any;
-class TableEditor {
+class TableEditor implements Visualization {
 	hot: any; // handsontable instance
 	headerCount = 2;
 	lastUpdate = 0;
@@ -114,5 +114,11 @@ class TableEditor {
 				
 			]});
 		this.hot.runHooks('afterInit');*/
+	}
+	onView() {
+		this.loadData(sim);
+	}
+	onHide() {
+		this.reparseData();
 	}
 }

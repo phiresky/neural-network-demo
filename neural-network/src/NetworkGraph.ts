@@ -1,7 +1,7 @@
 ///<reference path='Net.ts' />
 
 declare let vis:any; // vis.js library
-class NetworkGraph {
+class NetworkGraph implements Visualization {
 	graph:any;
 	nodes = new vis.DataSet();
 	edges = new vis.DataSet();
@@ -88,5 +88,11 @@ class NetworkGraph {
 				color: conn.weight > 0 ? 'blue':'red'
 			})
 		}
+	}
+	onView() {
+		
+	}
+	onHide() {
+		
 	}
 }
