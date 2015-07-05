@@ -18,7 +18,7 @@ class TableEditor {
 		this.reparseData();
 	}
 	createNewTable(sim: Simulation) {
-		if(this.hot) this.hot.destroy();
+		if (this.hot) this.hot.destroy();
 		let oldContainer = this.container;
 		this.container = $("<div class='fullsize'>");
 		let headerRenderer = function firstRowRenderer(instance: any, td: HTMLTableCellElement) {
@@ -34,10 +34,10 @@ class TableEditor {
 			mergeCells.push({ row: 0, col: ic, rowspan: 1, colspan: oc });
 			mergeCells.push({ row: 0, col: ic + oc, rowspan: 1, colspan: oc });
 		}
-		let _conf:Handsontable.Options;
+		let _conf: Handsontable.Options;
 		_conf = {
 			minSpareRows: 1,
-			colWidths: ic+oc+oc <= 6 ? 80 : 45,
+			colWidths: ic + oc + oc <= 6 ? 80 : 45,
 			cells: (row, col, prop) => {
 				if (row >= this.headerCount) return { type: 'numeric', format: '0.[000]' };
 				else {
@@ -66,7 +66,7 @@ class TableEditor {
 		console.log(_conf);
 		this.container.handsontable(_conf);
 		this.hot = this.container.handsontable('getInstance');
-		if(oldContainer) oldContainer.replaceWith(this.container);
+		if (oldContainer) oldContainer.replaceWith(this.container);
 	}
 	reparseData() {
 		let data: number[][] = this.hot.getData();

@@ -18,22 +18,22 @@ interface OutputLayerConfig extends LayerConfig {
 	names: string[];
 }
 class LearnRateGraph {
-	chart:HighstockChartObject;
-	constructor(container: JQuery, data:[number, number][]) {
+	chart: HighstockChartObject;
+	constructor(container: JQuery, data: [number, number][]) {
 		container.highcharts({
-			title: { text: 'Average error'},
-			chart: {type:'line', animation:false},
-			plotOptions: { line : {marker: { enabled: false}}},
-			legend:{enabled:false},
-			yAxis:{min:0, title:{text:''},labels:{format:"{value:%.2f}"}},
-			series: [{name:'Error', data : data}],
+			title: { text: 'Average error' },
+			chart: { type: 'line', animation: false },
+			plotOptions: { line: { marker: { enabled: false } } },
+			legend: { enabled: false },
+			yAxis: { min: 0, title: { text: '' }, labels: { format: "{value:%.2f}" } },
+			series: [{ name: 'Error', data: data }],
 		});
 		this.chart = container.highcharts();
 	}
 	clear() {
 		this.chart.series[0].setData([]);
 	}
-	addPoint(step:int, error:double) {
+	addPoint(step: int, error: double) {
 		this.chart.series[0].addPoint([step, error], true, false);
 	}
 }
@@ -54,14 +54,14 @@ class Simulation {
 	config: Configuration;
 	learnrateGraph: LearnRateGraph;
 
-	constructor(autoRun:boolean) {
+	constructor(autoRun: boolean) {
 		let canvas = <HTMLCanvasElement>$("#neuralInputOutput canvas")[0];
 		this.netviz = new NetworkVisualization(canvas,
 			new CanvasMouseNavigation(canvas, () => this.netviz.inputMode == 3, () => this.draw()),
 			this,
 			this.backgroundResolution);
 		this.netgraph = new NetworkGraph($("#neuralNetworkGraph")[0]);
-		
+
 		(<any>$("#learningRate")).slider({
 			min: 0.01, max: 1, step: 0.005, scale: "logarithmic", value: 0.05
 		}).on('change', (e: any) => $("#learningRateVal").text(e.value.newValue.toFixed(3)));
@@ -101,13 +101,13 @@ class Simulation {
 		$("#exportModal select").on("change", doSerialize);
 		this.deserializeFromUrl();
 		this.table = new TableEditor(this);
-		if(autoRun) this.run();
+		if (autoRun) this.run();
 	}
 
 	initializeNet(weights?: double[]) {
 		if (this.net) this.stop();
 		this.errorHistory = [];
-		if(this.learnrateGraph) this.learnrateGraph.clear();
+		if (this.learnrateGraph) this.learnrateGraph.clear();
 		this.net = new Net.NeuralNet(this.config.inputLayer, this.config.hiddenLayers, this.config.outputLayer, this.config.learningRate, this.config.bias, undefined, weights);
 		let isBinClass = this.config.outputLayer.neuronCount === 1;
 		$("#dataInputSwitch > li").eq(1).toggle(isBinClass);
@@ -116,7 +116,7 @@ class Simulation {
 		if (!isBinClass && this.netviz.inputMode == 1) firstButton.click();
 		this.stepNum = 0;
 		this.netgraph.loadNetwork(this.net);
-		if(this.table) this.table.loadData(this);
+		if (this.table) this.table.loadData(this);
 		this.draw();
 		this.updateStatusLine();
 	}
@@ -180,7 +180,7 @@ class Simulation {
 			this.statusCorrectEle.innerHTML = `Avg. error: ${(this.averageError).toFixed(2) }`;
 		}
 		this.errorHistory.push([this.stepNum, this.averageError]);
-		if(this.learnrateGraph) this.learnrateGraph.addPoint(this.stepNum, this.averageError);
+		if (this.learnrateGraph) this.learnrateGraph.addPoint(this.stepNum, this.averageError);
 		this.statusIterEle.innerHTML = this.stepNum.toString();
 
 		if (correct == this.config.data.length) {
@@ -216,15 +216,15 @@ class Simulation {
 	}
 
 	setIsCustom(neuronCountsChanged: boolean, loadData: boolean = true) {
-		if(this.isCustom && !neuronCountsChanged) return;
+		if (this.isCustom && !neuronCountsChanged) return;
 		this.isCustom = true;
 		$("#presetName").text("Custom Network");
 		let layer = this.config.inputLayer;
-		layer.names = Net.Util.makeArray(layer.neuronCount, i => `in${i+1}`);
+		layer.names = Net.Util.makeArray(layer.neuronCount, i => `in${i + 1}`);
 		layer = this.config.outputLayer;
-		layer.names = Net.Util.makeArray(layer.neuronCount, i => `out${i+1}`);
-		if(neuronCountsChanged) this.table.createNewTable(this);
-		if(loadData) this.table.loadData(this);
+		layer.names = Net.Util.makeArray(layer.neuronCount, i => `out${i + 1}`);
+		if (neuronCountsChanged) this.table.createNewTable(this);
+		if (loadData) this.table.loadData(this);
 	}
 
 	loadConfig(nochange = false) { // from gui
@@ -242,12 +242,12 @@ class Simulation {
 		if (this.net) this.net.learnRate = this.config.learningRate;
 		if (!nochange) this.setIsCustom(true);
 	}
-	
+
 	loadPreset(name: string) {
 		this.isCustom = false;
 		$("#presetName").text(`Preset: ${name}`);
 		this.config = Presets.get(name);
-		if(this.table) this.table.createNewTable(this);
+		if (this.table) this.table.createNewTable(this);
 		this.setConfig();
 		history.replaceState({}, "", "?" + $.param({ preset: name }));
 	}
@@ -268,7 +268,7 @@ class Simulation {
 		if (this.running) this.stop();
 		else this.run();
 	}
-	
+
 	showLearnrateGraph() {
 		let container = $("<div>");
 		$(this.netgraph.networkGraphContainer).children("*").detach();
@@ -279,15 +279,15 @@ class Simulation {
 	// 0 = no weights, 1 = current weights, 2 = start weights
 	serializeToUrl(exportWeights = 0) {
 		let url = location.protocol + '//' + location.host + location.pathname + "?";
-		let params:any = {};
-		if(exportWeights === 1) params.weights = LZString.compressToBase64(JSON.stringify(this.net.connections.map(c => c.weight)));
-		if(exportWeights === 2) params.weights = LZString.compressToBase64(JSON.stringify(this.net.startWeights));
+		let params: any = {};
+		if (exportWeights === 1) params.weights = LZString.compressToBase64(JSON.stringify(this.net.connections.map(c => c.weight)));
+		if (exportWeights === 2) params.weights = LZString.compressToBase64(JSON.stringify(this.net.startWeights));
 		if (this.isCustom) {
 			params.config = LZString.compressToBase64(JSON.stringify(this.config));
 		} else {
 			params.preset = this.config.name;
 		}
-		
+
 		return url + $.param(params);
 	}
 	deserializeFromUrl() {
@@ -296,15 +296,15 @@ class Simulation {
 			return match && decodeURIComponent(match[1].replace(/\+/g, ' '));
 		}
 		let preset = getUrlParameter("preset"), config = getUrlParameter("config");
-		if(preset && Presets.exists(preset))
+		if (preset && Presets.exists(preset))
 			this.loadPreset(preset);
-		else if(config) {
+		else if (config) {
 			this.config = JSON.parse(LZString.decompressFromBase64(config));
 			this.setIsCustom(true);
 		} else
 			this.loadPreset("Binary Classifier for XOR");
 		let weights = getUrlParameter("weights");
-		if(weights) this.initializeNet(JSON.parse(LZString.decompressFromBase64(weights)));
+		if (weights) this.initializeNet(JSON.parse(LZString.decompressFromBase64(weights)));
 		else this.initializeNet();
 	}
 }

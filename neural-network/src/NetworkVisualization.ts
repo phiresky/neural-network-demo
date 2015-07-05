@@ -7,7 +7,7 @@ enum InputMode {
 }
 class NetworkVisualization {
 	ctx: CanvasRenderingContext2D;
-	inputMode:InputMode = 0;
+	inputMode: InputMode = 0;
 	static colors = {
 		binaryClassify: {
 			bg: ["#f88", "#8f8"],
@@ -33,13 +33,13 @@ class NetworkVisualization {
 		canvas.addEventListener("contextmenu", this.canvasClicked.bind(this));
 	}
 	draw() {
-		if(this.sim.config.inputLayer.neuronCount != 2 || this.sim.config.outputLayer.neuronCount > 2) {
+		if (this.sim.config.inputLayer.neuronCount != 2 || this.sim.config.outputLayer.neuronCount > 2) {
 			this.clear('white');
 			this.ctx.fillStyle = 'black';
-			this.ctx.fillText("Cannot draw this data",this.canvas.width/2,this.canvas.height/2);
+			this.ctx.fillText("Cannot draw this data", this.canvas.width / 2, this.canvas.height / 2);
 			return;
 		}
-		
+
 		this.drawBackground();
 		this.drawCoordinateSystem();
 		this.drawDataPoints();
@@ -84,7 +84,7 @@ class NetworkVisualization {
 		this.ctx.arc(x, y, 5, 0, 2 * Math.PI);
 		this.ctx.stroke();
 	}
-	clear(color:string) {
+	clear(color: string) {
 		this.ctx.fillStyle = "white";
 		this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 		return;
@@ -148,7 +148,7 @@ class NetworkVisualization {
 				if (dist < nearestDist) nearest = i, nearestDist = dist;
 			}
 			if (nearest >= 0) data.splice(nearest, 1);
-		} else if(this.inputMode < 2) {
+		} else if (this.inputMode < 2) {
 			// add data point
 			if (this.sim.config.outputLayer.neuronCount === 2) {
 				data.push({ input: [x, y], output: [x, y] });

@@ -48,9 +48,9 @@ module Net {
 			df: (x: double) => 1
 		}
 	}
-	
+
 	export module Util {
-		export function  makeArray<T>(len: int, supplier: (i:int) => T): T[] {
+		export function makeArray<T>(len: int, supplier: (i: int) => T): T[] {
 			var arr = new Array<T>(len);
 			for (let i = 0; i < len; i++) arr[i] = supplier(i);
 			return arr;
@@ -63,12 +63,12 @@ module Net {
 		inputs: InputNeuron[];
 		outputs: OutputNeuron[];
 		connections: NeuronConnection[] = [];
-		constructor(input:InputLayerConfig, hidden: LayerConfig[], output:OutputLayerConfig, public learnRate: number,
-				public bias = true, startWeight = () => Math.random() - 0.5, public startWeights?: double[]) {
+		constructor(input: InputLayerConfig, hidden: LayerConfig[], output: OutputLayerConfig, public learnRate: number,
+			public bias = true, startWeight = () => Math.random() - 0.5, public startWeights?: double[]) {
 			let nid = 0;
 			this.inputs = Util.makeArray(input.neuronCount, i => new InputNeuron(nid++, input.names[i]));
 			this.layers.push(this.inputs.slice());
-			for(var layer of hidden) {
+			for (var layer of hidden) {
 				this.layers.push(Util.makeArray(layer.neuronCount, i => new Neuron(layer.activation, nid++)));
 			}
 			this.outputs = Util.makeArray(output.neuronCount, i => new OutputNeuron(output.activation, nid++, output.names[i]));
@@ -168,7 +168,7 @@ module Net {
 	}
 	export class OutputNeuron extends Neuron {
 		targetOutput: double;
-		constructor(public activation:string, id:int, public name:string) {
+		constructor(public activation: string, id: int, public name: string) {
 			super(activation, id);
 		}
 

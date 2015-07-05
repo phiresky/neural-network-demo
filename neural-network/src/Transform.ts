@@ -22,7 +22,7 @@ class CanvasMouseNavigation implements Transform {
 		this.offsetx = canvas.width / 3;
 		this.offsety = 2 * canvas.height / 3;
 		canvas.addEventListener('wheel', e => {
-			if(e.deltaY === 0) return;
+			if (e.deltaY === 0) return;
 			var delta = e.deltaY / Math.abs(e.deltaY);
 			this.scalex *= 1 - delta / 10;
 			this.scaley *= 1 - delta / 10;
