@@ -7,7 +7,7 @@
 
 var sim: Simulation;
 
-$(document).ready(() => sim = new Simulation());
+$(document).ready(() => sim = new Simulation(false));
 
 
 

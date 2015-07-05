@@ -31,7 +31,7 @@ class NeuronGui {
 			targetLayer.neuronCount = newval;
 			$(`#${name}LayerModify .neuronCount`).text(newval);
 			sim.config.data = [];
-			sim.setIsCustom()
+			sim.setIsCustom();
 			sim.initializeNet();
 		});
 		$("#layerCountModifier").on("click", "button", e => {
@@ -66,10 +66,11 @@ class NeuronGui {
 			this.removeLayer();
 		while ($("#hiddenLayersModify > div").length < targetCount)
 			this.addLayer();
-		this.sim.config.hiddenLayers.forEach(
-			(c: LayerConfig, i: int) => {
-				$("#hiddenLayersModify .neuronCount").eq(i).text(c.neuronCount);
-				$("#hiddenLayersModify > div").eq(i).children("select.activation").val(c.activation);
-			});
+		this.sim.config.hiddenLayers.forEach((c: LayerConfig, i: int) => {
+			$("#hiddenLayersModify .neuronCount").eq(i).text(c.neuronCount);
+			$("#hiddenLayersModify > div").eq(i).children("select.activation").val(c.activation);
+		});
+		$("#inputLayerModify .neuronCount").text(this.sim.config.inputLayer.neuronCount);
+		$("#outputLayerModify .neuronCount").text(this.sim.config.outputLayer.neuronCount);
 	}
 }

@@ -31,7 +31,7 @@ class Simulation {
 	table: TableEditor;
 	config: Configuration;
 
-	constructor() {
+	constructor(autoRun:boolean) {
 		let canvas = <HTMLCanvasElement>$("#neuralInputOutput canvas")[0];
 		this.netviz = new NetworkVisualization(canvas,
 			new CanvasMouseNavigation(canvas, () => this.netviz.inputMode == 3, () => this.draw()),
@@ -72,14 +72,13 @@ class Simulation {
 		});
 		let doSerialize = () => {
 			this.stop();
-			console.log("ser");
 			$("#urlExport").text(sim.serializeToUrl(+$("#exportWeights").val()));
 		};
 		$("#exportModal").on("shown.bs.modal", doSerialize);
 		$("#exportModal select").on("change", doSerialize);
 		this.deserializeFromUrl();
 		this.table = new TableEditor($("<div class='fullsize'>"), this);
-		this.run();
+		if(autoRun) this.run();
 	}
 
 	initializeNet(weights?: double[]) {
@@ -190,7 +189,6 @@ class Simulation {
 	}
 
 	setIsCustom() {
-		if (this.isCustom) return;
 		this.isCustom = true;
 		$("#presetName").text("Custom Network");
 		for (let name of ["input", "output"]) {
@@ -219,10 +217,10 @@ class Simulation {
 	}
 	
 	loadPreset(name: string) {
+		this.isCustom = false;
 		$("#presetName").text(`Preset: ${name}`);
 		this.config = Presets.get(name);
 		this.setConfig();
-		this.isCustom = false;
 		history.replaceState({}, "", "?" + $.param({ preset: name }));
 	}
 	setConfig() { // in gui
