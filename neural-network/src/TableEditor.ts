@@ -3,33 +3,70 @@ class TableEditor {
 	hot: any; // handsontable instance
 	headerCount = 2;
 	lastUpdate = 0;
-	constructor(public container: JQuery, sim: Simulation) {
-		let headerRenderer = function firstRowRenderer(instance: any, td: HTMLTableCellElement) {
-			Handsontable.renderers.TextRenderer.apply(this, arguments);
-			td.style.fontWeight = 'bold';
-			td.style.background = '#CCC';
-		}
-		container.handsontable({
-			minSpareRows: 1,
-			cells: (row, col, prop) => {
-				if (row >= this.headerCount) return { type: 'numeric', format: '0.[000]' };
-				else return { renderer: headerRenderer };
-			},
-			//customBorders: true,
-			allowInvalid: false,
-			afterChange: this.afterChange.bind(this)
-		});
-		this.hot = container.handsontable('getInstance');
+	container: JQuery;
+	constructor(sim: Simulation) {
+		this.createNewTable(sim);
 		$("<div>").addClass("btn btn-default")
 			.css({ position: "absolute", right: "2em", bottom: "2em" })
 			.text("Remove all")
 			.click(e => { sim.config.data = []; this.loadData(sim) })
-			.appendTo(container);
+			.appendTo(this.container);
 		this.loadData(sim);
 	}
 	afterChange(changes: [number, number, number, number][], reason: string) {
 		if (reason === 'loadData') return;
 		this.reparseData();
+	}
+	createNewTable(sim: Simulation) {
+		if(this.hot) this.hot.destroy();
+		let oldContainer = this.container;
+		this.container = $("<div class='fullsize'>");
+		let headerRenderer = function firstRowRenderer(instance: any, td: HTMLTableCellElement) {
+			Handsontable.renderers.TextRenderer.apply(this, arguments);
+			td.style.fontWeight = 'bold';
+			td.style.background = '#CCC';
+		}
+		let mergeCells: {}[] = [];
+		let ic = sim.config.inputLayer.neuronCount, oc = sim.config.outputLayer.neuronCount;
+		console.log(`creating new table (${ic}, ${oc})`);
+		if (ic > 1) mergeCells.push({ row: 0, col: 0, rowspan: 1, colspan: ic });
+		if (oc > 1) {
+			mergeCells.push({ row: 0, col: ic, rowspan: 1, colspan: oc });
+			mergeCells.push({ row: 0, col: ic + oc, rowspan: 1, colspan: oc });
+		}
+		let _conf:Handsontable.Options;
+		_conf = {
+			minSpareRows: 1,
+			colWidths: 60,
+			cells: (row, col, prop) => {
+				if (row >= this.headerCount) return { type: 'numeric', format: '0.[000]' };
+				else {
+					let conf: any = { renderer: headerRenderer };
+					if (row == 0) conf.readOnly = true;
+					return conf;
+				}
+			},
+			customBorders: false/*[{ // bug when larger than ~4
+				range: {
+					from: { row: 0, col: ic },
+					to: { row: 100, col: ic }
+				},
+				left: { width: 2, color: 'black' }
+			}, {
+					range: {
+						from: { row: 0, col: ic + oc },
+						to: { row: 100, col: ic + oc }
+					},
+					left: { width: 2, color: 'black' }
+				}]*/,
+			allowInvalid: false,
+			mergeCells: mergeCells,
+			afterChange: this.afterChange.bind(this)
+		};
+		console.log(_conf);
+		this.container.handsontable(_conf);
+		this.hot = this.container.handsontable('getInstance');
+		if(oldContainer) oldContainer.replaceWith(this.container);
 	}
 	reparseData() {
 		let data: number[][] = this.hot.getData();
@@ -37,9 +74,10 @@ class TableEditor {
 		let ic = sim.config.inputLayer.neuronCount, oc = sim.config.outputLayer.neuronCount
 		sim.config.inputLayer.names = headers.slice(0, ic);
 		sim.config.outputLayer.names = headers.slice(ic, ic + oc);
-		sim.config.data = data.slice(2).map(row => row.slice(0, ic + oc)).filter(row => row.every(cell => typeof cell === 'number'))
+		sim.config.data = data.slice(2).map(row => row.slice(0, ic + oc))
+			.filter(row => row.every(cell => typeof cell === 'number'))
 			.map(row => <TrainingData>{ input: row.slice(0, ic), output: row.slice(ic) });
-		sim.setIsCustom();
+		sim.setIsCustom(false, false);
 	}
 	updateRealOutput() {
 		if ((Date.now() - this.lastUpdate) < 500) return;
@@ -62,23 +100,18 @@ class TableEditor {
 		data[0][ic] = 'Expected Output';
 		data[0][ic + oc + oc - 1] = ' ';
 		data[0][ic + oc] = 'Actual Output';
+		let mergeCells: {}[] = [];
+		if (ic > 1) mergeCells.push({ row: 0, col: 0, rowspan: 1, colspan: ic });
+		if (oc > 1) {
+			mergeCells.push({ row: 0, col: ic + oc, rowspan: 1, colspan: oc });
+			mergeCells.push({ row: 0, col: ic + oc * 2, rowspan: 1, colspan: oc });
+		}
+		if (mergeCells.length > 0) this.hot.updateSettings({ mergeCells: mergeCells });
 
 		sim.config.data.forEach(t => data.push(t.input.concat(t.output)));
 		this.hot.loadData(data);
 		/*this.hot.updateSettings({customBorders: [
-				{
-					range: {
-						from: { row: 0, col: ic },
-						to: { row: 100, col: ic }
-					},
-					left: { width: 2, color: 'black' }
-				}, {
-					range: {
-						from: { row: 0, col: ic+oc },
-						to: { row: 100, col: ic+oc }
-					},
-					left: { width: 2, color: 'black' }
-				}
+				
 			]});
 		this.hot.runHooks('afterInit');*/
 	}

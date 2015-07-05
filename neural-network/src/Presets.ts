@@ -18,7 +18,7 @@ interface Configuration {
 module Presets {
 	let presets: Configuration[] = [
 		{
-			name:"Default",
+			name: "Default",
 			stepsPerFrame: 50,
 			learningRate: 0.05,
 			showGradient: false,
@@ -32,23 +32,23 @@ module Presets {
 				{ input: [1, 0], output: [1] },
 				{ input: [1, 1], output: [0] }
 			],
-			inputLayer: {neuronCount: 2, names: ["x","y"]},
-			outputLayer: { neuronCount: 1, activation: "sigmoid", names:["x XOR y"] },
+			inputLayer: { neuronCount: 2, names: ["x", "y"] },
+			outputLayer: { neuronCount: 1, activation: "sigmoid", names: ["x XOR y"] },
 			hiddenLayers: [
 				{ neuronCount: 2, activation: "sigmoid" },
 			]
 		},
 		{
-			name:"Binary Classifier for XOR"
+			name: "Binary Classifier for XOR"
 			//defaults only
 		},
 		{
-			name:"Binary Classifier for circular data",
+			name: "Binary Classifier for circular data",
 			hiddenLayers: [
-				{ "neuronCount": 3, "activation": "sigmoid" },	
+				{ "neuronCount": 3, "activation": "sigmoid" },
 			],
-			inputLayer: {neuronCount: 2, names:["x","y"]},
-			outputLayer:{neuronCount: 1, "activation": "sigmoid" , names: ["Class"]},
+			inputLayer: { neuronCount: 2, names: ["x", "y"] },
+			outputLayer: { neuronCount: 1, "activation": "sigmoid", names: ["Class"] },
 			data: [{ input: [1.46, 1.36], output: [0] },
 				{ input: [1.14, 1.26], output: [0] },
 				{ input: [0.96, 0.97], output: [0] },
@@ -102,10 +102,10 @@ module Presets {
 				{ input: [1.97, 0.55], output: [0] }]
 		},
 		{
-			name:"Auto-Encoder for linear data",
+			name: "Auto-Encoder for linear data",
 			stepsPerFrame: 1,
 			iterationsPerClick: 1,
-			parent:"Auto-Encoder for circular data",
+			parent: "Auto-Encoder for circular data",
 			data: [
 				{ input: [2.25, 0.19], output: [2.25, 0.19] },
 				{ input: [1.37, 0.93], output: [1.37, 0.93] },
@@ -122,12 +122,12 @@ module Presets {
 			hiddenLayers: [
 				{ neuronCount: 1, activation: "sigmoid" },
 			],
-			
+
 			showGradient: true
 		},
 		{
-			name:"Auto-Encoder for x^2",
-			parent:"Auto-Encoder for circular data",
+			name: "Auto-Encoder for x^2",
+			parent: "Auto-Encoder for circular data",
 			netLayers: [
 				{
 					"activation": "sigmoid",
@@ -142,16 +142,16 @@ module Presets {
 					"activation": "sigmoid"
 				},
 			],
-			data:(<number[]>Array.apply(null,Array(17)))
-				.map((e,i) => (i-8)/8).map(x => ({input:[x,x*x],output:[x,x*x]}))
+			data: (<number[]>Array.apply(null, Array(17)))
+				.map((e, i) => (i - 8) / 8).map(x => ({ input: [x, x * x], output: [x, x * x] }))
 		},
 		{
-			name:"Auto-Encoder for circular data",
+			name: "Auto-Encoder for circular data",
 			"stepsPerFrame": 500,
 			"learningRate": 0.01,
 			"iterationsPerClick": 10000,
-			inputLayer:{neuronCount:2,names:["x","y"]},
-			outputLayer:{neuronCount:2,activation:"linear",names:["x","y"]},
+			inputLayer: { neuronCount: 2, names: ["x", "y"] },
+			outputLayer: { neuronCount: 2, activation: "linear", names: ["x", "y"] },
 			hiddenLayers: [
 				{
 					"activation": "sigmoid",
@@ -207,7 +207,8 @@ module Presets {
 				{ input: [0.62, 0.78], output: [0.62, 0.78] },
 				{ input: [0.95, -0.39], output: [0.95, -0.39] },
 				{ input: [0.86, -0.53], output: [0.86, -0.53] }]
-		}
+		},
+		{ "name": "Auto-Encoder 4D", "learningRate": 0.05, "data": [{ "input": [1, 0, 0, 0], "output": [1, 0, 0, 0] }, { "input": [0, 1, 0, 0], "output": [0, 1, 0, 0] }, { "input": [0, 0, 1, 0], "output": [0, 0, 1, 0] }, { "input": [0, 0, 0, 1], "output": [0, 0, 0, 1] }], "inputLayer": { "neuronCount": 4, "names": ["in1", "in2", "in3", "in4"] }, "outputLayer": { "neuronCount": 4, "activation": "linear", "names": ["out1", "out2", "out3", "out4"] }, "hiddenLayers": [{ "neuronCount": 2, "activation": "sigmoid" }], "netLayers": [{ "activation": "sigmoid", "neuronCount": 2 }, { "activation": "linear", "neuronCount": 1 }, { "neuronCount": 2, "activation": "sigmoid" }] }
 	];
 	export function getNames(): string[] {
 		return presets.map(p => p.name).filter(c => c !== "Default");
@@ -216,25 +217,24 @@ module Presets {
 		return presets.filter(p => p.name === name)[0] !== undefined;
 	}
 	export function get(name: string): Configuration {
-		let chain:any[] = [];
+		let chain: any[] = [];
 		let preset = presets.filter(p => p.name === name)[0];
 		chain.unshift(preset);
-		while(true) {
+		while (true) {
 			var parentName = preset.parent || "Default";
 			preset = presets.filter(p => p.name === parentName)[0];
 			chain.unshift(preset);
-			if(parentName === "Default") break;
+			if (parentName === "Default") break;
 		}
 		chain.unshift({});
-		console.log("loading chain="+chain.map((c:any) => c.name));
+		console.log("loading chain=" + chain.map((c: any) => c.name));
 		return JSON.parse(JSON.stringify($.extend.apply($, chain)));
 	}
 	export function printPreset(parentName = "Default") {
-		let parent = presets.filter(p => p.name === parentName)[0];
-		let config = <Configuration>(<any>window).simulation.config;
+		let parent = get(parentName);
 		let outconf: any = {};
-		for (let prop in config) {
-			if (config[prop] !== parent[prop]) outconf[prop] = config[prop];
+		for (let prop in sim.config) {
+			if (sim.config[prop] !== parent[prop]) outconf[prop] = sim.config[prop];
 		}
 		/*outconf.data = config.data.map(
 			e => '{input:[' + e.input.map(x=> x.toFixed(2))

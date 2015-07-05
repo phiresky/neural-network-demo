@@ -77,7 +77,7 @@ class Simulation {
 		$("#exportModal").on("shown.bs.modal", doSerialize);
 		$("#exportModal select").on("change", doSerialize);
 		this.deserializeFromUrl();
-		this.table = new TableEditor($("<div class='fullsize'>"), this);
+		this.table = new TableEditor(this);
 		if(autoRun) this.run();
 	}
 
@@ -188,16 +188,16 @@ class Simulation {
 		this.updateStatusLine();
 	}
 
-	setIsCustom() {
+	setIsCustom(neuronCountsChanged: boolean, loadData: boolean = true) {
+		if(this.isCustom && !neuronCountsChanged) return;
 		this.isCustom = true;
 		$("#presetName").text("Custom Network");
-		for (let name of ["input", "output"]) {
-			let layer = this.config[`${name}Layer`];
-			layer.names = [];
-			for (let i = 0; i < layer.neuronCount; i++)
-				layer.names.push(`${name} ${i + 1}`);
-		}
-		this.table.loadData(this);
+		let layer = this.config.inputLayer;
+		layer.names = Net.Util.makeArray(layer.neuronCount, i => `in${i+1}`);
+		layer = this.config.outputLayer;
+		layer.names = Net.Util.makeArray(layer.neuronCount, i => `out${i+1}`);
+		if(neuronCountsChanged) this.table.createNewTable(this);
+		if(loadData) this.table.loadData(this);
 	}
 
 	loadConfig(nochange = false) { // from gui
@@ -213,13 +213,14 @@ class Simulation {
 		}
 		if (oldConfig.simType != config.simType) config.data = [];
 		if (this.net) this.net.learnRate = this.config.learningRate;
-		if (!nochange) this.setIsCustom();
+		if (!nochange) this.setIsCustom(true);
 	}
 	
 	loadPreset(name: string) {
 		this.isCustom = false;
 		$("#presetName").text(`Preset: ${name}`);
 		this.config = Presets.get(name);
+		if(this.table) this.table.createNewTable(this);
 		this.setConfig();
 		history.replaceState({}, "", "?" + $.param({ preset: name }));
 	}
@@ -265,7 +266,7 @@ class Simulation {
 			this.loadPreset(preset);
 		else if(config) {
 			this.config = JSON.parse(LZString.decompressFromBase64(config));
-			this.setIsCustom();
+			this.setIsCustom(true);
 		} else
 			this.loadPreset("Binary Classifier for XOR");
 		let weights = getUrlParameter("weights");

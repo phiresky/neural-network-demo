@@ -48,11 +48,13 @@ module Net {
 			df: (x: double) => 1
 		}
 	}
-
-	function makeArray<T>(len: int, supplier: (i:int) => T): T[] {
-		var arr = new Array<T>(len);
-		for (let i = 0; i < len; i++) arr[i] = supplier(i);
-		return arr;
+	
+	export module Util {
+		export function  makeArray<T>(len: int, supplier: (i:int) => T): T[] {
+			var arr = new Array<T>(len);
+			for (let i = 0; i < len; i++) arr[i] = supplier(i);
+			return arr;
+		}
 	}
 
 	// back propagation code adapted from https://de.wikipedia.org/wiki/Backpropagation
@@ -64,12 +66,12 @@ module Net {
 		constructor(input:InputLayerConfig, hidden: LayerConfig[], output:OutputLayerConfig, public learnRate: number,
 				public bias = true, startWeight = () => Math.random() - 0.5, public startWeights?: double[]) {
 			let nid = 0;
-			this.inputs = makeArray(input.neuronCount, i => new InputNeuron(nid++, input.names[i]));
+			this.inputs = Util.makeArray(input.neuronCount, i => new InputNeuron(nid++, input.names[i]));
 			this.layers.push(this.inputs.slice());
 			for(var layer of hidden) {
-				this.layers.push(makeArray(layer.neuronCount, i => new Neuron(layer.activation, nid++)));
+				this.layers.push(Util.makeArray(layer.neuronCount, i => new Neuron(layer.activation, nid++)));
 			}
-			this.outputs = makeArray(output.neuronCount, i => new OutputNeuron(output.activation, nid++, output.names[i]));
+			this.outputs = Util.makeArray(output.neuronCount, i => new OutputNeuron(output.activation, nid++, output.names[i]));
 			this.layers.push(this.outputs);
 			this.bias = bias;
 			for (let i = 0; i < this.layers.length - 1; i++) {
