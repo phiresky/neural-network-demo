@@ -24,7 +24,7 @@ module Presets {
 			showGradient: false,
 			bias: true,
 			autoRestartTime: 5000,
-			autoRestart: true,
+			autoRestart: false,
 			iterationsPerClick: 5000,
 			data: <TrainingData[]>[
 				{ input: [0, 0], output: [0] },

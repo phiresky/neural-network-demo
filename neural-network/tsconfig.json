@@ -8,6 +8,8 @@
 		"module": "amd"
 	},
 	"files": [
+		"src/TableEditor.ts",
+		"src/NeuronGui.ts",
 		"src/main.ts"
 	]
 }
