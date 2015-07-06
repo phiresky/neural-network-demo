@@ -10,6 +10,8 @@ class NetworkVisualization implements Visualization {
 	ctx: CanvasRenderingContext2D;
 	inputMode: InputMode = 0;
 	trafo: Transform;
+	backgroundResolution = 20;
+	container = $("<div>");
 	static colors = {
 		binaryClassify: {
 			bg: ["#f88", "#8f8"],
@@ -24,21 +26,27 @@ class NetworkVisualization implements Visualization {
 		}
 	}
 
-	constructor(
-		public container: JQuery, public sim: Simulation,
-		public backgroundResolution: int) {
+	constructor(public sim: Simulation) {
 		this.canvas = <HTMLCanvasElement>$("<canvas class=fullsize>")[0];
 		this.canvas.width = 550;
 		this.canvas.height = 400;
-		this.trafo = new CanvasMouseNavigation(this.canvas, () => this.inputMode == 3, () => this.draw());
+		this.trafo = new CanvasMouseNavigation(this.canvas, () => this.inputMode == 3, () => this.onFrame());
 		this.ctx = <CanvasRenderingContext2D>this.canvas.getContext('2d');
 		this.canvasResized();
 		window.addEventListener('resize', this.canvasResized.bind(this));
 		this.canvas.addEventListener("click", this.canvasClicked.bind(this));
 		this.canvas.addEventListener("contextmenu", this.canvasClicked.bind(this));
-		$(this.canvas).appendTo(container);
+		$(this.canvas).appendTo(this.container);
 	}
-	draw() {
+	
+	onNetworkLoaded(net: Net.NeuralNet) {
+		let isBinClass = net.outputs.length === 1;
+		$("#dataInputSwitch > li").eq(1).toggle(isBinClass);
+		let firstButton = $("#dataInputSwitch > li > a").eq(0);
+		firstButton.text(isBinClass ? "Add Red" : "Add point")
+		if (!isBinClass && this.inputMode == 1) firstButton.click();
+	}
+	onFrame() {
 		if (this.sim.config.inputLayer.neuronCount != 2 || this.sim.config.outputLayer.neuronCount > 2) {
 			this.clear('white');
 			this.ctx.fillStyle = 'black';
@@ -137,11 +145,11 @@ class NetworkVisualization implements Visualization {
 		ctx.stroke();
 	}
 	canvasResized() {
-		console.log("res");
 		this.canvas.width = $(this.canvas).width();
 		this.canvas.height = $(this.canvas).height();
 	}
 	canvasClicked(evt: MouseEvent) {
+		evt.preventDefault();
 		let data = this.sim.config.data;
 		let rect = this.canvas.getBoundingClientRect();
 		let x = this.trafo.toReal.x(evt.clientX - rect.left);
@@ -167,14 +175,13 @@ class NetworkVisualization implements Visualization {
 				data.push({ input: [x, y], output: [label] });
 			}
 		}
-		this.sim.setIsCustom(false);
-		evt.preventDefault();
-		this.draw();
+		this.sim.setIsCustom();
+		this.onFrame();
 	}
 	onView(previouslyHidden: boolean, mode: int) {
 		if(previouslyHidden) this.canvasResized();
 		this.inputMode = mode;
-		this.draw();
+		this.onFrame();
 	}
 	onHide() {
 		

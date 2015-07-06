@@ -5,8 +5,7 @@
 ///<reference path='Transform.ts' />
 ///<reference path='NetworkVisualization.ts' />
 
-var sim: Simulation;
-
+let sim: Simulation;
 $(document).ready(() => sim = new Simulation(false));
 
 

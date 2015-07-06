@@ -3,21 +3,20 @@ class TableEditor implements Visualization {
 	hot: any; // handsontable instance
 	headerCount = 2;
 	lastUpdate = 0;
-	container: JQuery;
-	constructor(sim: Simulation) {
-		this.createNewTable(sim);
+	container: JQuery = $("<div>");
+	constructor(public sim: Simulation) {
+		this.sim = sim;
 		$("<div>").addClass("btn btn-default")
 			.css({ position: "absolute", right: "2em", bottom: "2em" })
 			.text("Remove all")
-			.click(e => { sim.config.data = []; this.loadData(sim) })
+			.click(e => { sim.config.data = []; this.loadData() })
 			.appendTo(this.container);
-		this.loadData(sim);
 	}
 	afterChange(changes: [number, number, number, number][], reason: string) {
 		if (reason === 'loadData') return;
 		this.reparseData();
 	}
-	createNewTable(sim: Simulation) {
+	onNetworkLoaded(net:Net.NeuralNet) {
 		if (this.hot) this.hot.destroy();
 		let oldContainer = this.container;
 		this.container = $("<div class='fullsize'>");
@@ -27,15 +26,14 @@ class TableEditor implements Visualization {
 			td.style.background = '#CCC';
 		}
 		let mergeCells: {}[] = [];
-		let ic = sim.config.inputLayer.neuronCount, oc = sim.config.outputLayer.neuronCount;
-		console.log(`creating new table (${ic}, ${oc})`);
+		let ic = net.inputs.length, oc = net.outputs.length;
+		//console.log(`creating new table (${ic}, ${oc})`);
 		if (ic > 1) mergeCells.push({ row: 0, col: 0, rowspan: 1, colspan: ic });
 		if (oc > 1) {
 			mergeCells.push({ row: 0, col: ic, rowspan: 1, colspan: oc });
 			mergeCells.push({ row: 0, col: ic + oc, rowspan: 1, colspan: oc });
 		}
-		let _conf: Handsontable.Options;
-		_conf = {
+		let _conf: Handsontable.Options = {
 			minSpareRows: 1,
 			colWidths: ic + oc + oc <= 6 ? 80 : 45,
 			cells: (row, col, prop) => {
@@ -63,12 +61,13 @@ class TableEditor implements Visualization {
 			mergeCells: mergeCells,
 			afterChange: this.afterChange.bind(this)
 		};
-		console.log(_conf);
 		this.container.handsontable(_conf);
 		this.hot = this.container.handsontable('getInstance');
 		if (oldContainer) oldContainer.replaceWith(this.container);
+		this.loadData();
 	}
 	reparseData() {
+		let sim = this.sim;
 		let data: number[][] = this.hot.getData();
 		let headers = <string[]><any>data[1];
 		let ic = sim.config.inputLayer.neuronCount, oc = sim.config.outputLayer.neuronCount
@@ -77,9 +76,10 @@ class TableEditor implements Visualization {
 		sim.config.data = data.slice(2).map(row => row.slice(0, ic + oc))
 			.filter(row => row.every(cell => typeof cell === 'number'))
 			.map(row => <TrainingData>{ input: row.slice(0, ic), output: row.slice(ic) });
-		sim.setIsCustom(false, false);
+		sim.setIsCustom();
 	}
-	updateRealOutput() {
+	onFrame() {
+		let sim = this.sim;
 		if ((Date.now() - this.lastUpdate) < 500) return;
 		this.lastUpdate = Date.now();
 		let xOffset = sim.config.inputLayer.neuronCount + sim.config.outputLayer.neuronCount;
@@ -93,7 +93,8 @@ class TableEditor implements Visualization {
 		}
 		this.hot.setDataAtCell(vals, "loadData");
 	}
-	loadData(sim: Simulation) { // needs sim as arg because called from constructor
+	loadData() {
+		let sim = this.sim;
 		let data: (number|string)[][] = [[], sim.config.inputLayer.names.concat(sim.config.outputLayer.names).concat(sim.config.outputLayer.names)];
 		let ic = sim.config.inputLayer.neuronCount, oc = sim.config.outputLayer.neuronCount;
 		data[0][0] = 'Inputs';
@@ -116,7 +117,7 @@ class TableEditor implements Visualization {
 		this.hot.runHooks('afterInit');*/
 	}
 	onView() {
-		this.loadData(sim);
+		this.loadData();
 	}
 	onHide() {
 		this.reparseData();

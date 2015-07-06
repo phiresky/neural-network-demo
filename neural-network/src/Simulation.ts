@@ -19,25 +19,29 @@ interface OutputLayerConfig extends LayerConfig {
 }
 class ErrorGraph implements Visualization {
 	chart: HighstockChartObject;
-	constructor(public container: JQuery, data: [number, number][]) {
-		container.highcharts({
+	container = $("<div>");
+	constructor(public sim: Simulation) {
+		this.container.highcharts({
 			title: { text: 'Average RMSE' },
 			chart: { type: 'line', animation: false },
 			plotOptions: { line: { marker: { enabled: false } } },
 			legend: { enabled: false },
 			yAxis: { min: 0, title: { text: '' }, labels: { format: "{value:%.2f}" } },
-			series: [{ name: 'Error', data: data }],
+			series: [{ name: 'Error', data: [] }],
+			colors: ["black"]
 		});
-		this.chart = container.highcharts();
+		this.chart = this.container.highcharts();
 	}
-	clear() {
-		this.chart.series[0].setData([]);
-	}
-	addPoint(step: int, error: double) {
-		this.chart.series[0].addPoint([step, error], true, false);
+	onFrame() {
+		let data:[number,number] = [this.sim.stepNum, this.sim.averageError];
+		this.chart.series[0].addPoint(data, true, false);
 	}
 	onView() {
+		this.chart.series[0].setData(this.sim.errorHistory);
 		this.chart.reflow();
+	}
+	onNetworkLoaded() {
+		this.chart.series[0].setData([]);
 	}
 	onHide() {
 		
@@ -46,74 +50,75 @@ class ErrorGraph implements Visualization {
 class Simulation {
 	netviz: NetworkVisualization;
 	netgraph: NetworkGraph;
-	backgroundResolution = 10;
+	table: TableEditor;
+	errorGraph: ErrorGraph;
+	
 	stepNum = 0;
 	running = false; runningId = -1;
 	restartTimeout = -1;
 	isCustom = false;
 	averageError = 1;
-	errorHistory: [number, number][];
 
 	net: Net.NeuralNet;
 	neuronGui: NeuronGui;
-	table: TableEditor;
 	config: Configuration;
-	errorGraph: ErrorGraph;
+	leftVis:TabSwitchVis;
+	rightVis:TabSwitchVis;
+	
+	constructed = false;
+	errorHistory:[number,number][];
 
 	constructor(autoRun: boolean) {
-		this.netviz = new NetworkVisualization($("<div>"), this, this.backgroundResolution);
-		this.netgraph = new NetworkGraph($("<div>"));
-
 		(<any>$("#learningRate")).slider({
 			min: 0.01, max: 1, step: 0.005, scale: "logarithmic", value: 0.05
 		}).on('change', (e: any) => $("#learningRateVal").text(e.value.newValue.toFixed(3)));
-		this.neuronGui = new NeuronGui(this);
 		for (let name of Presets.getNames())
 			$("#presetLoader").append($("<li>").append($("<a>").text(name)));
 		$("#presetLoader").on("click", "a", e => {
 			let name = e.target.textContent;
 			this.loadPreset(name);
-			this.initializeNet();
 		});
+		let doSerialize = () => {
+			this.stop();
+			$("#urlExport").text(this.serializeToUrl(+$("#exportWeights").val()));
+		};
+		$("#exportModal").on("shown.bs.modal", doSerialize);
+		$("#exportModal select").on("change", doSerialize);
+		this.neuronGui = new NeuronGui(this);
 		
-		this.errorGraph = new ErrorGraph($("<div>"), []);
-		this.deserializeFromUrl();
+		this.netviz = new NetworkVisualization(this);
+		this.netgraph = new NetworkGraph(this);
+		this.errorGraph = new ErrorGraph(this);
 		this.table = new TableEditor(this);
 		
-		let leftVis = new TabSwitchVis($("#leftVis"), 0, "leftVis", [
+		
+		this.leftVis = new TabSwitchVis($("#leftVis"), "leftVis", [
 			{buttons:["Network Graph"], visualization:this.netgraph},
 			{buttons:["Error Chart"],visualization:this.errorGraph},
 			//{buttons:["Weights"], null}
 		]);
-		let rightVis = new TabSwitchVis($("#rightVis"), 0, "rightVis", [
+		this.rightVis = new TabSwitchVis($("#rightVis"), "rightVis", [
 			{buttons:["Add Red", "Add Green", "Remove", "Move View"], 
 				visualization:this.netviz},
 			{buttons:["Table input"], visualization: this.table}
 		])
-		let doSerialize = () => {
-			this.stop();
-			$("#urlExport").text(sim.serializeToUrl(+$("#exportWeights").val()));
-		};
-		$("#exportModal").on("shown.bs.modal", doSerialize);
-		$("#exportModal select").on("change", doSerialize);
+		this.deserializeFromUrl();
+		this.leftVis.setMode(0);
+		this.rightVis.setMode(0);
+		this.constructed = true;
+		this.onFrame();
 		if (autoRun) this.run();
 	}
 
 	initializeNet(weights?: double[]) {
+		console.log(`initializeNet(${weights})`);
 		if (this.net) this.stop();
-		this.errorHistory = [];
-		if (this.errorGraph) this.errorGraph.clear();
 		this.net = new Net.NeuralNet(this.config.inputLayer, this.config.hiddenLayers, this.config.outputLayer, this.config.learningRate, true, undefined, weights);
-		let isBinClass = this.config.outputLayer.neuronCount === 1;
-		$("#dataInputSwitch > li").eq(1).toggle(isBinClass);
-		let firstButton = $("#dataInputSwitch > li > a").eq(0);
-		firstButton.text(isBinClass ? "Add Red" : "Add point")
-		if (!isBinClass && this.netviz.inputMode == 1) firstButton.click();
 		this.stepNum = 0;
-		this.netgraph.loadNetwork(this.net, this.config.bias);
-		if (this.table) this.table.loadData(this);
-		this.draw();
-		this.updateStatusLine();
+		this.errorHistory = [];
+		this.leftVis.onNetworkLoaded(this.net);
+		this.rightVis.onNetworkLoaded(this.net);
+		if(this.constructed) this.onFrame();
 	}
 	statusIterEle = document.getElementById('statusIteration');
 	statusCorrectEle = document.getElementById('statusCorrect');
@@ -124,11 +129,11 @@ class Simulation {
 		}
 	}
 
-	draw() {
-		if (this.netviz.inputMode === InputMode.Table)
-			this.table.updateRealOutput();
-		else this.netviz.draw();
-		this.netgraph.update();
+	onFrame() {
+		this.calculateAverageError();
+		this.rightVis.currentVisualization.onFrame();
+		this.leftVis.currentVisualization.onFrame();
+		this.updateStatusLine();
 	}
 
 	run() {
@@ -148,12 +153,11 @@ class Simulation {
 
 	reset() {
 		this.stop();
-		this.loadConfig(true);
 		this.initializeNet();
+		this.onFrame();
 	}
-
-	updateStatusLine() {
-		let correct = 0;
+	
+	calculateAverageError() {
 		this.averageError = 0;
 		/*for (let val of this.config.data) {
 			let res = this.net.getOutput(val.input);
@@ -170,6 +174,11 @@ class Simulation {
 			this.averageError += this.net.getLoss(val.output);
 		}
 		this.averageError /= this.config.data.length;
+		this.errorHistory.push([this.stepNum, this.averageError]);
+	}
+
+	updateStatusLine() {
+		let correct = 0;
 		if (this.config.outputLayer.neuronCount === 1) {
 			for (var val of this.config.data) {
 				let res = this.net.getOutput(val.input);
@@ -179,8 +188,6 @@ class Simulation {
 		} else {
 			this.statusCorrectEle.innerHTML = `Avg. error: ${(this.averageError).toFixed(2) }`;
 		}
-		this.errorHistory.push([this.stepNum, this.averageError]);
-		if (this.errorGraph) this.errorGraph.addPoint(this.stepNum, this.averageError);
 		this.statusIterEle.innerHTML = this.stepNum.toString();
 
 		if (correct == this.config.data.length) {
@@ -202,8 +209,7 @@ class Simulation {
 	aniFrameCallback = this.animationStep.bind(this);
 	animationStep() {
 		for (let i = 0; i < this.config.stepsPerFrame; i++) this.step();
-		this.draw();
-		this.updateStatusLine();
+		this.onFrame();
 		if (this.running) this.runningId = requestAnimationFrame(this.aniFrameCallback);
 	}
 
@@ -211,23 +217,20 @@ class Simulation {
 		this.stop();
 		for (var i = 0; i < this.config.iterationsPerClick; i++)
 			this.step();
-		this.draw();
-		this.updateStatusLine();
+		this.onFrame();
 	}
 
-	setIsCustom(neuronCountsChanged: boolean, loadData: boolean = true) {
-		if (this.isCustom && !neuronCountsChanged) return;
+	setIsCustom() {
+		if (this.isCustom) return;
 		this.isCustom = true;
 		$("#presetName").text("Custom Network");
 		let layer = this.config.inputLayer;
 		layer.names = Net.Util.makeArray(layer.neuronCount, i => `in${i + 1}`);
 		layer = this.config.outputLayer;
 		layer.names = Net.Util.makeArray(layer.neuronCount, i => `out${i + 1}`);
-		if (neuronCountsChanged) this.table.createNewTable(this);
-		if (loadData) this.table.loadData(this);
 	}
 
-	loadConfig(nochange = false) { // from gui
+	loadConfig() { // from gui
 		let config = <any>this.config;
 		let oldConfig = $.extend({}, config);
 		for (let conf in config) {
@@ -240,16 +243,15 @@ class Simulation {
 		}
 		if (oldConfig.simType != config.simType) config.data = [];
 		if (this.net) this.net.learnRate = this.config.learningRate;
-		if (!nochange) this.setIsCustom(true);
 	}
 
-	loadPreset(name: string) {
+	loadPreset(name: string, weights?:double[]) {
 		this.isCustom = false;
 		$("#presetName").text(`Preset: ${name}`);
 		this.config = Presets.get(name);
-		if (this.table) this.table.createNewTable(this);
 		this.setConfig();
 		history.replaceState({}, "", "?" + $.param({ preset: name }));
+		this.initializeNet(weights);
 	}
 	setConfig() { // in gui
 		let config = <any>this.config;
@@ -289,15 +291,17 @@ class Simulation {
 			return match && decodeURIComponent(match[1].replace(/\+/g, ' '));
 		}
 		let preset = getUrlParameter("preset"), config = getUrlParameter("config");
+		let weightString = getUrlParameter("weights");
+		let weights:double[];
+		if(weightString) 
+			weights = JSON.parse(LZString.decompressFromBase64(weightString));
 		if (preset && Presets.exists(preset))
-			this.loadPreset(preset);
+			this.loadPreset(preset, weights);
 		else if (config) {
 			this.config = JSON.parse(LZString.decompressFromBase64(config));
-			this.setIsCustom(true);
+			this.setIsCustom();
+			this.initializeNet();
 		} else
 			this.loadPreset("Binary Classifier for XOR");
-		let weights = getUrlParameter("weights");
-		if (weights) this.initializeNet(JSON.parse(LZString.decompressFromBase64(weights)));
-		else this.initializeNet();
 	}
 }

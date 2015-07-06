@@ -18,7 +18,7 @@ class NeuronGui {
 			if (newval < 1) return;
 			sim.config.hiddenLayers[layer].neuronCount = newval;
 			$("#hiddenLayersModify .neuronCount").eq(layer).text(newval);
-			sim.setIsCustom(true);
+			sim.setIsCustom();
 			sim.initializeNet();
 		});
 		$("#inputLayerModify,#outputLayerModify").on("click", "button", e => {
@@ -31,7 +31,7 @@ class NeuronGui {
 			targetLayer.neuronCount = newval;
 			$(`#${name}LayerModify .neuronCount`).text(newval);
 			sim.config.data = [];
-			sim.setIsCustom(true);
+			sim.setIsCustom();
 			sim.initializeNet();
 		});
 		$("#layerCountModifier").on("click", "button", e => {
@@ -45,18 +45,18 @@ class NeuronGui {
 				this.addLayer();
 			}
 			$("#layerCount").text(sim.config.hiddenLayers.length + 2);
-			sim.setIsCustom(false);
+			sim.setIsCustom();
 			sim.initializeNet();
 		});
 		$("#outputLayerModify").on("change", "select", e=> {
-			sim.config.outputLayer.activation = (<any>e.target).value;
-			sim.setIsCustom(false);
+			sim.config.outputLayer.activation = (<HTMLSelectElement>e.target).value;
+			sim.setIsCustom();
 			sim.initializeNet();
 		});
 		$("#hiddenLayersModify").on("change", "select", e=> {
 			let layer = $(e.target.parentNode).index();
 			sim.config.hiddenLayers[layer].activation = (<HTMLSelectElement>e.target).value;
-			sim.setIsCustom(false);
+			sim.setIsCustom();
 			sim.initializeNet();
 		});
 	}

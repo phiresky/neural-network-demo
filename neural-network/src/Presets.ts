@@ -230,7 +230,7 @@ module Presets {
 		console.log("loading chain=" + chain.map((c: any) => c.name));
 		return JSON.parse(JSON.stringify($.extend.apply($, chain)));
 	}
-	export function printPreset(parentName = "Default") {
+	export function printPreset(sim: Simulation, parentName = "Default") {
 		let parent = get(parentName);
 		let outconf: any = {};
 		for (let prop in sim.config) {
