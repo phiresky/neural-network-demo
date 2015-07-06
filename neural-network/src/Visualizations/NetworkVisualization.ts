@@ -1,4 +1,3 @@
-///<reference path='Transform.ts' />
 interface TrainingData {
 	input: double[]; output: double[];
 }
@@ -39,9 +38,9 @@ class NetworkVisualization implements Visualization {
 		this.canvas.addEventListener("contextmenu", this.canvasClicked.bind(this));
 		$(this.canvas).appendTo(this.container);
 	}
-	
+
 	onNetworkLoaded(net: Net.NeuralNet) {
-		if(net.outputs.length === 1) {
+		if (net.outputs.length === 1) {
 			this.actions = ["Add Red", "Add Green", "Remove", "Move View"];
 		} else {
 			this.actions = ["Add Data point", null, "Remove", "Move View"];
@@ -51,6 +50,9 @@ class NetworkVisualization implements Visualization {
 		if (this.sim.config.inputLayer.neuronCount != 2 || this.sim.config.outputLayer.neuronCount > 2) {
 			this.clear('white');
 			this.ctx.fillStyle = 'black';
+			this.ctx.textBaseline = "middle";
+			this.ctx.textAlign = "center";
+			this.ctx.font = "20px monospace";
 			this.ctx.fillText("Cannot draw this data", this.canvas.width / 2, this.canvas.height / 2);
 			return;
 		}
@@ -180,11 +182,11 @@ class NetworkVisualization implements Visualization {
 		this.onFrame();
 	}
 	onView(previouslyHidden: boolean, mode: int) {
-		if(previouslyHidden) this.canvasResized();
+		if (previouslyHidden) this.canvasResized();
 		this.inputMode = mode;
 		this.onFrame();
 	}
 	onHide() {
-		
+
 	}
 }

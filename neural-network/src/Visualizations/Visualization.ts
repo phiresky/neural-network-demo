@@ -11,7 +11,7 @@ interface VisualizationConstructor {
 	new (sim:Simulation): Visualization;
 }
 
-class TabSwitchVis {
+class TabSwitchVisualizationContainer {
 	modes: { thing: int, action: int }[] = [];
 	currentVisualization: Visualization;
 	ul = $("<ul class='nav nav-pills'>");

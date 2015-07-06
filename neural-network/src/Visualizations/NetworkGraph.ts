@@ -1,5 +1,3 @@
-///<reference path='Net.ts' />
-
 declare let vis:any; // vis.js library
 class NetworkGraph implements Visualization {
 	actions = ["Network Graph"];

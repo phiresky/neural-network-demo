@@ -1,4 +1,14 @@
-///<reference path='Simulation.ts' />
+interface InputLayerConfig {
+	neuronCount: int;
+	names: string[];
+}
+interface LayerConfig {
+	neuronCount: int;
+	activation: string;
+}
+interface OutputLayerConfig extends LayerConfig {
+	names: string[];
+}
 interface Configuration {
 	[property: string]: any;
 	name: string;

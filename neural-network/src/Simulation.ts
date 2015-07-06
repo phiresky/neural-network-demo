@@ -1,54 +1,4 @@
-///<reference path='../lib/typings/jquery/jquery.d.ts' />
-///<reference path='../lib/typings/jquery-handsontable/jquery-handsontable.d.ts' />
-///<reference path='Net.ts' />
-///<reference path='NetworkGraph.ts' />
-///<reference path='NetworkVisualization.ts' />
-///<reference path='Presets.ts' />
 interface JQuery { slider: any };
-
-interface InputLayerConfig {
-	neuronCount: int;
-	names: string[];
-}
-interface LayerConfig {
-	neuronCount: int;
-	activation: string;
-}
-interface OutputLayerConfig extends LayerConfig {
-	names: string[];
-}
-class ErrorGraph implements Visualization {
-	chart: HighstockChartObject;
-	actions = ["Error History"];
-	container = $("<div>");
-	constructor(public sim: Simulation) {
-		this.container.highcharts({
-			title: { text: 'Average RMSE' },
-			chart: { type: 'line', animation: false },
-			plotOptions: { line: { marker: { enabled: false } } },
-			legend: { enabled: false },
-			yAxis: { min: 0, title: { text: '' }, labels: { format: "{value:%.2f}" } },
-			series: [{ name: 'Error', data: [] }],
-			colors: ["black"],
-			credits: { enabled: false }
-		});
-		this.chart = this.container.highcharts();
-	}
-	onFrame() {
-		let data:[number,number] = [this.sim.stepNum, this.sim.averageError];
-		this.chart.series[0].addPoint(data, true, false);
-	}
-	onView() {
-		this.chart.series[0].setData(this.sim.errorHistory);
-		this.chart.reflow();
-	}
-	onNetworkLoaded() {
-		this.chart.series[0].setData([]);
-	}
-	onHide() {
-		
-	}
-}
 class Simulation {
 	netviz: NetworkVisualization;
 	netgraph: NetworkGraph;
@@ -64,8 +14,8 @@ class Simulation {
 	net: Net.NeuralNet;
 	neuronGui: NeuronGui;
 	config: Configuration;
-	leftVis:TabSwitchVis;
-	rightVis:TabSwitchVis;
+	leftVis:TabSwitchVisualizationContainer;
+	rightVis:TabSwitchVisualizationContainer;
 	
 	constructed = false;
 	errorHistory:[number,number][];
@@ -94,11 +44,11 @@ class Simulation {
 		this.table = new TableEditor(this);
 		
 		
-		this.leftVis = new TabSwitchVis($("#leftVis"), "leftVis", [
+		this.leftVis = new TabSwitchVisualizationContainer($("#leftVis"), "leftVis", [
 			this.netgraph, this.errorGraph,
 			//{buttons:["Weights"], null}
 		]);
-		this.rightVis = new TabSwitchVis($("#rightVis"), "rightVis", [
+		this.rightVis = new TabSwitchVisualizationContainer($("#rightVis"), "rightVis", [
 			this.netviz, this.table]);
 		this.deserializeFromUrl();
 		this.leftVis.setMode(0);
