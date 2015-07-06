@@ -36,7 +36,6 @@ class TabSwitchVisualizationContainer {
 		);
 	}
 	setMode(mode:int) {
-		console.log("setting mode to "+mode);
 		this.ul.children("li.active").removeClass("active");
 		this.ul.children().eq(mode).addClass("active");
 		if (mode == this.currentMode) return;

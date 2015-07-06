@@ -79,7 +79,7 @@ module Net {
 				let inLayer = this.layers[i];
 				let outLayer = this.layers[i + 1];
 				if (bias)
-					inLayer.push(new InputNeuron(nid++, "1 (bias)", 1));
+					inLayer.push(new InputNeuron(nid++, "Bias", 1));
 
 				for (let input of inLayer) for (let output of outLayer) {
 					var conn = new Net.NeuronConnection(input, output);

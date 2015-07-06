@@ -4,6 +4,7 @@ class Simulation {
 	netgraph: NetworkGraph;
 	table: TableEditor;
 	errorGraph: ErrorGraph;
+	weightsGraph: WeightsGraph;
 	
 	stepNum = 0;
 	running = false; runningId = -1;
@@ -42,12 +43,10 @@ class Simulation {
 		this.netgraph = new NetworkGraph(this);
 		this.errorGraph = new ErrorGraph(this);
 		this.table = new TableEditor(this);
-		
+		this.weightsGraph = new WeightsGraph(this);
 		
 		this.leftVis = new TabSwitchVisualizationContainer($("#leftVis"), "leftVis", [
-			this.netgraph, this.errorGraph,
-			//{buttons:["Weights"], null}
-		]);
+			this.netgraph, this.errorGraph, this.weightsGraph]);
 		this.rightVis = new TabSwitchVisualizationContainer($("#rightVis"), "rightVis", [
 			this.netviz, this.table]);
 		this.deserializeFromUrl();

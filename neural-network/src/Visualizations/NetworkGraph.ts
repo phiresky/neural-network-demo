@@ -1,7 +1,7 @@
 declare let vis:any; // vis.js library
 class NetworkGraph implements Visualization {
 	actions = ["Network Graph"];
-	graph:any;
+	graph:any; //vis.Network
 	nodes = new vis.DataSet();
 	edges = new vis.DataSet();
 	net:Net.NeuralNet;
