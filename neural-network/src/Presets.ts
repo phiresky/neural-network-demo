@@ -147,7 +147,7 @@ module Presets {
 		},
 		{
 			name: "Auto-Encoder for circular data",
-			"stepsPerFrame": 500,
+			"stepsPerFrame": 250,
 			"learningRate": 0.01,
 			"iterationsPerClick": 10000,
 			inputLayer: { neuronCount: 2, names: ["x", "y"] },

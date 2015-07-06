@@ -92,7 +92,7 @@ class NetworkGraph implements Visualization {
 		}
 	}
 	onView() {
-		
+		this.graph.stabilize();
 	}
 	onHide() {
 		

@@ -243,6 +243,7 @@ class Simulation {
 		}
 		if (oldConfig.simType != config.simType) config.data = [];
 		if (this.net) this.net.learnRate = this.config.learningRate;
+		if(!this.config.autoRestart) clearTimeout(this.restartTimeout);
 	}
 
 	loadPreset(name: string, weights?:double[]) {
