@@ -1,6 +1,7 @@
 declare var Handsontable: any, LZString: any;
 class TableEditor implements Visualization {
 	hot: any; // handsontable instance
+	actions = ["Table input"];
 	headerCount = 2;
 	lastUpdate = 0;
 	container: JQuery = $("<div>");

@@ -2,6 +2,7 @@
 
 declare let vis:any; // vis.js library
 class NetworkGraph implements Visualization {
+	actions = ["Network Graph"];
 	graph:any;
 	nodes = new vis.DataSet();
 	edges = new vis.DataSet();

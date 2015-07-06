@@ -6,6 +6,7 @@ enum InputMode {
 	InputPrimary, InputSecondary, Remove, Move, Table
 }
 class NetworkVisualization implements Visualization {
+	actions = ["???"];
 	canvas: HTMLCanvasElement;
 	ctx: CanvasRenderingContext2D;
 	inputMode: InputMode = 0;
@@ -40,11 +41,11 @@ class NetworkVisualization implements Visualization {
 	}
 	
 	onNetworkLoaded(net: Net.NeuralNet) {
-		let isBinClass = net.outputs.length === 1;
-		$("#dataInputSwitch > li").eq(1).toggle(isBinClass);
-		let firstButton = $("#dataInputSwitch > li > a").eq(0);
-		firstButton.text(isBinClass ? "Add Red" : "Add point")
-		if (!isBinClass && this.inputMode == 1) firstButton.click();
+		if(net.outputs.length === 1) {
+			this.actions = ["Add Red", "Add Green", "Remove", "Move View"];
+		} else {
+			this.actions = ["Add Data point", null, "Remove", "Move View"];
+		}
 	}
 	onFrame() {
 		if (this.sim.config.inputLayer.neuronCount != 2 || this.sim.config.outputLayer.neuronCount > 2) {

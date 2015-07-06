@@ -19,6 +19,7 @@ interface OutputLayerConfig extends LayerConfig {
 }
 class ErrorGraph implements Visualization {
 	chart: HighstockChartObject;
+	actions = ["Error History"];
 	container = $("<div>");
 	constructor(public sim: Simulation) {
 		this.container.highcharts({
@@ -28,7 +29,8 @@ class ErrorGraph implements Visualization {
 			legend: { enabled: false },
 			yAxis: { min: 0, title: { text: '' }, labels: { format: "{value:%.2f}" } },
 			series: [{ name: 'Error', data: [] }],
-			colors: ["black"]
+			colors: ["black"],
+			credits: { enabled: false }
 		});
 		this.chart = this.container.highcharts();
 	}
@@ -93,15 +95,11 @@ class Simulation {
 		
 		
 		this.leftVis = new TabSwitchVis($("#leftVis"), "leftVis", [
-			{buttons:["Network Graph"], visualization:this.netgraph},
-			{buttons:["Error Chart"],visualization:this.errorGraph},
+			this.netgraph, this.errorGraph,
 			//{buttons:["Weights"], null}
 		]);
 		this.rightVis = new TabSwitchVis($("#rightVis"), "rightVis", [
-			{buttons:["Add Red", "Add Green", "Remove", "Move View"], 
-				visualization:this.netviz},
-			{buttons:["Table input"], visualization: this.table}
-		])
+			this.netviz, this.table]);
 		this.deserializeFromUrl();
 		this.leftVis.setMode(0);
 		this.rightVis.setMode(0);
@@ -220,8 +218,8 @@ class Simulation {
 		this.onFrame();
 	}
 
-	setIsCustom() {
-		if (this.isCustom) return;
+	setIsCustom(forceNeuronRename = false) {
+		if (this.isCustom && !forceNeuronRename) return;
 		this.isCustom = true;
 		$("#presetName").text("Custom Network");
 		let layer = this.config.inputLayer;

@@ -227,7 +227,7 @@ module Presets {
 			if (parentName === "Default") break;
 		}
 		chain.unshift({});
-		console.log("loading chain=" + chain.map((c: any) => c.name));
+		console.log("loading preset chain: " + chain.map((c: any) => c.name));
 		return JSON.parse(JSON.stringify($.extend.apply($, chain)));
 	}
 	export function printPreset(sim: Simulation, parentName = "Default") {

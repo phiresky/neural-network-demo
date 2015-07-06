@@ -1,5 +1,6 @@
 interface Visualization {
 	container: JQuery;
+	actions: string[];
 	onView: (previouslyHidden: boolean, mode: int) => void;
 	onNetworkLoaded: (net:Net.NeuralNet) => void;
 	onHide: () => void;
@@ -10,29 +11,27 @@ interface VisualizationConstructor {
 	new (sim:Simulation): Visualization;
 }
 
-interface TabSwitchEle {
-	visualization: Visualization;
-	buttons: string[];
-}
-
 class TabSwitchVis {
 	modes: { thing: int, action: int }[] = [];
 	currentVisualization: Visualization;
 	ul = $("<ul class='nav nav-pills'>");
 	body = $("<div class='visbody'>");
 	currentMode = -1;
-	constructor(public container: JQuery, public name: string, public things: TabSwitchEle[]) {
-		this.createButtonsAndActions(things);
+	constructor(public container: JQuery, public name: string, public things: Visualization[]) {
+		this.createButtonsAndActions();
 		this.ul.on("click", "a", e => this.setMode($(e.target).parent().index()));
 		container.append(this.ul);
 		container.append(this.body);
 	}
-	createButtonsAndActions(things: TabSwitchEle[]) {
+	createButtonsAndActions() {
 		this.ul.empty();
-		things.forEach((thing, thingid) =>
-			thing.buttons.forEach((button, buttonid) => {
+		this.modes = [];
+		this.things.forEach((thing, thingid) =>
+			thing.actions.forEach((button, buttonid) => {
 				this.modes.push({ thing: thingid, action: buttonid });
-				this.ul.append($("<li>").append($("<a>").text(button)));
+				let li = $("<li>").append($("<a>").text(button));
+				if(!button) li.hide();
+				this.ul.append(li);
 			})
 		);
 	}
@@ -44,9 +43,9 @@ class TabSwitchVis {
 		let action = this.modes[mode];
 		let lastAction = this.modes[this.currentMode];
 		this.currentMode = mode;
-		this.currentVisualization = this.things[action.thing].visualization;
+		this.currentVisualization = this.things[action.thing];
 		if (!lastAction || action.thing != lastAction.thing) {
-			if(lastAction) this.things[lastAction.thing].visualization.onHide();
+			if(lastAction) this.things[lastAction.thing].onHide();
 			this.body.children().detach(); // keep event handlers
 			this.body.append(this.currentVisualization.container);
 			this.currentVisualization.onView(true, action.action);
@@ -55,6 +54,13 @@ class TabSwitchVis {
 		}
 	}
 	onNetworkLoaded(net: Net.NeuralNet) {
-		this.things.forEach(thing => thing.visualization.onNetworkLoaded(net));
+		//todo: ugly hack
+		let beforeActions = JSON.stringify(this.things.map(t => t.actions));
+		this.things.forEach(thing => thing.onNetworkLoaded(net));
+		let afterActions = JSON.stringify(this.things.map(t => t.actions));
+		if(beforeActions !== afterActions) {
+			this.createButtonsAndActions();
+			this.setMode(0);
+		}
 	}
 }

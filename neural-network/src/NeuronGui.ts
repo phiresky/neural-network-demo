@@ -31,7 +31,7 @@ class NeuronGui {
 			targetLayer.neuronCount = newval;
 			$(`#${name}LayerModify .neuronCount`).text(newval);
 			sim.config.data = [];
-			sim.setIsCustom();
+			sim.setIsCustom(true);
 			sim.initializeNet();
 		});
 		$("#layerCountModifier").on("click", "button", e => {
