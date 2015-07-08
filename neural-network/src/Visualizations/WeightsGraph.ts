@@ -5,27 +5,37 @@ interface Point3d {
 class WeightsGraph implements Visualization {
 	actions = ["Weights"];
 	container = $("<div>");
+	offsetBetweenLayers = 2;
 	graph: any;//vis.Graph3d;
 	xToLayer: number[] = [];
 	xToNeuron: number[] = [];
 	constructor(public sim: Simulation) {
+		// hack to get grayscale colors
+		vis.Graph3d.prototype._hsv2rgb = function(h:double,s:double,v:double) {return ('rgb('+[h|0,h|0,h|0]+')')};
+		// hack to disable axis drawing
+		vis.Graph3d.prototype._redrawAxis = function(){};
 		this.graph = new vis.Graph3d(this.container[0], undefined, {
 			style: 'bar',
 			showPerspective: false,
-			cameraPosition: { horizontal: -0.001, vertical: 1.57, distance: 1.7 },
+			cameraPosition: { horizontal: -0.001, vertical: Math.PI/2, distance: 1.2 },
 			width: "100%",
 			height: "100%",
 			xLabel: 'Layer',
 			yLabel: 'Neuron',
 			zLabel: '',
+			showGrid: false,
+			axisColor: 'red',
 			xBarWidth: 0.9,
 			yBarWidth: 0.9,
+			xCenter: "50%",
 			legendLabel: "Weight",
+			zMin: -5,
+			zMax: 5,
 			tooltip: (point: Point3d) => {
-				let inLayer = this.xToLayer[point.x];
-				let outLayer = inLayer + 1;
-				let inNeuron = point.y;
-				let outNeuron = this.xToNeuron[point.x];
+				let outLayer = this.xToLayer[point.x];
+				let inLayer = outLayer - 1;
+				let inNeuron = this.xToNeuron[point.x];
+				let outNeuron = point.y;
 				let inN = this.sim.net.layers[inLayer][inNeuron];
 				let outN = this.sim.net.layers[outLayer][outNeuron];
 				let inStr: string, outStr: string;
@@ -37,7 +47,7 @@ class WeightsGraph implements Visualization {
 				else outStr = `Layer ${outLayer + 1} Neuron ${outNeuron + 1}`;
 				return inStr + " to " + outStr;
 			},
-			xValueLabel: (x: int) => {let l = this.xToLayer[x] + 1; if(!l) return ""; return l+"-"+(l+1);},
+			xValueLabel: (x: int) => this.xToLayer[x] || "",
 			yValueLabel: (y: int) => (y | 0) == y ? y + 1 : "",
 			zValueLabel: (z: int) => "",
 		});
@@ -51,17 +61,17 @@ class WeightsGraph implements Visualization {
 	parseData(net: Net.NeuralNet) {
 		let data: Point3d[] = [];
 		let maxx = 0;
-		for (let layerNum = 0; layerNum < net.layers.length; layerNum++) {
+		for (let layerNum = 1; layerNum < net.layers.length; layerNum++) {
 			let layer = net.layers[layerNum];
-			let layerX = maxx + 1;
+			let layerX = maxx + this.offsetBetweenLayers;
 			for (let y = 0; y < layer.length; y++) {
 				let neuron = layer[y];
-				maxx = Math.max(maxx, layerX + neuron.outputs.length);
-				for (let output = 0; output < neuron.outputs.length; output++) {
-					let conn = neuron.outputs[output];
-					data.push({ x: layerX + output, y: y, z: conn.weight });
-					this.xToLayer[layerX + output] = layerNum;
-					this.xToNeuron[layerX + output] = output;
+				maxx = Math.max(maxx, layerX + neuron.inputs.length);
+				for (let input = 0; input < neuron.inputs.length; input++) {
+					let conn = neuron.inputs[input];
+					data.push({ x: layerX + input, y: y, z: conn.weight });
+					this.xToLayer[layerX + input] = layerNum;
+					this.xToNeuron[layerX + input] = input;
 				}
 			}
 		}
