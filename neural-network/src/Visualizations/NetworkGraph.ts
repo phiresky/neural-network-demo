@@ -2,8 +2,8 @@ declare let vis:any; // vis.js library
 class NetworkGraph implements Visualization {
 	actions = ["Network Graph"];
 	graph:any; //vis.Network
-	nodes = new vis.DataSet([], {queue:true});
-	edges = new vis.DataSet([], {queue:true});
+	nodes:any; // vis.DataSet
+	edges:any;
 	net:Net.NeuralNet;
 	container = $("<div>");
 	constructor(public sim: Simulation) {
@@ -11,6 +11,8 @@ class NetworkGraph implements Visualization {
 	}
 	instantiateGraph() {
 		// need only be run once, but removes bounciness if run every time
+		this.nodes = new vis.DataSet([], {queue:true}); // don't use clear (listener leak)
+		this.edges = new vis.DataSet([], {queue:true});
 		let graphData = {
 			nodes: this.nodes,
 			edges: this.edges };
@@ -26,6 +28,7 @@ class NetworkGraph implements Visualization {
 			layout: { hierarchical: { direction: "LR" } },
 			interaction: { dragNodes: false }
 		}
+		if(this.graph) this.graph.destroy();
 		this.graph = new vis.Network(this.container[0], graphData, options);
 	}
 	onNetworkLoaded(net:Net.NeuralNet) {
@@ -35,13 +38,11 @@ class NetworkGraph implements Visualization {
 			&& this.net.layers.every((layer,index) => layer.length == net.layers[index].length)) {
 			// same net layout, only update
 			this.net = net;
-			this.onFrame();
+			this.onFrame(0);
 			return;
 		}
 		this.instantiateGraph();
 		this.net = net;
-		this.nodes.clear();
-		this.edges.clear();
 		for (let lid = 0; lid < net.layers.length; lid++) {
 			let layer = net.layers[lid];
 			for (let nid = 0; nid < layer.length; nid++) {
@@ -79,10 +80,9 @@ class NetworkGraph implements Visualization {
 		this.nodes.flush();
 		this.edges.flush();
 	}
-	_frame = 0;
-	onFrame() {
-		++this._frame;
-		if(this.net.connections.length > 20 && this._frame % 10 !== 0) {
+	onFrame(framenum:int) {
+		if(this.net.connections.length > 20 && framenum % 15 !== 0) {
+			// skip some frames because slow
 			return;
 		}
 		for (let conn of this.net.connections) {

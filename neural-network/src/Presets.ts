@@ -114,7 +114,7 @@ module Presets {
 		{
 			name: "Three classes test",
 			hiddenLayers: [
-				{ "neuronCount": 4, "activation": "sigmoid" },
+				{ "neuronCount": 5, "activation": "sigmoid" },
 			],
 			inputLayer: { neuronCount: 2, names: ["x", "y"] },
 			outputLayer: { neuronCount: 3, "activation": "sigmoid", names: ["A", "B", "C"] },
@@ -124,6 +124,7 @@ module Presets {
 		{ name: "Peterson and Barney",
 			parent: "Three classes test",
 			stepsPerFrame: 6,
+			iterationsPerClick: 50,
 			inputLayer: { neuronCount: 2, names: ["F1","F2"] },
 			outputLayer: { neuronCount: 10, "activation": "sigmoid", names:"IY,IH,EH,AE,AH,AA,AO,UH,UW,ER".split(",")}
 		},

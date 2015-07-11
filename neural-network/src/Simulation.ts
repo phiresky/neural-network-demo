@@ -7,6 +7,7 @@ class Simulation {
 	weightsGraph: WeightsGraph;
 	
 	stepNum = 0;
+	frameNum = 0;
 	running = false; runningId = -1;
 	restartTimeout = -1;
 	isCustom = false;
@@ -53,7 +54,7 @@ class Simulation {
 		this.leftVis.setMode(0);
 		this.rightVis.setMode(0);
 		this.constructed = true;
-		this.onFrame();
+		this.onFrame(true);
 		if (autoRun) this.run();
 	}
 
@@ -65,7 +66,7 @@ class Simulation {
 		this.errorHistory = [];
 		this.leftVis.onNetworkLoaded(this.net);
 		this.rightVis.onNetworkLoaded(this.net);
-		if(this.constructed) this.onFrame();
+		if(this.constructed) this.onFrame(true);
 	}
 	statusIterEle = document.getElementById('statusIteration');
 	statusCorrectEle = document.getElementById('statusCorrect');
@@ -76,10 +77,11 @@ class Simulation {
 		}
 	}
 
-	onFrame() {
+	onFrame(forceDraw:boolean) {
+		this.frameNum++;
 		this.calculateAverageError();
-		this.rightVis.currentVisualization.onFrame();
-		this.leftVis.currentVisualization.onFrame();
+		this.rightVis.currentVisualization.onFrame(forceDraw?0:this.frameNum);
+		this.leftVis.currentVisualization.onFrame(forceDraw?0:this.frameNum);
 		this.updateStatusLine();
 	}
 
@@ -101,7 +103,7 @@ class Simulation {
 	reset() {
 		this.stop();
 		this.initializeNet();
-		this.onFrame();
+		this.onFrame(true);
 	}
 	
 	calculateAverageError() {
@@ -156,7 +158,7 @@ class Simulation {
 	aniFrameCallback = this.animationStep.bind(this);
 	animationStep() {
 		for (let i = 0; i < this.config.stepsPerFrame; i++) this.step();
-		this.onFrame();
+		this.onFrame(false);
 		if (this.running) this.runningId = requestAnimationFrame(this.aniFrameCallback);
 	}
 
@@ -164,7 +166,7 @@ class Simulation {
 		this.stop();
 		for (var i = 0; i < this.config.iterationsPerClick; i++)
 			this.step();
-		this.onFrame();
+		this.onFrame(true);
 	}
 
 	setIsCustom(forceNeuronRename = false) {

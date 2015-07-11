@@ -20,7 +20,7 @@ class WeightsGraph implements Visualization {
 		this.graph = new vis.Graph3d(this.container[0], undefined, {
 			style: 'bar',
 			showPerspective: false,
-			cameraPosition: { horizontal: -0.001, vertical: Math.PI/2, distance: 1.2 },
+			cameraPosition: { horizontal: -0.001, vertical: Math.PI/2 },
 			width: "100%",
 			height: "100%",
 			xLabel: 'Layer',

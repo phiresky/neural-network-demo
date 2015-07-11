@@ -4,7 +4,7 @@ interface Visualization {
 	onView: (previouslyHidden: boolean, mode: int) => void;
 	onNetworkLoaded: (net:Net.NeuralNet) => void;
 	onHide: () => void;
-	onFrame: () => void;
+	onFrame: (framenum:int) => void;
 }
 
 interface VisualizationConstructor {
