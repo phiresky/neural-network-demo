@@ -48,4 +48,9 @@ module Util {
 			return (v1 * multiplier * standardDeviation) + mean;
 		}
 	};
+	export function benchmark(fun:()=>void) {
+		let bef = Date.now();
+		let r = fun();
+		return Date.now() - bef;
+	}
 }

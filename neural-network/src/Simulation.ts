@@ -223,10 +223,10 @@ class Simulation {
 	serializeToUrl(exportWeights = 0) {
 		let url = location.protocol + '//' + location.host + location.pathname + "?";
 		let params: any = {};
-		if (exportWeights === 1) params.weights = LZString.compressToBase64(JSON.stringify(this.net.connections.map(c => c.weight)));
-		if (exportWeights === 2) params.weights = LZString.compressToBase64(JSON.stringify(this.net.startWeights));
+		if (exportWeights === 1) params.weights = LZString.compressToEncodedURIComponent(JSON.stringify(this.net.connections.map(c => c.weight)));
+		if (exportWeights === 2) params.weights = LZString.compressToEncodedURIComponent(JSON.stringify(this.net.startWeights));
 		if (this.isCustom) {
-			params.config = LZString.compressToBase64(JSON.stringify(this.config));
+			params.config = LZString.compressToEncodedURIComponent(JSON.stringify(this.config));
 		} else {
 			params.preset = this.config.name;
 		}
@@ -242,11 +242,11 @@ class Simulation {
 		let weightString = getUrlParameter("weights");
 		let weights:double[];
 		if(weightString) 
-			weights = JSON.parse(LZString.decompressFromBase64(weightString));
+			weights = JSON.parse(LZString.decompressFromEncodedURIComponent(weightString));
 		if (preset && Presets.exists(preset))
 			this.loadPreset(preset, weights);
 		else if (config) {
-			this.config = JSON.parse(LZString.decompressFromBase64(config));
+			this.config = JSON.parse(LZString.decompressFromEncodedURIComponent(config));
 			this.setIsCustom();
 			this.initializeNet();
 		} else

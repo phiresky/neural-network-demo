@@ -3,7 +3,10 @@ type double = number; type int = number;
 
 let sim: Simulation;
 
-$(document).ready(() => Presets.loadPetersonBarney().then(() => sim = new Simulation(false)));
+$(document).ready(() => {
+	Presets.loadPetersonBarney();
+	sim = new Simulation(false)
+});
 
 
 

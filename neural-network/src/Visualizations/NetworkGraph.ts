@@ -2,8 +2,8 @@ declare let vis:any; // vis.js library
 class NetworkGraph implements Visualization {
 	actions = ["Network Graph"];
 	graph:any; //vis.Network
-	nodes = new vis.DataSet();
-	edges = new vis.DataSet();
+	nodes = new vis.DataSet([], {queue:true});
+	edges = new vis.DataSet([], {queue:true});
 	net:Net.NeuralNet;
 	container = $("<div>");
 	constructor(public sim: Simulation) {
@@ -42,7 +42,6 @@ class NetworkGraph implements Visualization {
 		this.net = net;
 		this.nodes.clear();
 		this.edges.clear();
-		let nodes: any[] = [], edges: any[] = [];
 		for (let lid = 0; lid < net.layers.length; lid++) {
 			let layer = net.layers[lid];
 			for (let nid = 0; nid < layer.length; nid++) {
@@ -60,7 +59,7 @@ class NetworkGraph implements Visualization {
 					type = 'Output: '+neuron.name;
 					color = NetworkVisualization.colors.autoencoder.output;
 				}
-				nodes.push({
+				this.nodes.add({
 					id: neuron.id,
 					label: `${type}`,
 					level: lid,
@@ -69,7 +68,7 @@ class NetworkGraph implements Visualization {
 			}
 		}
 		for (let conn of net.connections) {
-			edges.push({
+			this.edges.add({
 				id: conn.inp.id * net.connections.length + conn.out.id,
 				from: conn.inp.id,
 				to: conn.out.id,
@@ -77,10 +76,15 @@ class NetworkGraph implements Visualization {
 				label: conn.weight.toFixed(2),
 			})
 		}
-		this.nodes.add(nodes);
-		this.edges.add(edges);
+		this.nodes.flush();
+		this.edges.flush();
 	}
+	_frame = 0;
 	onFrame() {
+		++this._frame;
+		if(this.net.connections.length > 20 && this._frame % 10 !== 0) {
+			return;
+		}
 		for (let conn of this.net.connections) {
 			this.edges.update({
 				id: conn.inp.id * this.net.connections.length + conn.out.id,
@@ -89,6 +93,7 @@ class NetworkGraph implements Visualization {
 				color: conn.weight > 0 ? 'blue':'red'
 			})
 		}
+		this.edges.flush();
 	}
 	onView() {
 		this.graph.stabilize();
