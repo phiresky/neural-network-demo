@@ -133,7 +133,7 @@ class Simulation {
 			}
 			this.statusCorrectEle.innerHTML = `Correct: ${correct}/${this.config.data.length}`;
 		} else {
-			this.statusCorrectEle.innerHTML = `Avg. error: ${(this.averageError).toFixed(2) }`;
+			this.statusCorrectEle.innerHTML = `Error: ${(this.averageError).toFixed(2) }`;
 		}
 		this.statusIterEle.innerHTML = this.stepNum.toString();
 

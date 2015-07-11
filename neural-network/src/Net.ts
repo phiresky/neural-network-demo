@@ -1,26 +1,5 @@
 // this neural network uses stochastic gradient descent with the squared error as the loss function
 module Net {
-	type int = number;
-	type double = number;
-	let _nextGaussian: double;
-	export function randomGaussian(mean = 0, standardDeviation = 1) {
-		if (_nextGaussian !== undefined) {
-			var nextGaussian = _nextGaussian;
-			_nextGaussian = undefined;
-			return (nextGaussian * standardDeviation) + mean;
-		} else {
-			let v1: double, v2: double, s: double, multiplier: double;
-			do {
-				v1 = 2 * Math.random() - 1; // between -1 and 1
-				v2 = 2 * Math.random() - 1; // between -1 and 1
-				s = v1 * v1 + v2 * v2;
-			} while (s >= 1 || s == 0);
-			multiplier = Math.sqrt(-2 * Math.log(s) / s);
-			_nextGaussian = v2 * multiplier;
-			return (v1 * multiplier * standardDeviation) + mean;
-		}
-
-	};
 	var tanh = function(x: double) {
 		if (x === Infinity) {
 			return 1;

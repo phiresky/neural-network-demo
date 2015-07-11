@@ -4,14 +4,18 @@ interface TrainingData {
 enum InputMode {
 	InputPrimary, InputSecondary, Remove, Move, Table
 }
+enum NetType {
+	BinaryClassify, AutoEncode, MultiClass, CantDraw
+}
 class NetworkVisualization implements Visualization {
 	actions = ["???"];
 	canvas: HTMLCanvasElement;
 	ctx: CanvasRenderingContext2D;
 	inputMode: InputMode = 0;
-	trafo: Transform;
+	trafo: TransformNavigation;
 	backgroundResolution = 20;
 	container = $("<div>");
+	netType: NetType = NetType.BinaryClassify;
 	static colors = {
 		binaryClassify: {
 			bg: ["#f88", "#8f8"],
@@ -23,16 +27,16 @@ class NetworkVisualization implements Visualization {
 			input: '#2188e0',
 			output: '#ff931f',
 			bias: '#008'
-		}
+		},
+		multiClass: ['#7cb5ec', '#434348', '#90ed7d', '#f7a35c', '#8085e9', '#f15c80', '#e4d354', '#2b908f', '#f45b5b', '#91e8e1']
 	}
 
 	constructor(public sim: Simulation) {
 		this.canvas = <HTMLCanvasElement>$("<canvas class=fullsize>")[0];
 		this.canvas.width = 550;
 		this.canvas.height = 400;
-		this.trafo = new CanvasMouseNavigation(this.canvas, () => this.inputMode == 3, () => this.onFrame());
+		this.trafo = new TransformNavigation(this.canvas, () => this.inputMode == this.actions.length - 1, () => this.onFrame());
 		this.ctx = <CanvasRenderingContext2D>this.canvas.getContext('2d');
-		this.canvasResized();
 		window.addEventListener('resize', this.canvasResized.bind(this));
 		this.canvas.addEventListener("click", this.canvasClicked.bind(this));
 		this.canvas.addEventListener("contextmenu", this.canvasClicked.bind(this));
@@ -40,14 +44,30 @@ class NetworkVisualization implements Visualization {
 	}
 
 	onNetworkLoaded(net: Net.NeuralNet) {
-		if (net.outputs.length === 1) {
-			this.actions = ["Add Red", "Add Green", "Remove", "Move View"];
-		} else {
-			this.actions = ["Add Data point", null, "Remove", "Move View"];
+		if(net.inputs.length != 2) this.netType = NetType.CantDraw;
+		else {
+			if(net.outputs.length == 1) this.netType = NetType.BinaryClassify;
+			else if(net.outputs.length == 2) this.netType = NetType.AutoEncode;
+			else this.netType = NetType.MultiClass;
 		}
+		switch(this.netType) {
+			case NetType.BinaryClassify:
+				this.actions = ["Add Red", "Add Green", "Remove", "Move View"];
+				break;
+			case NetType.AutoEncode:
+				this.actions = ["Add Data point", null, "Remove", "Move View"];
+				break;
+			case NetType.MultiClass:
+				this.actions = [];
+				for(let i = 0; i < net.outputs.length; i++) this.actions.push(`Class ${i+1}`);
+				this.actions.push("Remove");
+				this.actions.push("Move View");
+				break;
+		}
+		this.refitData();
 	}
 	onFrame() {
-		if (this.sim.config.inputLayer.neuronCount != 2 || this.sim.config.outputLayer.neuronCount > 2) {
+		if (this.netType === NetType.CantDraw) {
 			this.clear('white');
 			this.ctx.fillStyle = 'black';
 			this.ctx.textBaseline = "middle";
@@ -64,11 +84,11 @@ class NetworkVisualization implements Visualization {
 
 	drawDataPoints() {
 		this.ctx.strokeStyle = "#000";
-		if (this.sim.config.outputLayer.neuronCount === 1) {
+		if (this.netType === NetType.BinaryClassify) {
 			for (let val of this.sim.config.data) {
 				this.drawPoint(val.input[0], val.input[1], NetworkVisualization.colors.binaryClassify.fg[val.output[0] | 0]);
 			}
-		} else if (this.sim.config.outputLayer.neuronCount === 2) {
+		} else if (this.netType === NetType.AutoEncode) {
 			for (let val of this.sim.config.data) {
 				let ix = val.input[0], iy = val.input[1];
 				let out = this.sim.net.getOutput(val.input);
@@ -76,6 +96,10 @@ class NetworkVisualization implements Visualization {
 				this.drawLine(ix, iy, ox, oy, "black");
 				this.drawPoint(ix, iy, NetworkVisualization.colors.autoencoder.input);
 				this.drawPoint(ox, oy, NetworkVisualization.colors.autoencoder.output);
+			}
+		} else if(this.netType === NetType.MultiClass) {
+			for (let val of this.sim.config.data) {
+				this.drawPoint(val.input[0], val.input[1], NetworkVisualization.colors.multiClass[Util.getMaxIndex(val.output)]);
 			}
 		} else {
 			throw "can't draw this"
@@ -111,6 +135,16 @@ class NetworkVisualization implements Visualization {
 			this.clear('white');
 			return;
 		}
+		if(this.sim.config.outputLayer.neuronCount > 2) {
+		for (let x = 0; x < this.canvas.width; x += this.backgroundResolution) {
+			for (let y = 0; y < this.canvas.height; y += this.backgroundResolution) {
+				let vals = this.sim.net.getOutput([this.trafo.toReal.x(x + this.backgroundResolution / 2), this.trafo.toReal.y(y + this.backgroundResolution / 2)]);
+				let maxi = Util.getMaxIndex(vals);
+				this.ctx.fillStyle = NetworkVisualization.colors.multiClass[maxi];
+				this.ctx.fillRect(x, y, this.backgroundResolution, this.backgroundResolution);
+			}
+		}
+		} else {
 		for (let x = 0; x < this.canvas.width; x += this.backgroundResolution) {
 			for (let y = 0; y < this.canvas.height; y += this.backgroundResolution) {
 				let val = this.sim.net.getOutput([this.trafo.toReal.x(x + this.backgroundResolution / 2), this.trafo.toReal.y(y + this.backgroundResolution / 2)])[0];
@@ -120,7 +154,7 @@ class NetworkVisualization implements Visualization {
 				} else this.ctx.fillStyle = NetworkVisualization.colors.binaryClassify.bg[+(val > 0.5)];
 				this.ctx.fillRect(x, y, this.backgroundResolution, this.backgroundResolution);
 			}
-		}
+		}}
 	}
 	drawCoordinateSystem() {
 		let marklen = 0.2;
@@ -150,6 +184,20 @@ class NetworkVisualization implements Visualization {
 	canvasResized() {
 		this.canvas.width = $(this.canvas).width();
 		this.canvas.height = $(this.canvas).height();
+		this.refitData();
+	}
+	refitData() {
+		// update transform
+		if(this.sim.config.inputLayer.neuronCount == 2) {
+			let fillamount = 0.6;
+			let bounds = Util.bounds2dTrainingsInput(this.sim.config.data);
+			let w = bounds.maxx - bounds.minx, h = bounds.maxy - bounds.miny;
+			console.log(bounds.minx+" w="+w);
+			this.trafo.scalex = this.canvas.width / w * fillamount;
+			this.trafo.scaley = - this.canvas.height / h * fillamount;
+			this.trafo.offsetx -= this.trafo.toCanvas.x(bounds.minx - w*(1-fillamount)/1.5);// / bounds.minx;
+			this.trafo.offsety -= this.trafo.toCanvas.y(bounds.maxy + h*(1-fillamount)/1.5);// / bounds.minx;
+		}
 	}
 	canvasClicked(evt: MouseEvent) {
 		evt.preventDefault();
@@ -157,7 +205,8 @@ class NetworkVisualization implements Visualization {
 		let rect = this.canvas.getBoundingClientRect();
 		let x = this.trafo.toReal.x(evt.clientX - rect.left);
 		let y = this.trafo.toReal.y(evt.clientY - rect.top);
-		if (this.inputMode == 2 || evt.button == 2 || evt.shiftKey) {
+		let removeMode = this.actions.length - 2;
+		if (this.inputMode === removeMode || evt.button == 2 || evt.shiftKey) {
 			//remove nearest
 			let nearestDist = Infinity, nearest = -1;
 			for (let i = 0; i < data.length; i++) {
@@ -166,16 +215,20 @@ class NetworkVisualization implements Visualization {
 				if (dist < nearestDist) nearest = i, nearestDist = dist;
 			}
 			if (nearest >= 0) data.splice(nearest, 1);
-		} else if (this.inputMode < 2) {
+		} else if (this.inputMode < removeMode) {
 			// add data point
-			if (this.sim.config.outputLayer.neuronCount === 2) {
+			if (this.netType === NetType.AutoEncode) {
 				data.push({ input: [x, y], output: [x, y] });
-			} else if (this.sim.config.outputLayer.neuronCount === 1) {
+			} else {
 				let inv = (x: int) => x == 0 ? 1 : 0;
 				let label = this.inputMode;
 				if (evt.button != 0) label = inv(label);
 				if (evt.ctrlKey || evt.metaKey || evt.altKey) label = inv(label);
-				data.push({ input: [x, y], output: [label] });
+				let output = [label];
+				if(this.netType === NetType.MultiClass) {
+					output = Util.arrayWithOneAt(this.sim.config.outputLayer.neuronCount, label);
+				}
+				data.push({ input: [x, y], output: output });
 			}
 		}
 		this.sim.setIsCustom();

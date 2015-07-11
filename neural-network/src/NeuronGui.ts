@@ -70,6 +70,7 @@ class NeuronGui {
 			$("#hiddenLayersModify .neuronCount").eq(i).text(c.neuronCount);
 			$("#hiddenLayersModify > div").eq(i).children("select.activation").val(c.activation);
 		});
+		$("#outputLayerModify").children("select.activation").val(this.sim.config.outputLayer.activation);
 		$("#inputLayerModify .neuronCount").text(this.sim.config.inputLayer.neuronCount);
 		$("#outputLayerModify .neuronCount").text(this.sim.config.outputLayer.neuronCount);
 		$("#layerCount").text(this.sim.config.hiddenLayers.length + 2);

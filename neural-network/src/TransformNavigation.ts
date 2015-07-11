@@ -1,11 +1,6 @@
-type double = number; type int = number;
-interface Transform {
-	toReal: { x: (x: double) => double; y: (y: double) => double };
-	toCanvas: { x: (x: double) => double; y: (y: double) => double };
-}
-class CanvasMouseNavigation implements Transform {
-	scalex = 100;
-	scaley = -100;
+class TransformNavigation {
+	scalex = 200;
+	scaley = -200;
 	offsetx = 0;
 	offsety = 0;
 	mousedown: boolean = false;
@@ -19,10 +14,11 @@ class CanvasMouseNavigation implements Transform {
 		y: (c: double) => c * this.scaley + this.offsety
 	}
 	constructor(canvas: HTMLCanvasElement, transformActive: () => boolean, transformChanged: () => void) {
-		this.offsetx = canvas.width / 3;
-		this.offsety = 2 * canvas.height / 3;
+		this.offsetx = canvas.width / 4;
+		this.offsety = 3 * canvas.height / 4;
 		canvas.addEventListener('wheel', e => {
 			if (e.deltaY === 0) return;
+			if (!transformActive()) return;
 			var delta = e.deltaY / Math.abs(e.deltaY);
 			this.scalex *= 1 - delta / 10;
 			this.scaley *= 1 - delta / 10;
@@ -46,5 +42,4 @@ class CanvasMouseNavigation implements Transform {
 		});
 		document.addEventListener('mouseup', e => this.mousedown = false);
 	}
-
 }

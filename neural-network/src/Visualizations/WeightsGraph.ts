@@ -11,7 +11,10 @@ class WeightsGraph implements Visualization {
 	xToNeuron: number[] = [];
 	constructor(public sim: Simulation) {
 		// hack to get grayscale colors
-		vis.Graph3d.prototype._hsv2rgb = function(h:double,s:double,v:double) {return ('rgb('+[h|0,h|0,h|0]+')')};
+		vis.Graph3d.prototype._hsv2rgb = (h:double,s:double,v:double) => {
+			h = Math.min(h,250)|0
+			return 'rgb('+[h,h,h]+')'
+		};
 		// hack to disable axis drawing
 		vis.Graph3d.prototype._redrawAxis = function(){};
 		this.graph = new vis.Graph3d(this.container[0], undefined, {
@@ -23,14 +26,14 @@ class WeightsGraph implements Visualization {
 			xLabel: 'Layer',
 			yLabel: 'Neuron',
 			zLabel: '',
-			showGrid: false,
+			showGrid: true,
 			axisColor: 'red',
 			xBarWidth: 0.9,
 			yBarWidth: 0.9,
 			xCenter: "50%",
 			legendLabel: "Weight",
-			zMin: -5,
-			zMax: 5,
+			//zMin: 0,
+			//zMax: 5,
 			tooltip: (point: Point3d) => {
 				let outLayer = this.xToLayer[point.x];
 				let inLayer = outLayer - 1;
