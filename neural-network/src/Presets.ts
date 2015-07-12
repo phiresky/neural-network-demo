@@ -319,7 +319,6 @@ module Presets {
 				.map(row => row.split(/\s+/).map((n,i) => i in isNum ? parseFloat(n):n));
 			let relevantData:any = data.map(row => 
 				[+row[cols.F1]/10, +row[cols.F2]/10, +row[cols.phonemeNum], +row[cols.gender]]);
-				_re = relevantData;
 			parseBarney(relevantData);
 		});
 	}

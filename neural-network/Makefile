@@ -1,4 +1,4 @@
-all: bin/styles.min.css bin/program.min.js bin/libs.min.js
+all: bin/styles.min.css bin/program.js bin/libs.min.js
 
 bin/styles.min.css: lib/bootstrap.min.css lib/bootstrap-slider.min.css lib/vis.min.css lib/handsontable.full.min.css
 	cat $^ > bin/styles.min.css
