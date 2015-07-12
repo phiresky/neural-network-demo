@@ -46,9 +46,9 @@ class Simulation {
 		this.table = new TableEditor(this);
 		this.weightsGraph = new WeightsGraph(this);
 		
-		this.leftVis = new TabSwitchVisualizationContainer($("#leftVis"), "leftVis", [
+		this.leftVis = new TabSwitchVisualizationContainer($("#leftVisHeader"), $("#leftVisBody"), "leftVis", [
 			this.netgraph, this.errorGraph, this.weightsGraph]);
-		this.rightVis = new TabSwitchVisualizationContainer($("#rightVis"), "rightVis", [
+		this.rightVis = new TabSwitchVisualizationContainer($("#rightVisHeader"), $("#rightVisBody"), "rightVis", [
 			this.netviz, this.table]);
 		this.deserializeFromUrl();
 		this.leftVis.setMode(0);

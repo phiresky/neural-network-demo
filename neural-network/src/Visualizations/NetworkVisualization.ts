@@ -28,10 +28,15 @@ class NetworkVisualization implements Visualization {
 			output: '#ff931f',
 			bias: '#008'
 		},
-		multiClass: ['#7cb5ec', '#434348', '#90ed7d', '#f7a35c', '#8085e9', '#f15c80', '#e4d354', '#2b908f', '#f45b5b', '#91e8e1']
+		multiClass: {
+			fg: ['#7cb5ec', '#434348', '#90ed7d', '#f7a35c', '#8085e9', '#f15c80', '#e4d354', '#2b908f', '#f45b5b', '#91e8e1'],
+			bg: ['']
+		}
 	}
 
 	constructor(public sim: Simulation) {
+		let tmp = NetworkVisualization.colors.multiClass;
+		tmp.bg = tmp.fg.map(c => Util.printColor(<any>Util.parseColor(c).map(x => (x*1.3)|0))); 
 		this.canvas = <HTMLCanvasElement>$("<canvas class=fullsize>")[0];
 		this.canvas.width = 550;
 		this.canvas.height = 400;
@@ -61,7 +66,7 @@ class NetworkVisualization implements Visualization {
 				this.actions = [];
 				let i = 0;
 				for(let name of this.sim.config.outputLayer.names)
-					this.actions.push({name:name, color:NetworkVisualization.colors.multiClass[i++]});
+					this.actions.push({name:name, color:NetworkVisualization.colors.multiClass.bg[i++]});
 				this.actions.push("Remove");
 				this.actions.push("Move View");
 				break;
@@ -101,7 +106,7 @@ class NetworkVisualization implements Visualization {
 			}
 		} else if(this.netType === NetType.MultiClass) {
 			for (let val of this.sim.config.data) {
-				this.drawPoint(val.input[0], val.input[1], NetworkVisualization.colors.multiClass[Util.getMaxIndex(val.output)]);
+				this.drawPoint(val.input[0], val.input[1], NetworkVisualization.colors.multiClass.fg[Util.getMaxIndex(val.output)]);
 			}
 		} else {
 			throw "can't draw this"
@@ -142,7 +147,7 @@ class NetworkVisualization implements Visualization {
 			for (let y = 0; y < this.canvas.height; y += this.backgroundResolution) {
 				let vals = this.sim.net.getOutput([this.trafo.toReal.x(x + this.backgroundResolution / 2), this.trafo.toReal.y(y + this.backgroundResolution / 2)]);
 				let maxi = Util.getMaxIndex(vals);
-				this.ctx.fillStyle = NetworkVisualization.colors.multiClass[maxi];
+				this.ctx.fillStyle = NetworkVisualization.colors.multiClass.bg[maxi];
 				this.ctx.fillRect(x, y, this.backgroundResolution, this.backgroundResolution);
 			}
 		}
@@ -187,6 +192,7 @@ class NetworkVisualization implements Visualization {
 		this.canvas.width = $(this.canvas).width();
 		this.canvas.height = $(this.canvas).height();
 		this.refitData();
+		this.onFrame();
 	}
 	refitData() {
 		// update transform
@@ -194,7 +200,6 @@ class NetworkVisualization implements Visualization {
 			let fillamount = 0.6;
 			let bounds = Util.bounds2dTrainingsInput(this.sim.config.data);
 			let w = bounds.maxx - bounds.minx, h = bounds.maxy - bounds.miny;
-			console.log(bounds.minx+" w="+w);
 			this.trafo.scalex = this.canvas.width / w * fillamount;
 			this.trafo.scaley = - this.canvas.height / h * fillamount;
 			this.trafo.offsetx -= this.trafo.toCanvas.x(bounds.minx - w*(1-fillamount)/1.5);// / bounds.minx;
@@ -232,7 +237,7 @@ class NetworkVisualization implements Visualization {
 				}
 				data.push({ input: [x, y], output: output });
 			}
-		}
+		} else return;
 		this.sim.setIsCustom();
 		this.onFrame();
 	}

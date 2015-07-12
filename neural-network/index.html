@@ -24,7 +24,11 @@
 	a:hover{cursor:pointer;}
 	footer{color:gray}
 	/*ul.nav li:nth-child(4) { border-right: 1px solid lightgray; }*/
-	ul.nav > li > a { padding: 10px 12px;}
+	ul.nav > li > a { padding: 10px 12px; margin-top: 2px;}
+	ul.nav > li.custom-active > a {
+		background-color: white;
+		box-shadow: inset 0 0 0 2px #000, inset 0 0 0 3px #fff;
+	}
 	h3.littleMargin { margin-top:10px;}
 	#urlExport {
 		white-space: pre;
@@ -40,8 +44,12 @@
 		</h1>
 	</div>
 	<div class="row">
+		<div class='col-sm-6' id='leftVisHeader'></div>
+		<div class='col-sm-6' id='rightVisHeader'></div>
+		</div>
+	<div class="row">
 		<div class="col-sm-6">
-			<div id='leftVis'></div>
+			<div id='leftVisBody'></div>
 			<div class="h3">
 				<button class="btn btn-primary" id="runButton" onclick="sim.runtoggle()">Run</button>
 				<button class="btn btn-warning" onclick="sim.reset()">Reset / Reload</button>
@@ -56,7 +64,7 @@
 			<hr>
 		</div>
 		<div class="col-sm-6">
-			<div id='rightVis'></div>
+			<div id='rightVisBody'></div>
 			<div id='status'>
 				<h2>
 					<span id='statusCorrect'></span>&nbsp;&mdash; Iteration:

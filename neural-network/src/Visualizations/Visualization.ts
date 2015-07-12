@@ -17,11 +17,12 @@ class TabSwitchVisualizationContainer {
 	ul = $("<ul class='nav nav-pills'>");
 	body = $("<div class='visbody'>");
 	currentMode = -1;
-	constructor(public container: JQuery, public name: string, public things: Visualization[]) {
+	constructor(public headContainer: JQuery, public bodyContainer: JQuery, 
+		public name: string, public things: Visualization[]) {
 		this.createButtonsAndActions();
 		this.ul.on("click", "a", e => this.setMode($(e.target).parent().index()));
-		container.append(this.ul);
-		container.append(this.body);
+		headContainer.append(this.ul);
+		bodyContainer.append(this.body);
 	}
 	createButtonsAndActions() {
 		this.ul.empty();
@@ -45,8 +46,8 @@ class TabSwitchVisualizationContainer {
 		);
 	}
 	setMode(mode:int) {
-		this.ul.children("li.active").removeClass("active");
-		this.ul.children().eq(mode).addClass("active");
+		this.ul.children("li.custom-active").removeClass("custom-active");
+		this.ul.children().eq(mode).addClass("custom-active");
 		if (mode == this.currentMode) return;
 		let action = this.modes[mode];
 		let lastAction = this.modes[this.currentMode];
