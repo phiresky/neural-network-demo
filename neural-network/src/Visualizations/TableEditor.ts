@@ -7,11 +7,6 @@ class TableEditor implements Visualization {
 	container: JQuery = $("<div>");
 	constructor(public sim: Simulation) {
 		this.sim = sim;
-		$("<div>").addClass("btn btn-default")
-			.css({ position: "absolute", right: "2em", bottom: "2em" })
-			.text("Remove all")
-			.click(e => { sim.config.data = []; this.loadData() })
-			.appendTo(this.container);
 	}
 	afterChange(changes: [number, number, number, number][], reason: string) {
 		if (reason === 'loadData') return;
@@ -21,6 +16,11 @@ class TableEditor implements Visualization {
 		if (this.hot) this.hot.destroy();
 		let oldContainer = this.container;
 		this.container = $("<div class='fullsize'>");
+		$("<div>").addClass("btn btn-default")
+			.css({ position: "absolute", right: "2em", bottom: "2em" })
+			.text("Remove all")
+			.click(e => { sim.config.data = []; this.loadData() })
+			.appendTo(this.container);
 		let headerRenderer = function firstRowRenderer(instance: any, td: HTMLTableCellElement) {
 			Handsontable.renderers.TextRenderer.apply(this, arguments);
 			td.style.fontWeight = 'bold';
