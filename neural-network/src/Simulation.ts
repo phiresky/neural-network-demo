@@ -236,12 +236,9 @@ class Simulation {
 		return url + $.param(params);
 	}
 	deserializeFromUrl() {
-		function getUrlParameter(name: string) {
-			let match = RegExp('[?&]' + name + '=([^&]*)').exec(window.location.search);
-			return match && decodeURIComponent(match[1].replace(/\+/g, ' '));
-		}
-		let preset = getUrlParameter("preset"), config = getUrlParameter("config");
-		let weightString = getUrlParameter("weights");
+		let urlParams = Util.parseUrlParameters();
+		let preset = urlParams["preset"], config = urlParams["config"];
+		let weightString = urlParams["weights"];
 		let weights:double[];
 		if(weightString) 
 			weights = JSON.parse(LZString.decompressFromEncodedURIComponent(weightString));

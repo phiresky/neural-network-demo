@@ -13,7 +13,7 @@ class NetworkVisualization implements Visualization {
 	ctx: CanvasRenderingContext2D;
 	inputMode: InputMode = 0;
 	trafo: TransformNavigation;
-	backgroundResolution = 20;
+	backgroundResolution = 15;
 	container = $("<div>");
 	netType: NetType = NetType.BinaryClassify;
 	static colors = {
@@ -60,7 +60,7 @@ class NetworkVisualization implements Visualization {
 				this.actions = ["Add Red", "Add Green", "Remove", "Move View"];
 				break;
 			case NetType.AutoEncode:
-				this.actions = ["Add Data point", null, "Remove", "Move View"];
+				this.actions = ["Add Data point", "", "Remove", "Move View"];
 				break;
 			case NetType.MultiClass:
 				this.actions = [];

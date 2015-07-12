@@ -53,7 +53,7 @@ module Util {
 		let r = fun();
 		return Date.now() - bef;
 	}
-	export function parseColor(input: string):[number,number,number] {
+	export function parseColor(input: string): [number, number, number] {
 		let m = input.match(/^#([0-9a-f]{6})$/i)[1];
 		if (m) {
 			return [
@@ -63,8 +63,18 @@ module Util {
 			];
 		}
 	}
-	export function printColor(c:[int,int,int]) {
-		c = <any>c.map(x => x<0?0:x>255?255:x);
-		return '#'+("000000"+(c[0]<<16|c[1]<<8|c[2]).toString(16)).slice(-6);
+	export function printColor(c: [int, int, int]) {
+		c = <any>c.map(x => x < 0 ? 0 : x > 255 ? 255 : x);
+		return '#' + ("000000" + (c[0] << 16 | c[1] << 8 | c[2]).toString(16)).slice(-6);
+	}
+	export function parseUrlParameters():{[name:string]:string} {
+		if(!location.search) return {};
+		var query:{[name:string]:string} = {};
+		for (let p of location.search.slice(1).split('&')) {
+			var b = p.split('=').map(c => c.replace(/\+/g, ' '));
+			query[decodeURIComponent(b[0])] = decodeURIComponent(b[1]);
+		}
+
+		return query;
 	}
 }

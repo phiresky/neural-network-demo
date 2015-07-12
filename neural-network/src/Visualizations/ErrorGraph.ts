@@ -15,15 +15,12 @@ class ErrorGraph implements Visualization {
 		});
 		this.chart = this.container.highcharts();
 	}
-	lastX = -1;
 	onFrame() {
-		if(this.sim.stepNum <= this.lastX) return;
-		this.lastX = this.sim.stepNum;
 		let data:[number,number] = [this.sim.stepNum, this.sim.averageError];
 		this.chart.series[0].addPoint(data, true, false);
 	}
 	onView() {
-		this.chart.series[0].setData(this.sim.errorHistory);
+		this.chart.series[0].setData(this.sim.errorHistory.map(x => x.slice()));
 		this.chart.reflow();
 	}
 	onNetworkLoaded() {
