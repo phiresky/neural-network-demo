@@ -1,6 +1,6 @@
 interface Visualization {
 	container: JQuery;
-	actions: string[];
+	actions: (string|{name:string, color:string})[];
 	onView: (previouslyHidden: boolean, mode: int) => void;
 	onNetworkLoaded: (net:Net.NeuralNet) => void;
 	onHide: () => void;
@@ -29,7 +29,16 @@ class TabSwitchVisualizationContainer {
 		this.things.forEach((thing, thingid) =>
 			thing.actions.forEach((button, buttonid) => {
 				this.modes.push({ thing: thingid, action: buttonid });
-				let li = $("<li>").append($("<a>").text(button));
+				let a = $("<a>")
+				if(typeof button === 'string') {
+					a.text(button);
+				} else {
+					a.text(button.name).css("background-color", button.color);
+					let dark = Util.parseColor(button.color).reduce((a,b)=>a+b)/3 < 127;
+					a.css("color", dark?'white':'black');
+				}
+				
+				let li = $("<li>").append(a);
 				if(!button) li.hide();
 				this.ul.append(li);
 			})

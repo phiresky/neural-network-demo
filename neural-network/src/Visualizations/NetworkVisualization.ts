@@ -8,7 +8,7 @@ enum NetType {
 	BinaryClassify, AutoEncode, MultiClass, CantDraw
 }
 class NetworkVisualization implements Visualization {
-	actions = ["???"];
+	actions: (string|{name:string, color:string})[] = [];
 	canvas: HTMLCanvasElement;
 	ctx: CanvasRenderingContext2D;
 	inputMode: InputMode = 0;
@@ -59,7 +59,9 @@ class NetworkVisualization implements Visualization {
 				break;
 			case NetType.MultiClass:
 				this.actions = [];
-				for(let i = 0; i < net.outputs.length; i++) this.actions.push(`Class ${i+1}`);
+				let i = 0;
+				for(let name of this.sim.config.outputLayer.names)
+					this.actions.push({name:name, color:NetworkVisualization.colors.multiClass[i++]});
 				this.actions.push("Remove");
 				this.actions.push("Move View");
 				break;

@@ -16,18 +16,18 @@ module Util {
 		}
 		return output;
 	}
-	export function min(input:double[]) {
-		return input.reduce((a,b) => Math.min(a,b), Infinity);
+	export function min(input: double[]) {
+		return input.reduce((a, b) => Math.min(a, b), Infinity);
 	}
-	export function max(input:double[]) {
-		return input.reduce((a,b) => Math.max(a,b), -Infinity);
+	export function max(input: double[]) {
+		return input.reduce((a, b) => Math.max(a, b), -Infinity);
 	}
-	export function bounds2dTrainingsInput(data:TrainingData[]) {
+	export function bounds2dTrainingsInput(data: TrainingData[]) {
 		return {
-			minx : Util.min(data.map(d => d.input[0])),
-			miny : Util.min(data.map(d => d.input[1])),
-			maxx : Util.max(data.map(d => d.input[0])),
-			maxy : Util.max(data.map(d => d.input[1]))
+			minx: Util.min(data.map(d => d.input[0])),
+			miny: Util.min(data.map(d => d.input[1])),
+			maxx: Util.max(data.map(d => d.input[0])),
+			maxy: Util.max(data.map(d => d.input[1]))
 		}
 	}
 	let _nextGaussian: double;
@@ -48,9 +48,19 @@ module Util {
 			return (v1 * multiplier * standardDeviation) + mean;
 		}
 	};
-	export function benchmark(fun:()=>void) {
+	export function benchmark(fun: () => void) {
 		let bef = Date.now();
 		let r = fun();
 		return Date.now() - bef;
+	}
+	export function parseColor(input: string) {
+		let m = input.match(/^#([0-9a-f]{6})$/i)[1];
+		if (m) {
+			return [
+				parseInt(m.substr(0, 2), 16),
+				parseInt(m.substr(2, 2), 16),
+				parseInt(m.substr(4, 2), 16)
+			];
+		}
 	}
 }

@@ -121,6 +121,6 @@ class TableEditor implements Visualization {
 		this.loadData();
 	}
 	onHide() {
-		this.reparseData();
+		//this.reparseData();
 	}
 }
