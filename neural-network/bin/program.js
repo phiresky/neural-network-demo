@@ -1086,15 +1086,16 @@ var NetworkGraph = (function () {
         this.graph = new vis.Network(this.container[0], graphData, options);
     };
     NetworkGraph.prototype.onNetworkLoaded = function (net) {
-        var showbias = this.sim.config.bias;
         if (this.net
             && this.net.layers.length == net.layers.length
-            && this.net.layers.every(function (layer, index) { return layer.length == net.layers[index].length; })) {
+            && this.net.layers.every(function (layer, index) { return layer.length == net.layers[index].length; })
+            && this.showbias === this.sim.config.bias) {
             // same net layout, only update
             this.net = net;
             this.onFrame(0);
             return;
         }
+        this.showbias = this.sim.config.bias;
         this.instantiateGraph();
         this.net = net;
         for (var lid = 0; lid < net.layers.length; lid++) {
@@ -1106,7 +1107,7 @@ var NetworkGraph = (function () {
                 if (neuron instanceof Net.InputNeuron) {
                     type = 'Input: ' + neuron.name;
                     if (neuron.constant) {
-                        if (!showbias)
+                        if (!this.showbias)
                             continue;
                         color = NetworkVisualization.colors.autoencoder.bias;
                     }

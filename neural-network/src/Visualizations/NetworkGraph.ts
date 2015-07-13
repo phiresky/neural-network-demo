@@ -6,6 +6,7 @@ class NetworkGraph implements Visualization {
 	edges:any;
 	net:Net.NeuralNet;
 	container = $("<div>");
+	showbias: boolean;
 	constructor(public sim: Simulation) {
 		this.instantiateGraph();
 	}
@@ -32,15 +33,16 @@ class NetworkGraph implements Visualization {
 		this.graph = new vis.Network(this.container[0], graphData, options);
 	}
 	onNetworkLoaded(net:Net.NeuralNet) {
-		let showbias = this.sim.config.bias;
 		if(this.net
 			&& this.net.layers.length == net.layers.length 
-			&& this.net.layers.every((layer,index) => layer.length == net.layers[index].length)) {
+			&& this.net.layers.every((layer,index) => layer.length == net.layers[index].length)
+			&& this.showbias === this.sim.config.bias) {
 			// same net layout, only update
 			this.net = net;
 			this.onFrame(0);
 			return;
 		}
+		this.showbias = this.sim.config.bias;
 		this.instantiateGraph();
 		this.net = net;
 		for (let lid = 0; lid < net.layers.length; lid++) {
@@ -52,7 +54,7 @@ class NetworkGraph implements Visualization {
 				if (neuron instanceof Net.InputNeuron) {
 					type = 'Input: '+neuron.name;
 					if(neuron.constant) {
-						if(!showbias) continue;
+						if(!this.showbias) continue;
 						color = NetworkVisualization.colors.autoencoder.bias;
 					}
 					else color = NetworkVisualization.colors.autoencoder.input;
