@@ -198,7 +198,7 @@ class NetworkVisualization implements Visualization {
 		this.onFrame();
 	}
 	refitData() {
-		if(this.sim.config.data.length == 0) return;
+		if(this.sim.config.data.length < 3) return;
 		// update transform
 		if(this.sim.config.inputLayer.neuronCount == 2) {
 			let fillamount = 0.6;

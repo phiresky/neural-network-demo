@@ -22,7 +22,10 @@ module Util {
 	export function max(input: double[]) {
 		return input.reduce((a, b) => Math.max(a, b), -Infinity);
 	}
-	export function bounds2dTrainingsInput(data: TrainingData[]) {
+	export interface Bounds {
+		minx:double, maxx:double, miny:double, maxy:double
+	}
+	export function bounds2dTrainingsInput(data: TrainingData[]):Bounds {
 		return {
 			minx: Util.min(data.map(d => d.input[0])),
 			miny: Util.min(data.map(d => d.input[1])),
@@ -76,5 +79,14 @@ module Util {
 		}
 
 		return query;
+	}
+	export function normalize(i:Bounds, x:double, y:double) {
+		return [(x-i.minx)/(i.maxx-i.minx),(y-i.miny)/(i.maxy-i.miny)];
+	}
+	export function normalizeInputs(conf:Configuration) {
+		let data = conf.data;
+		let i = Util.bounds2dTrainingsInput(data);
+		data.forEach(data => data.input = normalize(i, data.input[0], data.input[1]));
+		conf.originalBounds = i;
 	}
 }
