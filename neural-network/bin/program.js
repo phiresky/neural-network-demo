@@ -69,30 +69,27 @@ var Net;
     })(Util = Net.Util || (Net.Util = {}));
     // back propagation code adapted from https://de.wikipedia.org/wiki/Backpropagation
     var NeuralNet = (function () {
-        function NeuralNet(input, hidden, output, learnRate, bias, startWeight, startWeights) {
+        function NeuralNet(input, hidden, output, learnRate, addBiasToLayers, startWeight, startWeights) {
             var _this = this;
-            if (bias === void 0) { bias = true; }
             if (startWeight === void 0) { startWeight = function () { return Math.random() - 0.5; }; }
             this.learnRate = learnRate;
-            this.bias = bias;
+            this.addBiasToLayers = addBiasToLayers;
             this.startWeights = startWeights;
             this.layers = [];
             this.connections = [];
             var nid = 0;
-            this.inputs = Util.makeArray(input.neuronCount, function (i) { return new InputNeuron(nid++, input.names[i]); });
+            this.inputs = Util.makeArray(input.neuronCount, function (i) { return new InputNeuron(nid++, i, input.names[i]); });
             this.layers.push(this.inputs.slice());
             for (var _i = 0; _i < hidden.length; _i++) {
                 var layer = hidden[_i];
-                this.layers.push(Util.makeArray(layer.neuronCount, function (i) { return new Neuron(layer.activation, nid++); }));
+                this.layers.push(Util.makeArray(layer.neuronCount, function (i) { return new Neuron(layer.activation, nid++, i); }));
             }
-            this.outputs = Util.makeArray(output.neuronCount, function (i) { return new OutputNeuron(output.activation, nid++, output.names[i]); });
+            this.outputs = Util.makeArray(output.neuronCount, function (i) { return new OutputNeuron(output.activation, nid++, i, output.names[i]); });
             this.layers.push(this.outputs);
-            this.bias = bias;
             for (var i = 0; i < this.layers.length - 1; i++) {
                 var inLayer = this.layers[i];
                 var outLayer = this.layers[i + 1];
-                if (bias)
-                    inLayer.push(new InputNeuron(nid++, "Bias", 1));
+                inLayer.push(new InputNeuron(nid++, -1, "Bias", 1));
                 for (var _a = 0; _a < inLayer.length; _a++) {
                     var input_1 = inLayer[_a];
                     for (var _b = 0; _b < outLayer.length; _b++) {
@@ -103,6 +100,8 @@ var Net;
                         this.connections.push(conn);
                     }
                 }
+                if (!addBiasToLayers)
+                    inLayer.pop();
             }
             if (!this.startWeights) {
                 this.startWeights = this.connections.map(function (c) { return c.weight = startWeight(); });
@@ -170,9 +169,10 @@ var Net;
     })();
     Net.NeuronConnection = NeuronConnection;
     var Neuron = (function () {
-        function Neuron(activation, id) {
+        function Neuron(activation, id, layerIndex) {
             this.activation = activation;
             this.id = id;
+            this.layerIndex = layerIndex;
             this.inputs = [];
             this.outputs = [];
             this.weightedInputs = 0;
@@ -203,8 +203,8 @@ var Net;
     Net.Neuron = Neuron;
     var InputNeuron = (function (_super) {
         __extends(InputNeuron, _super);
-        function InputNeuron(id, name, constantOutput) {
-            _super.call(this, null, id);
+        function InputNeuron(id, layerIndex, name, constantOutput) {
+            _super.call(this, null, id, layerIndex);
             this.name = name;
             this.constant = false; // value won't change
             if (constantOutput !== undefined) {
@@ -220,8 +220,8 @@ var Net;
     Net.InputNeuron = InputNeuron;
     var OutputNeuron = (function (_super) {
         __extends(OutputNeuron, _super);
-        function OutputNeuron(activation, id, name) {
-            _super.call(this, activation, id);
+        function OutputNeuron(activation, id, layerIndex, name) {
+            _super.call(this, activation, id, layerIndex);
             this.activation = activation;
             this.name = name;
         }
@@ -675,7 +675,7 @@ var Simulation = (function () {
         console.log("initializeNet(" + weights + ")");
         if (this.net)
             this.stop();
-        this.net = new Net.NeuralNet(this.config.inputLayer, this.config.hiddenLayers, this.config.outputLayer, this.config.learningRate, true, undefined, weights);
+        this.net = new Net.NeuralNet(this.config.inputLayer, this.config.hiddenLayers, this.config.outputLayer, this.config.learningRate, this.config.bias, undefined, weights);
         this.stepNum = 0;
         this.errorHistory = [];
         this.leftVis.onNetworkLoaded(this.net);
@@ -1107,8 +1107,6 @@ var NetworkGraph = (function () {
                 if (neuron instanceof Net.InputNeuron) {
                     type = 'Input: ' + neuron.name;
                     if (neuron.constant) {
-                        if (!this.showbias)
-                            continue;
                         color = NetworkVisualization.colors.autoencoder.bias;
                     }
                     else
@@ -1655,8 +1653,7 @@ var WeightsGraph = (function () {
         this.actions = ["Weights"];
         this.container = $("<div>");
         this.offsetBetweenLayers = 2;
-        this.xToLayer = [];
-        this.xToNeuron = [];
+        this.xyToConnection = {};
         // hack to get grayscale colors
         vis.Graph3d.prototype._hsv2rgb = function (h, s, v) {
             h = Math.min(h, 250) | 0;
@@ -1682,24 +1679,21 @@ var WeightsGraph = (function () {
             //zMin: 0,
             //zMax: 5,
             tooltip: function (point) {
-                var outLayer = _this.xToLayer[point.x];
-                var inLayer = outLayer - 1;
-                var inNeuron = _this.xToNeuron[point.x];
-                var outNeuron = point.y;
-                var inN = _this.sim.net.layers[inLayer][inNeuron];
-                var outN = _this.sim.net.layers[outLayer][outNeuron];
+                var _a = _this.xyToConnection[point.x + "," + point.y], conn = _a[0], outputLayer = _a[1];
+                var inLayer = outputLayer - 1;
                 var inStr, outStr;
+                var inN = conn.inp, outN = conn.out;
                 if (inN instanceof Net.InputNeuron)
                     inStr = inN.name;
                 else
-                    inStr = "Layer " + (inLayer + 1) + " Neuron " + (inNeuron + 1);
+                    inStr = "Hidden(" + (inLayer + 1) + "," + (inN.layerIndex + 1) + ")";
                 if (outN instanceof Net.OutputNeuron)
                     outStr = outN.name;
                 else
-                    outStr = "Layer " + (outLayer + 1) + " Neuron " + (outNeuron + 1);
+                    outStr = "Hidden(" + (outputLayer + 1) + "," + (outN.layerIndex + 1) + ")";
                 return inStr + " to " + outStr;
             },
-            xValueLabel: function (x) { return _this.xToLayer[x] || ""; },
+            //xValueLabel: (x: int) => this.xToLayer[x] || "",
             yValueLabel: function (y) { return (y | 0) == y ? y + 1 : ""; },
             zValueLabel: function (z) { return ""; },
         });
@@ -1710,19 +1704,27 @@ var WeightsGraph = (function () {
     WeightsGraph.prototype.onHide = function () {
     };
     WeightsGraph.prototype.parseData = function (net) {
+        this.xyToConnection = {};
         var data = [];
         var maxx = 0;
-        for (var layerNum = 1; layerNum < net.layers.length; layerNum++) {
-            var layer = net.layers[layerNum];
+        var maxHeight = Math.max.apply(null, net.layers.map(function (layer) { return layer.length; }));
+        for (var outputLayer = 1; outputLayer < net.layers.length; outputLayer++) {
+            var layer = net.layers[outputLayer];
             var layerX = maxx + this.offsetBetweenLayers;
-            for (var y = 0; y < layer.length; y++) {
-                var neuron = layer[y];
-                maxx = Math.max(maxx, layerX + neuron.inputs.length);
-                for (var input = 0; input < neuron.inputs.length; input++) {
-                    var conn = neuron.inputs[input];
-                    data.push({ x: layerX + input, y: y, z: conn.weight });
-                    this.xToLayer[layerX + input] = layerNum;
-                    this.xToNeuron[layerX + input] = input;
+            for (var outputNeuron = 0; outputNeuron < layer.length; outputNeuron++) {
+                var outN = layer[outputNeuron];
+                maxx = Math.max(maxx, layerX + outN.inputs.length);
+                for (var inputNeuron = 0; inputNeuron < outN.inputs.length; inputNeuron++) {
+                    var conn = outN.inputs[inputNeuron];
+                    var inN = conn.inp;
+                    if (!this.sim.config.bias && inN instanceof Net.InputNeuron && inN.constant) {
+                        continue;
+                    }
+                    var p = { x: layerX + inputNeuron, y: outputNeuron, z: conn.weight };
+                    if (maxHeight != layer.length)
+                        p.y += (maxHeight - layer.length) / 2;
+                    data.push(p);
+                    this.xyToConnection[p.x + "," + p.y] = [conn, outputLayer];
                 }
             }
         }

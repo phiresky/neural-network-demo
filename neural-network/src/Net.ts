@@ -44,21 +44,19 @@ module Net {
 		outputs: OutputNeuron[];
 		connections: NeuronConnection[] = [];
 		constructor(input: InputLayerConfig, hidden: LayerConfig[], output: OutputLayerConfig, public learnRate: number,
-			public bias = true, startWeight = () => Math.random() - 0.5, public startWeights?: double[]) {
+			public addBiasToLayers: boolean, startWeight = () => Math.random() - 0.5, public startWeights?: double[]) {
 			let nid = 0;
-			this.inputs = Util.makeArray(input.neuronCount, i => new InputNeuron(nid++, input.names[i]));
+			this.inputs = Util.makeArray(input.neuronCount, i => new InputNeuron(nid++, i, input.names[i]));
 			this.layers.push(this.inputs.slice());
 			for (var layer of hidden) {
-				this.layers.push(Util.makeArray(layer.neuronCount, i => new Neuron(layer.activation, nid++)));
+				this.layers.push(Util.makeArray(layer.neuronCount, i => new Neuron(layer.activation, nid++, i)));
 			}
-			this.outputs = Util.makeArray(output.neuronCount, i => new OutputNeuron(output.activation, nid++, output.names[i]));
+			this.outputs = Util.makeArray(output.neuronCount, i => new OutputNeuron(output.activation, nid++, i, output.names[i]));
 			this.layers.push(this.outputs);
-			this.bias = bias;
 			for (let i = 0; i < this.layers.length - 1; i++) {
 				let inLayer = this.layers[i];
 				let outLayer = this.layers[i + 1];
-				if (bias)
-					inLayer.push(new InputNeuron(nid++, "Bias", 1));
+				inLayer.push(new InputNeuron(nid++, -1, "Bias", 1));
 
 				for (let input of inLayer) for (let output of outLayer) {
 					var conn = new Net.NeuronConnection(input, output);
@@ -66,6 +64,7 @@ module Net {
 					output.inputs.push(conn);
 					this.connections.push(conn);
 				}
+				if(!addBiasToLayers) inLayer.pop();
 			}
 			if (!this.startWeights) {
 				this.startWeights = this.connections.map(c => c.weight = startWeight());
@@ -121,7 +120,7 @@ module Net {
 		public weightedInputs = 0;
 		public output = 0;
 		public error = 0;
-		constructor(public activation: string, public id: int) { }
+		constructor(public activation: string, public id: int, public layerIndex: int) { }
 
 		calculateWeightedInputs() {
 			this.weightedInputs = 0;
@@ -144,8 +143,8 @@ module Net {
 	}
 	export class InputNeuron extends Neuron {
 		constant: boolean = false; // value won't change
-		constructor(id: int, public name: string, constantOutput?: number) {
-			super(null, id);
+		constructor(id: int, layerIndex: int, public name: string, constantOutput?: number) {
+			super(null, id, layerIndex);
 			if (constantOutput !== undefined) {
 				this.output = constantOutput;
 				this.constant = true;
@@ -157,8 +156,8 @@ module Net {
 	}
 	export class OutputNeuron extends Neuron {
 		targetOutput: double;
-		constructor(public activation: string, id: int, public name: string) {
-			super(activation, id);
+		constructor(public activation: string, id: int, layerIndex: int, public name: string) {
+			super(activation, id, layerIndex);
 		}
 
 		calculateError() {

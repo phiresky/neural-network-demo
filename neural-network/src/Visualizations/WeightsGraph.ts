@@ -7,8 +7,7 @@ class WeightsGraph implements Visualization {
 	container = $("<div>");
 	offsetBetweenLayers = 2;
 	graph: any;//vis.Graph3d;
-	xToLayer: number[] = [];
-	xToNeuron: number[] = [];
+	xyToConnection: {[xcommay:string]:[Net.NeuronConnection, int]} = {};
 	constructor(public sim: Simulation) {
 		// hack to get grayscale colors
 		vis.Graph3d.prototype._hsv2rgb = (h:double,s:double,v:double) => {
@@ -35,22 +34,17 @@ class WeightsGraph implements Visualization {
 			//zMin: 0,
 			//zMax: 5,
 			tooltip: (point: Point3d) => {
-				let outLayer = this.xToLayer[point.x];
-				let inLayer = outLayer - 1;
-				let inNeuron = this.xToNeuron[point.x];
-				let outNeuron = point.y;
-				let inN = this.sim.net.layers[inLayer][inNeuron];
-				let outN = this.sim.net.layers[outLayer][outNeuron];
+				let [conn, outputLayer] = this.xyToConnection[point.x+","+point.y];
+				let inLayer = outputLayer -1;
 				let inStr: string, outStr: string;
-				if (inN instanceof Net.InputNeuron)
-					inStr = inN.name;
-				else inStr = `Layer ${inLayer + 1} Neuron ${inNeuron + 1}`;
-				if (outN instanceof Net.OutputNeuron)
-					outStr = outN.name;
-				else outStr = `Layer ${outLayer + 1} Neuron ${outNeuron + 1}`;
+				let inN = conn.inp, outN = conn.out;
+				if (inN instanceof Net.InputNeuron) inStr = inN.name;
+				else inStr = `Hidden(${inLayer + 1},${inN.layerIndex + 1})`;
+				if (outN instanceof Net.OutputNeuron) outStr = outN.name;
+				else outStr = `Hidden(${outputLayer + 1},${outN.layerIndex + 1})`;
 				return inStr + " to " + outStr;
 			},
-			xValueLabel: (x: int) => this.xToLayer[x] || "",
+			//xValueLabel: (x: int) => this.xToLayer[x] || "",
 			yValueLabel: (y: int) => (y | 0) == y ? y + 1 : "",
 			zValueLabel: (z: int) => "",
 		});
@@ -62,19 +56,26 @@ class WeightsGraph implements Visualization {
 
 	}
 	parseData(net: Net.NeuralNet) {
+		this.xyToConnection = {};
 		let data: Point3d[] = [];
 		let maxx = 0;
-		for (let layerNum = 1; layerNum < net.layers.length; layerNum++) {
-			let layer = net.layers[layerNum];
+		let maxHeight = Math.max.apply(null, net.layers.map(layer => layer.length));
+		for (let outputLayer = 1; outputLayer < net.layers.length; outputLayer++) {
+			let layer = net.layers[outputLayer];
 			let layerX = maxx + this.offsetBetweenLayers;
-			for (let y = 0; y < layer.length; y++) {
-				let neuron = layer[y];
-				maxx = Math.max(maxx, layerX + neuron.inputs.length);
-				for (let input = 0; input < neuron.inputs.length; input++) {
-					let conn = neuron.inputs[input];
-					data.push({ x: layerX + input, y: y, z: conn.weight });
-					this.xToLayer[layerX + input] = layerNum;
-					this.xToNeuron[layerX + input] = input;
+			for (let outputNeuron = 0; outputNeuron < layer.length; outputNeuron++) {
+				let outN = layer[outputNeuron];
+				maxx = Math.max(maxx, layerX + outN.inputs.length);
+				for (let inputNeuron = 0; inputNeuron < outN.inputs.length; inputNeuron++) {
+					let conn = outN.inputs[inputNeuron];
+					let inN = conn.inp;
+					if(!this.sim.config.bias && inN instanceof Net.InputNeuron && inN.constant) {
+						continue;
+					}
+					let p = { x: layerX + inputNeuron, y: outputNeuron, z: conn.weight };
+					if(maxHeight != layer.length) p.y += (maxHeight - layer.length) / 2;
+					data.push(p);
+					this.xyToConnection[p.x+","+p.y] = [conn, outputLayer];
 				}
 			}
 		}

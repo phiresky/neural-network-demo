@@ -54,7 +54,6 @@ class NetworkGraph implements Visualization {
 				if (neuron instanceof Net.InputNeuron) {
 					type = 'Input: '+neuron.name;
 					if(neuron.constant) {
-						if(!this.showbias) continue;
 						color = NetworkVisualization.colors.autoencoder.bias;
 					}
 					else color = NetworkVisualization.colors.autoencoder.input;

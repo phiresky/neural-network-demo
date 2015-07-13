@@ -61,7 +61,7 @@ class Simulation {
 	initializeNet(weights?: double[]) {
 		console.log(`initializeNet(${weights})`);
 		if (this.net) this.stop();
-		this.net = new Net.NeuralNet(this.config.inputLayer, this.config.hiddenLayers, this.config.outputLayer, this.config.learningRate, true, undefined, weights);
+		this.net = new Net.NeuralNet(this.config.inputLayer, this.config.hiddenLayers, this.config.outputLayer, this.config.learningRate, this.config.bias, undefined, weights);
 		this.stepNum = 0;
 		this.errorHistory = [];
 		this.leftVis.onNetworkLoaded(this.net);
