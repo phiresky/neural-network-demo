@@ -27,7 +27,7 @@ class NeuronGui {
 			let targetLayer = isInput ? sim.config.inputLayer : sim.config.outputLayer;
 			let inc = e.target.textContent == '+';
 			let newval = targetLayer.neuronCount + (inc ? 1 : -1);
-			if (newval < 1) return;
+			if (newval < 1 || newval > 10) return;
 			targetLayer.neuronCount = newval;
 			$(`#${name}LayerModify .neuronCount`).text(newval);
 			sim.config.data = [];

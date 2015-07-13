@@ -254,7 +254,7 @@ var NeuronGui = (function () {
             var targetLayer = isInput ? sim.config.inputLayer : sim.config.outputLayer;
             var inc = e.target.textContent == '+';
             var newval = targetLayer.neuronCount + (inc ? 1 : -1);
-            if (newval < 1)
+            if (newval < 1 || newval > 10)
                 return;
             targetLayer.neuronCount = newval;
             $("#" + name + "LayerModify .neuronCount").text(newval);
@@ -344,6 +344,7 @@ var Presets;
         },
         {
             name: "Binary Classifier for circular data",
+            iterationsPerClick: 1000,
             hiddenLayers: [
                 { "neuronCount": 3, "activation": "sigmoid" },
             ],
@@ -403,6 +404,7 @@ var Presets;
         },
         {
             name: "Three classes test",
+            iterationsPerClick: 500,
             hiddenLayers: [
                 { "neuronCount": 4, "activation": "sigmoid" },
             ],
@@ -424,7 +426,7 @@ var Presets;
         {
             name: "Auto-Encoder for linear data",
             stepsPerFrame: 1,
-            iterationsPerClick: 1,
+            iterationsPerClick: 10,
             parent: "Auto-Encoder for circular data",
             data: [
                 { input: [2.25, 0.19], output: [2.25, 0.19] },
@@ -466,9 +468,9 @@ var Presets;
         },
         {
             name: "Auto-Encoder for circular data",
-            "stepsPerFrame": 250,
+            "stepsPerFrame": 50,
             "learningRate": 0.01,
-            "iterationsPerClick": 10000,
+            "iterationsPerClick": 200,
             inputLayer: { neuronCount: 2, names: ["x", "y"] },
             outputLayer: { neuronCount: 2, activation: "linear", names: ["x", "y"] },
             hiddenLayers: [
@@ -583,7 +585,7 @@ var Presets;
                 input: row.slice(0, 2),
                 output: Util.arrayWithOneAt(10, row[2])
             }); });
-            normalizeInputs(relevantData);
+            normalizeInputs(relevantData2);
             presets.filter(function (p) { return p.name === "Peterson and Barney (all)"; })[0].data = relevantData2;
             //presets.forEach(preset => preset.data && normalizeInputs(preset.data));
         }
