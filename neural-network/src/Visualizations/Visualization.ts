@@ -69,6 +69,7 @@ class TabSwitchVisualizationContainer {
 		let afterActions = JSON.stringify(this.things.map(t => t.actions));
 		if(beforeActions !== afterActions) {
 			this.createButtonsAndActions();
+			this.currentMode = -1;
 			this.setMode(0);
 		}
 	}

@@ -70,6 +70,9 @@ class NetworkVisualization implements Visualization {
 				this.actions.push("Remove");
 				this.actions.push("Move View");
 				break;
+			case NetType.CantDraw:
+				this.actions = [];
+				break;
 		}
 		this.refitData();
 	}

@@ -1226,6 +1226,9 @@ var NetworkVisualization = (function () {
                 this.actions.push("Remove");
                 this.actions.push("Move View");
                 break;
+            case NetType.CantDraw:
+                this.actions = [];
+                break;
         }
         this.refitData();
     };
@@ -1639,6 +1642,7 @@ var TabSwitchVisualizationContainer = (function () {
         var afterActions = JSON.stringify(this.things.map(function (t) { return t.actions; }));
         if (beforeActions !== afterActions) {
             this.createButtonsAndActions();
+            this.currentMode = -1;
             this.setMode(0);
         }
     };
