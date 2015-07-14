@@ -55,6 +55,10 @@ var Net;
         linear: {
             f: function (x) { return x; },
             df: function (x) { return 1; }
+        },
+        relu: {
+            f: function (x) { return Math.max(x, 0); },
+            df: function (x) { return x <= 0 ? 0 : 1; }
         }
     };
     var Util;
@@ -1701,7 +1705,7 @@ var WeightsGraph = (function () {
                     outStr = outN.name;
                 else
                     outStr = "Hidden(" + (outputLayer + 1) + "," + (outN.layerIndex + 1) + ")";
-                return inStr + " to " + outStr;
+                return inStr + " to " + outStr + ": " + conn.weight.toFixed(2);
             },
             //xValueLabel: (x: int) => this.xToLayer[x] || "",
             yValueLabel: function (y) { return (y | 0) == y ? y + 1 : ""; },

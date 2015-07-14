@@ -26,6 +26,10 @@ module Net {
 		linear: {
 			f: (x: double) => x,
 			df: (x: double) => 1
+		},
+		relu: {
+			f: (x: double) => Math.max(x, 0),
+			df: (x: double) => x <= 0 ? 0 : 1
 		}
 	}
 
@@ -64,7 +68,7 @@ module Net {
 					output.inputs.push(conn);
 					this.connections.push(conn);
 				}
-				if(!addBiasToLayers) inLayer.pop();
+				if (!addBiasToLayers) inLayer.pop();
 			}
 			if (!this.startWeights) {
 				this.startWeights = this.connections.map(c => c.weight = startWeight());
@@ -83,11 +87,11 @@ module Net {
 		// get root-mean-square error
 		getLoss(expectedOutput: double[]) {
 			let sum = 0;
-			for(let i = 0; i < this.outputs.length; i++) {
+			for (let i = 0; i < this.outputs.length; i++) {
 				let neuron = this.outputs[i];
 				sum += Math.pow(neuron.output - expectedOutput[i], 2);
 			}
-			return Math.sqrt(sum/this.outputs.length);
+			return Math.sqrt(sum / this.outputs.length);
 		}
 
 		train(inputVals: double[], expectedOutput: double[]) {
