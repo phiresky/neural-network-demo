@@ -15,7 +15,9 @@ class TableEditor implements Visualization {
 	onNetworkLoaded(net:Net.NeuralNet) {
 		if (this.hot) this.hot.destroy();
 		let oldContainer = this.container;
-		this.container = $("<div class='fullsize'>");
+		this.container = $("<div class='fullsize' style='overflow:hidden'>");
+		console.log("new cont");
+		if (oldContainer) oldContainer.replaceWith(this.container);
 		$("<div>").addClass("btn btn-default")
 			.css({ position: "absolute", right: "2em", bottom: "2em" })
 			.text("Remove all")
@@ -64,7 +66,6 @@ class TableEditor implements Visualization {
 		};
 		this.container.handsontable(_conf);
 		this.hot = this.container.handsontable('getInstance');
-		if (oldContainer) oldContainer.replaceWith(this.container);
 		this.loadData();
 	}
 	reparseData() {
@@ -118,7 +119,7 @@ class TableEditor implements Visualization {
 		this.hot.runHooks('afterInit');*/
 	}
 	onView() {
-		this.loadData();
+		this.onNetworkLoaded(this.sim.net);
 	}
 	onHide() {
 		//this.reparseData();

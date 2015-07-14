@@ -1472,7 +1472,10 @@ var TableEditor = (function () {
         if (this.hot)
             this.hot.destroy();
         var oldContainer = this.container;
-        this.container = $("<div class='fullsize'>");
+        this.container = $("<div class='fullsize' style='overflow:hidden'>");
+        console.log("new cont");
+        if (oldContainer)
+            oldContainer.replaceWith(this.container);
         $("<div>").addClass("btn btn-default")
             .css({ position: "absolute", right: "2em", bottom: "2em" })
             .text("Remove all")
@@ -1524,8 +1527,6 @@ var TableEditor = (function () {
         };
         this.container.handsontable(_conf);
         this.hot = this.container.handsontable('getInstance');
-        if (oldContainer)
-            oldContainer.replaceWith(this.container);
         this.loadData();
     };
     TableEditor.prototype.reparseData = function () {
@@ -1581,7 +1582,7 @@ var TableEditor = (function () {
         this.hot.runHooks('afterInit');*/
     };
     TableEditor.prototype.onView = function () {
-        this.loadData();
+        this.onNetworkLoaded(this.sim.net);
     };
     TableEditor.prototype.onHide = function () {
         //this.reparseData();
