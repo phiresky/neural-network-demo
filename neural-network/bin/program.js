@@ -582,14 +582,14 @@ var Presets;
             // _cache = LZString.compressToBase64(JSON.stringify(data));
             var relevantData = data.filter(function (row) { return row[3] == 1; }).map(function (row) { return ({
                 input: row.slice(0, 2),
-                output: Util.arrayWithOneAt(10, row[2])
+                output: Util.arrayWithOneAt(10, row[2] - 1)
             }); });
             var preset = Presets.presets.filter(function (p) { return p.name === "Peterson and Barney (male)"; })[0];
             preset.data = relevantData;
             Util.normalizeInputs(preset);
             var relevantData2 = data.map(function (row) { return ({
                 input: row.slice(0, 2),
-                output: Util.arrayWithOneAt(10, row[2])
+                output: Util.arrayWithOneAt(10, row[2] - 1)
             }); });
             preset = Presets.presets.filter(function (p) { return p.name === "Peterson and Barney (all)"; })[0];
             preset.data = relevantData2;

@@ -285,7 +285,7 @@ module Presets {
 			let relevantData = data.filter(row => row[3] == 1).map(row => (
 				{
 					input:row.slice(0,2),
-					output:Util.arrayWithOneAt(10, row[2])
+					output:Util.arrayWithOneAt(10, row[2] - 1)
 				}
 			));
 			let preset = presets.filter(p => p.name === "Peterson and Barney (male)")[0];
@@ -294,7 +294,7 @@ module Presets {
 			let relevantData2 = data.map(row => (
 				{
 					input:row.slice(0,2),
-					output:Util.arrayWithOneAt(10, row[2])
+					output:Util.arrayWithOneAt(10, row[2] - 1)
 				}
 			));
 			preset = presets.filter(p => p.name === "Peterson and Barney (all)")[0];
