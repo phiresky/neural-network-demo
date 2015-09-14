@@ -5,7 +5,7 @@ class Simulation {
 	table: TableEditor;
 	errorGraph: ErrorGraph;
 	weightsGraph: WeightsGraph;
-	
+
 	stepNum = 0;
 	frameNum = 0;
 	running = false; runningId = -1;
@@ -16,11 +16,11 @@ class Simulation {
 	net: Net.NeuralNet;
 	neuronGui: NeuronGui;
 	config: Configuration;
-	leftVis:TabSwitchVisualizationContainer;
-	rightVis:TabSwitchVisualizationContainer;
-	
+	leftVis: TabSwitchVisualizationContainer;
+	rightVis: TabSwitchVisualizationContainer;
+
 	constructed = false;
-	errorHistory:[number,number][];
+	errorHistory: [number, number][];
 
 	constructor(autoRun: boolean) {
 		(<any>$("#learningRate")).slider({
@@ -36,16 +36,95 @@ class Simulation {
 			this.stop();
 			$("#urlExport").val(this.serializeToUrl(+$("#exportWeights").val()));
 		};
+		const ioError = (txt: string) => {
+			$("#importexporterror")
+				.clone()
+				.append(txt)
+				.appendTo("#exportModal .modal-body")
+				.show();
+		}
 		$("#exportModal").on("shown.bs.modal", doSerialize);
-		$("#exportModal select").on("change", doSerialize);
+		$("#exportModal .exportWeights").on("change", doSerialize);
+		$("#exportModal .exportJSON").click(() => {
+			Util.download(JSON.stringify(this.config, null, '\t'), this.config.name + ".json");
+		});
+		$("#exportModal .exportCSV").click(() => {
+			const csv = this.config.inputLayer.names.concat(this.config.outputLayer.names)
+				.map(Util.csvSanitize).join(",") + "\n"
+				+ this.config.data.map(data => 
+					data.input.concat(data.output).join(",")).join("\n");
+			Util.download(csv, this.config.name + ".csv");
+		});
+		$("#exportModal .importJSON").change(e => {
+			const ev = e.originalEvent;
+			const files = (<HTMLInputElement>ev.target).files;
+			if (files.length !== 1) ioError("invalid selection");
+			const file = files.item(0);
+			const r = new FileReader();
+			r.onload = t => {
+				try {
+					const text = r.result;
+					const conf = JSON.parse(text);
+					this.config = conf;
+					$("#exportModal").modal('hide');
+					this.setConfig();
+					this.initializeNet();
+				} catch (e) {
+					ioError("Error while reading " + file.name + ": " + e);
+				}
+			}
+			r.readAsText(file);
+		});
+		$("#exportModal .importCSV").change(e => {
+			const ev = e.originalEvent;
+			const files = (<HTMLInputElement>ev.target).files;
+			if (files.length !== 1) ioError("invalid selection");
+			const file = files.item(0);
+			const r = new FileReader();
+			r.onload = t => {
+				try {
+					const text = <string>r.result;
+					const data = text.split("\n").map(l => l.split(","));
+					const lens = data.map(l => l.length);
+					const len = Math.min(...lens);
+					if (len !== Math.max(...lens))
+						throw `line lengths varying between ${len} and ${Math.max(...lens) }, must be constant`;
+					const inps = this.config.inputLayer.neuronCount;
+					const oups = this.config.outputLayer.neuronCount;
+					if (len !== inps + oups)
+						throw `invalid line length, expected (${inps} inputs + ${oups} outputs = ) ${inps+oups} columns, got ${len} columns`;
+					if(!data[0][0].match(/^\d+$/)) {
+						const headers = data.shift();
+						this.config.inputLayer.names = headers.slice(0, inps);
+						this.config.outputLayer.names = headers.slice(inps, inps + oups);
+					}
+					const trainingsData:TrainingData[] = [];
+					for(let l = 0; l < data.length; l++) {
+						const ele:TrainingData = {input:[], output:[]};
+						for(let i = 0; i < len; i++) {
+							const v = parseFloat(data[l][i]);
+							if(isNaN(v)) throw `can't parse ${data[l][i]} as a number in line ${l+1}`;
+							(i < inps ? ele.input:ele.output).push(v);
+						}
+						trainingsData.push(ele);
+					}
+					this.config.data = trainingsData;
+					this.table.loadData();
+					$("#exportModal").modal('hide');
+				} catch (e) {
+					ioError("Error while reading " + file.name + ": " + e);
+				}
+			}
+			r.readAsText(file);
+		});
 		this.neuronGui = new NeuronGui(this);
-		
+
 		this.netviz = new NetworkVisualization(this);
 		this.netgraph = new NetworkGraph(this);
 		this.errorGraph = new ErrorGraph(this);
 		this.table = new TableEditor(this);
 		this.weightsGraph = new WeightsGraph(this);
-		
+
 		this.leftVis = new TabSwitchVisualizationContainer($("#leftVisHeader"), $("#leftVisBody"), "leftVis", [
 			this.netgraph, this.errorGraph, this.weightsGraph]);
 		this.rightVis = new TabSwitchVisualizationContainer($("#rightVisHeader"), $("#rightVisBody"), "rightVis", [
@@ -66,7 +145,7 @@ class Simulation {
 		this.errorHistory = [];
 		this.leftVis.onNetworkLoaded(this.net);
 		this.rightVis.onNetworkLoaded(this.net);
-		if(this.constructed) this.onFrame(true);
+		if (this.constructed) this.onFrame(true);
 	}
 	statusIterEle = document.getElementById('statusIteration');
 	statusCorrectEle = document.getElementById('statusCorrect');
@@ -77,11 +156,11 @@ class Simulation {
 		}
 	}
 
-	onFrame(forceDraw:boolean) {
+	onFrame(forceDraw: boolean) {
 		this.frameNum++;
 		this.calculateAverageError();
-		this.rightVis.currentVisualization.onFrame(forceDraw?0:this.frameNum);
-		this.leftVis.currentVisualization.onFrame(forceDraw?0:this.frameNum);
+		this.rightVis.currentVisualization.onFrame(forceDraw ? 0 : this.frameNum);
+		this.leftVis.currentVisualization.onFrame(forceDraw ? 0 : this.frameNum);
 		this.updateStatusLine();
 	}
 
@@ -105,7 +184,7 @@ class Simulation {
 		this.initializeNet();
 		this.onFrame(true);
 	}
-	
+
 	calculateAverageError() {
 		this.averageError = 0;
 		/*for (let val of this.config.data) {
@@ -192,10 +271,10 @@ class Simulation {
 		}
 		if (oldConfig.simType != config.simType) config.data = [];
 		if (this.net) this.net.learnRate = this.config.learningRate;
-		if(!this.config.autoRestart) clearTimeout(this.restartTimeout);
+		if (!this.config.autoRestart) clearTimeout(this.restartTimeout);
 	}
 
-	loadPreset(name: string, weights?:double[]) {
+	loadPreset(name: string, weights?: double[]) {
 		this.isCustom = false;
 		$("#presetName").text(`Preset: ${name}`);
 		this.config = Presets.get(name);
@@ -239,8 +318,8 @@ class Simulation {
 		let urlParams = Util.parseUrlParameters();
 		let preset = urlParams["preset"], config = urlParams["config"];
 		let weightString = urlParams["weights"];
-		let weights:double[];
-		if(weightString) 
+		let weights: double[];
+		if (weightString)
 			weights = JSON.parse(LZString.decompressFromEncodedURIComponent(weightString));
 		if (preset && Presets.exists(preset))
 			this.loadPreset(preset, weights);

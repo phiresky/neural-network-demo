@@ -89,4 +89,18 @@ module Util {
 		data.forEach(data => data.input = normalize(i, data.input[0], data.input[1]));
 		conf.originalBounds = i;
 	}
+	
+	export function download(text:string, name:string, type:string = 'text/plain') {
+		var a = document.createElement("a");
+		var file = new Blob([text], { type: type });
+		a.href = URL.createObjectURL(file);
+		(<any>a).download = name;
+		a.click();
+	}
+	export function csvSanitize(s:string) {
+		s = s.replace(/"/g, '""');
+		if(s.search(/("|,|\n)/g) >= 0)
+			return `"${s}"`;
+		else return s;
+	}
 }

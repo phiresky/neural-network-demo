@@ -36,6 +36,25 @@
 		width: 100%;
 	}
 	ul.nav.nav-pills { margin-bottom:10px;}
+	.btn-file {
+		position: relative;
+		overflow: hidden;
+	}
+	.btn-file input[type=file] {
+		position: absolute;
+		top: 0;
+		right: 0;
+		min-width: 100%;
+		min-height: 100%;
+		font-size: 100px;
+		text-align: right;
+		filter: alpha(opacity=0);
+		opacity: 0;
+		outline: none;
+		background: white;
+		cursor: inherit;
+		display: block;
+	}
 </style>
 <div class="container">
 	<div class="page-header">
@@ -174,10 +193,11 @@
 		<div class="modal-content">
 			<div class="modal-header">
 				<button type="button" class="close" data-dismiss="modal">&times;</button>
-				<h4 class="modal-title">Import / Export</h4>
+				<h3 class="modal-title">Import / Export</h3>
 			</div>
 			<div class="modal-body">
-				<select id='exportWeights'>
+				<h4 class="modal-title">Export to URL</h4>
+				<select class='exportWeights'>
 					<option selected value=0>Don't include weights</option>
 					<option value=1>Include current weights</option>
 					<option value=2>Include start weights</option>
@@ -185,6 +205,22 @@
 				<p>Copy this URL:
 					<input id='urlExport' onclick='this.select();'>
 				</p>
+				<hr>
+				<h4 class="modal-title">Export to file</h4>
+				<button class="btn btn-default exportJSON">Export configuration as json</button>
+				<button class="btn btn-default exportCSV">Export training data as CSV</button>
+				
+				<hr>
+				<h4 class="modal-title">Import</h4>
+				<span class="btn btn-default btn-file">
+					Import JSON file <input type="file" class="importJSON">
+				</span>
+				<span class="btn btn-default btn-file">
+					Import CSV file <input type="file" class="importCSV">
+				</span>
+				<div id="importexporterror" class="alert alert-danger" style="display:none">
+					 <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+				</div>
 			</div>
 		</div>
 	</div>

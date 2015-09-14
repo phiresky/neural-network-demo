@@ -19,6 +19,9 @@
     },
     "highcharts/highstock.d.ts": {
       "commit": "7a3ca1f0b8a0960af9fc1838f3234cc9d6ce0645"
+    },
+    "bootstrap/bootstrap.d.ts": {
+      "commit": "7a3ca1f0b8a0960af9fc1838f3234cc9d6ce0645"
     }
   }
 }

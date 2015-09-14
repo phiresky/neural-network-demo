@@ -653,8 +653,93 @@ var Simulation = (function () {
             _this.stop();
             $("#urlExport").val(_this.serializeToUrl(+$("#exportWeights").val()));
         };
+        var ioError = function (txt) {
+            $("#importexporterror")
+                .clone()
+                .append(txt)
+                .appendTo("#exportModal .modal-body")
+                .show();
+        };
         $("#exportModal").on("shown.bs.modal", doSerialize);
-        $("#exportModal select").on("change", doSerialize);
+        $("#exportModal .exportWeights").on("change", doSerialize);
+        $("#exportModal .exportJSON").click(function () {
+            Util.download(JSON.stringify(_this.config, null, '\t'), _this.config.name + ".json");
+        });
+        $("#exportModal .exportCSV").click(function () {
+            var csv = _this.config.inputLayer.names.concat(_this.config.outputLayer.names)
+                .map(Util.csvSanitize).join(",") + "\n"
+                + _this.config.data.map(function (data) {
+                    return data.input.concat(data.output).join(",");
+                }).join("\n");
+            Util.download(csv, _this.config.name + ".csv");
+        });
+        $("#exportModal .importJSON").change(function (e) {
+            var ev = e.originalEvent;
+            var files = ev.target.files;
+            if (files.length !== 1)
+                ioError("invalid selection");
+            var file = files.item(0);
+            var r = new FileReader();
+            r.onload = function (t) {
+                try {
+                    var text = r.result;
+                    var conf = JSON.parse(text);
+                    _this.config = conf;
+                    $("#exportModal").modal('hide');
+                    _this.setConfig();
+                    _this.initializeNet();
+                }
+                catch (e) {
+                    ioError("Error while reading " + file.name + ": " + e);
+                }
+            };
+            r.readAsText(file);
+        });
+        $("#exportModal .importCSV").change(function (e) {
+            var ev = e.originalEvent;
+            var files = ev.target.files;
+            if (files.length !== 1)
+                ioError("invalid selection");
+            var file = files.item(0);
+            var r = new FileReader();
+            r.onload = function (t) {
+                try {
+                    var text = r.result;
+                    var data = text.split("\n").map(function (l) { return l.split(","); });
+                    var lens = data.map(function (l) { return l.length; });
+                    var len = Math.min.apply(Math, lens);
+                    if (len !== Math.max.apply(Math, lens))
+                        throw "line lengths varying between " + len + " and " + Math.max.apply(Math, lens) + ", must be constant";
+                    var inps = _this.config.inputLayer.neuronCount;
+                    var oups = _this.config.outputLayer.neuronCount;
+                    if (len !== inps + oups)
+                        throw "invalid line length, expected (" + inps + " inputs + " + oups + " outputs = ) " + (inps + oups) + " columns, got " + len + " columns";
+                    if (!data[0][0].match(/^\d+$/)) {
+                        var headers = data.shift();
+                        _this.config.inputLayer.names = headers.slice(0, inps);
+                        _this.config.outputLayer.names = headers.slice(inps, inps + oups);
+                    }
+                    var trainingsData = [];
+                    for (var l = 0; l < data.length; l++) {
+                        var ele = { input: [], output: [] };
+                        for (var i = 0; i < len; i++) {
+                            var v = parseFloat(data[l][i]);
+                            if (isNaN(v))
+                                throw "can't parse " + data[l][i] + " as a number in line " + (l + 1);
+                            (i < inps ? ele.input : ele.output).push(v);
+                        }
+                        trainingsData.push(ele);
+                    }
+                    _this.config.data = trainingsData;
+                    _this.table.loadData();
+                    $("#exportModal").modal('hide');
+                }
+                catch (e) {
+                    ioError("Error while reading " + file.name + ": " + e);
+                }
+            };
+            r.readAsText(file);
+        });
         this.neuronGui = new NeuronGui(this);
         this.netviz = new NetworkVisualization(this);
         this.netgraph = new NetworkGraph(this);
@@ -1038,6 +1123,23 @@ var Util;
         conf.originalBounds = i;
     }
     Util.normalizeInputs = normalizeInputs;
+    function download(text, name, type) {
+        if (type === void 0) { type = 'text/plain'; }
+        var a = document.createElement("a");
+        var file = new Blob([text], { type: type });
+        a.href = URL.createObjectURL(file);
+        a.download = name;
+        a.click();
+    }
+    Util.download = download;
+    function csvSanitize(s) {
+        s = s.replace(/"/g, '""');
+        if (s.search(/("|,|\n)/g) >= 0)
+            return "\"" + s + "\"";
+        else
+            return s;
+    }
+    Util.csvSanitize = csvSanitize;
 })(Util || (Util = {}));
 var ErrorGraph = (function () {
     function ErrorGraph(sim) {
