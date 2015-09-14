@@ -34,10 +34,10 @@ class WeightsGraph implements Visualization {
 			//zMin: 0,
 			//zMax: 5,
 			tooltip: (point: Point3d) => {
-				let [conn, outputLayer] = this.xyToConnection[point.x + "," + point.y];
-				let inLayer = outputLayer - 1;
+				const [conn, outputLayer] = this.xyToConnection[point.x + "," + point.y];
+				const inLayer = outputLayer - 1;
 				let inStr: string, outStr: string;
-				let inN = conn.inp, outN = conn.out;
+				const inN = conn.inp, outN = conn.out;
 				if (inN instanceof Net.InputNeuron) inStr = inN.name;
 				else inStr = `Hidden(${inLayer + 1},${inN.layerIndex + 1})`;
 				if (outN instanceof Net.OutputNeuron) outStr = outN.name;
@@ -57,22 +57,22 @@ class WeightsGraph implements Visualization {
 	}
 	parseData(net: Net.NeuralNet) {
 		this.xyToConnection = {};
-		let data: Point3d[] = [];
+		const data: Point3d[] = [];
 		let maxx = 0;
-		let maxHeight = Math.max.apply(null, net.layers.map(layer => layer.length));
+		const maxHeight = Math.max.apply(null, net.layers.map(layer => layer.length));
 		for (let outputLayer = 1; outputLayer < net.layers.length; outputLayer++) {
-			let layer = net.layers[outputLayer];
-			let layerX = maxx + this.offsetBetweenLayers;
+			const layer = net.layers[outputLayer];
+			const layerX = maxx + this.offsetBetweenLayers;
 			for (let outputNeuron = 0; outputNeuron < layer.length; outputNeuron++) {
-				let outN = layer[outputNeuron];
+				const outN = layer[outputNeuron];
 				maxx = Math.max(maxx, layerX + outN.inputs.length);
 				for (let inputNeuron = 0; inputNeuron < outN.inputs.length; inputNeuron++) {
-					let conn = outN.inputs[inputNeuron];
-					let inN = conn.inp;
+					const conn = outN.inputs[inputNeuron];
+					const inN = conn.inp;
 					if (!this.sim.config.bias && inN instanceof Net.InputNeuron && inN.constant) {
 						continue;
 					}
-					let p = { x: layerX + inputNeuron, y: outputNeuron, z: conn.weight };
+					const p = { x: layerX + inputNeuron, y: outputNeuron, z: conn.weight };
 					if (maxHeight != layer.length) p.y += (maxHeight - layer.length) / 2;
 					data.push(p);
 					this.xyToConnection[p.x + "," + p.y] = [conn, outputLayer];

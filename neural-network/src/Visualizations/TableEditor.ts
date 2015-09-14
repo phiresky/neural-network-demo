@@ -14,7 +14,7 @@ class TableEditor implements Visualization {
 	}
 	onNetworkLoaded(net:Net.NeuralNet) {
 		if (this.hot) this.hot.destroy();
-		let oldContainer = this.container;
+		const oldContainer = this.container;
 		this.container = $("<div class='fullsize' style='overflow:hidden'>");
 		console.log("new cont");
 		if (oldContainer) oldContainer.replaceWith(this.container);
@@ -23,26 +23,26 @@ class TableEditor implements Visualization {
 			.text("Remove all")
 			.click(e => { sim.config.data = []; this.loadData() })
 			.appendTo(this.container);
-		let headerRenderer = function firstRowRenderer(instance: any, td: HTMLTableCellElement) {
+		const headerRenderer = function firstRowRenderer(instance: any, td: HTMLTableCellElement) {
 			Handsontable.renderers.TextRenderer.apply(this, arguments);
 			td.style.fontWeight = 'bold';
 			td.style.background = '#CCC';
 		}
-		let mergeCells: {}[] = [];
-		let ic = net.inputs.length, oc = net.outputs.length;
+		const mergeCells: {}[] = [];
+		const ic = net.inputs.length, oc = net.outputs.length;
 		//console.log(`creating new table (${ic}, ${oc})`);
 		if (ic > 1) mergeCells.push({ row: 0, col: 0, rowspan: 1, colspan: ic });
 		if (oc > 1) {
 			mergeCells.push({ row: 0, col: ic, rowspan: 1, colspan: oc });
 			mergeCells.push({ row: 0, col: ic + oc, rowspan: 1, colspan: oc });
 		}
-		let _conf = <Handsontable.Options>{
+		const _conf = <Handsontable.Options>{
 			minSpareRows: 1,
 			colWidths: ic + oc + oc <= 6 ? 80 : 45,
 			cells: (row, col, prop) => {
 				if (row >= this.headerCount) return { type: 'numeric', format: '0.[000]' };
 				else {
-					let conf: any = { renderer: headerRenderer };
+					const conf: any = { renderer: headerRenderer };
 					if (row == 0) conf.readOnly = true;
 					return conf;
 				}
@@ -69,10 +69,10 @@ class TableEditor implements Visualization {
 		this.loadData();
 	}
 	reparseData() {
-		let sim = this.sim;
-		let data: number[][] = this.hot.getData();
-		let headers = <string[]><any>data[1];
-		let ic = sim.config.inputLayer.neuronCount, oc = sim.config.outputLayer.neuronCount
+		const sim = this.sim;
+		const data: number[][] = this.hot.getData();
+		const headers = <string[]><any>data[1];
+		const ic = sim.config.inputLayer.neuronCount, oc = sim.config.outputLayer.neuronCount
 		sim.config.inputLayer.names = headers.slice(0, ic);
 		sim.config.outputLayer.names = headers.slice(ic, ic + oc);
 		sim.config.data = data.slice(2).map(row => row.slice(0, ic + oc))
@@ -81,14 +81,14 @@ class TableEditor implements Visualization {
 		sim.setIsCustom();
 	}
 	onFrame() {
-		let sim = this.sim;
+		const sim = this.sim;
 		if ((Date.now() - this.lastUpdate) < 500) return;
 		this.lastUpdate = Date.now();
-		let xOffset = sim.config.inputLayer.neuronCount + sim.config.outputLayer.neuronCount;
-		let vals: [number, number, number][] = [];
+		const xOffset = sim.config.inputLayer.neuronCount + sim.config.outputLayer.neuronCount;
+		const vals: [number, number, number][] = [];
 		for (let y = 0; y < sim.config.data.length; y++) {
-			let p = sim.config.data[y];
-			let op = sim.net.getOutput(p.input);
+			const p = sim.config.data[y];
+			const op = sim.net.getOutput(p.input);
 			for (let x = 0; x < op.length; x++) {
 				vals.push([y + this.headerCount, xOffset + x, op[x]]);
 			}
@@ -96,14 +96,14 @@ class TableEditor implements Visualization {
 		this.hot.setDataAtCell(vals, "loadData");
 	}
 	loadData() {
-		let sim = this.sim;
-		let data: (number|string)[][] = [[], sim.config.inputLayer.names.concat(sim.config.outputLayer.names).concat(sim.config.outputLayer.names)];
-		let ic = sim.config.inputLayer.neuronCount, oc = sim.config.outputLayer.neuronCount;
+		const sim = this.sim;
+		const data: (number|string)[][] = [[], sim.config.inputLayer.names.concat(sim.config.outputLayer.names).concat(sim.config.outputLayer.names)];
+		const ic = sim.config.inputLayer.neuronCount, oc = sim.config.outputLayer.neuronCount;
 		data[0][0] = 'Inputs';
 		data[0][ic] = 'Expected Output';
 		data[0][ic + oc + oc - 1] = ' ';
 		data[0][ic + oc] = 'Actual Output';
-		let mergeCells: {}[] = [];
+		const mergeCells: {}[] = [];
 		if (ic > 1) mergeCells.push({ row: 0, col: 0, rowspan: 1, colspan: ic });
 		if (oc > 1) {
 			mergeCells.push({ row: 0, col: ic + oc, rowspan: 1, colspan: oc });

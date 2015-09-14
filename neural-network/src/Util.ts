@@ -10,7 +10,7 @@ module Util {
 		return maxi;
 	}
 	export function arrayWithOneAt(length: int, onePosition: int) {
-		let output = new Array<int>(length);
+		const output = new Array<int>(length);
 		for (let i = 0; i < length; i++) {
 			output[i] = i === onePosition ? 1 : 0;
 		}
@@ -52,12 +52,12 @@ module Util {
 		}
 	};
 	export function benchmark(fun: () => void) {
-		let bef = Date.now();
-		let r = fun();
+		const bef = Date.now();
+		const r = fun();
 		return Date.now() - bef;
 	}
 	export function parseColor(input: string): [number, number, number] {
-		let m = input.match(/^#([0-9a-f]{6})$/i)[1];
+		const m = input.match(/^#([0-9a-f]{6})$/i)[1];
 		if (m) {
 			return [
 				parseInt(m.substr(0, 2), 16),
@@ -73,7 +73,7 @@ module Util {
 	export function parseUrlParameters():{[name:string]:string} {
 		if(!location.search) return {};
 		var query:{[name:string]:string} = {};
-		for (let p of location.search.slice(1).split('&')) {
+		for (const p of location.search.slice(1).split('&')) {
 			var b = p.split('=').map(c => c.replace(/\+/g, ' '));
 			query[decodeURIComponent(b[0])] = decodeURIComponent(b[1]);
 		}
@@ -84,8 +84,8 @@ module Util {
 		return [(x-i.minx)/(i.maxx-i.minx),(y-i.miny)/(i.maxy-i.miny)];
 	}
 	export function normalizeInputs(conf:Configuration) {
-		let data = conf.data;
-		let i = Util.bounds2dTrainingsInput(data);
+		const data = conf.data;
+		const i = Util.bounds2dTrainingsInput(data);
 		data.forEach(data => data.input = normalize(i, data.input[0], data.input[1]));
 		conf.originalBounds = i;
 	}

@@ -30,16 +30,16 @@ class TabSwitchVisualizationContainer {
 		this.things.forEach((thing, thingid) =>
 			thing.actions.forEach((button, buttonid) => {
 				this.modes.push({ thing: thingid, action: buttonid });
-				let a = $("<a>")
+				const a = $("<a>")
 				if(typeof button === 'string') {
 					a.text(button);
 				} else {
 					a.text(button.name).css("background-color", button.color);
-					let dark = Util.parseColor(button.color).reduce((a,b)=>a+b)/3 < 127;
+					const dark = Util.parseColor(button.color).reduce((a,b)=>a+b)/3 < 127;
 					a.css("color", dark?'white':'black');
 				}
 				
-				let li = $("<li>").append(a);
+				const li = $("<li>").append(a);
 				if(!button) li.hide();
 				this.ul.append(li);
 			})
@@ -49,8 +49,8 @@ class TabSwitchVisualizationContainer {
 		this.ul.children("li.custom-active").removeClass("custom-active");
 		this.ul.children().eq(mode).addClass("custom-active");
 		if (mode == this.currentMode) return;
-		let action = this.modes[mode];
-		let lastAction = this.modes[this.currentMode];
+		const action = this.modes[mode];
+		const lastAction = this.modes[this.currentMode];
 		this.currentMode = mode;
 		this.currentVisualization = this.things[action.thing];
 		if (!lastAction || action.thing != lastAction.thing) {
@@ -64,9 +64,9 @@ class TabSwitchVisualizationContainer {
 	}
 	onNetworkLoaded(net: Net.NeuralNet) {
 		//todo: ugly hack
-		let beforeActions = JSON.stringify(this.things.map(t => t.actions));
+		const beforeActions = JSON.stringify(this.things.map(t => t.actions));
 		this.things.forEach(thing => thing.onNetworkLoaded(net));
-		let afterActions = JSON.stringify(this.things.map(t => t.actions));
+		const afterActions = JSON.stringify(this.things.map(t => t.actions));
 		if(beforeActions !== afterActions) {
 			this.createButtonsAndActions();
 			this.currentMode = -1;

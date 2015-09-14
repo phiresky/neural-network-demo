@@ -26,13 +26,13 @@ class Simulation {
 		(<any>$("#learningRate")).slider({
 			min: 0.01, max: 1, step: 0.005, scale: "logarithmic", value: 0.05
 		}).on('change', (e: any) => $("#learningRateVal").text(e.value.newValue.toFixed(3)));
-		for (let name of Presets.getNames())
+		for (const name of Presets.getNames())
 			$("#presetLoader").append($("<li>").append($("<a>").text(name)));
 		$("#presetLoader").on("click", "a", e => {
-			let name = e.target.textContent;
+			const name = e.target.textContent;
 			this.loadPreset(name);
 		});
-		let doSerialize = () => {
+		const doSerialize = () => {
 			this.stop();
 			$("#urlExport").val(this.serializeToUrl(+$("#exportWeights").val()));
 		};
@@ -153,7 +153,7 @@ class Simulation {
 	statusCorrectEle = document.getElementById('statusCorrect');
 	step() {
 		this.stepNum++;
-		for (let val of this.config.data) {
+		for (const val of this.config.data) {
 			this.net.train(val.input, val.output);
 		}
 	}
@@ -199,7 +199,7 @@ class Simulation {
 			this.averageError += Math.sqrt(sum1);
 		}
 		this.averageError /= this.config.data.length;*/
-		for (let val of this.config.data) {
+		for (const val of this.config.data) {
 			this.net.setInputsAndCalculate(val.input);
 			this.averageError += this.net.getLoss(val.output);
 		}
@@ -211,7 +211,7 @@ class Simulation {
 		let correct = 0;
 		if (this.config.outputLayer.neuronCount === 1) {
 			for (var val of this.config.data) {
-				let res = this.net.getOutput(val.input);
+				const res = this.net.getOutput(val.input);
 				if (+(res[0] > 0.5) == val.output[0]) correct++;
 			}
 			this.statusCorrectEle.innerHTML = `Correct: ${correct}/${this.config.data.length}`;
@@ -261,10 +261,10 @@ class Simulation {
 	}
 
 	loadConfig() { // from gui
-		let config = <any>this.config;
-		let oldConfig = $.extend({}, config);
-		for (let conf in config) {
-			let ele = <HTMLInputElement>document.getElementById(conf);
+		const config = <any>this.config;
+		const oldConfig = $.extend({}, config);
+		for (const conf in config) {
+			const ele = <HTMLInputElement>document.getElementById(conf);
 			if (!ele) continue;
 			if (ele.type == 'checkbox') config[conf] = ele.checked;
 			else if (typeof config[conf] === 'number')
@@ -285,9 +285,9 @@ class Simulation {
 		this.initializeNet(weights);
 	}
 	setConfig() { // in gui
-		let config = <any>this.config;
-		for (let conf in config) {
-			let ele = <HTMLInputElement>document.getElementById(conf);
+		const config = <any>this.config;
+		for (const conf in config) {
+			const ele = <HTMLInputElement>document.getElementById(conf);
 			if (!ele) continue;
 			if (ele.type == 'checkbox') ele.checked = config[conf];
 			else ele.value = config[conf];
@@ -304,8 +304,8 @@ class Simulation {
 
 	// 0 = no weights, 1 = current weights, 2 = start weights
 	serializeToUrl(exportWeights = 0) {
-		let url = location.protocol + '//' + location.host + location.pathname + "?";
-		let params: any = {};
+		const url = location.protocol + '//' + location.host + location.pathname + "?";
+		const params: any = {};
 		if (exportWeights === 1) params.weights = LZString.compressToEncodedURIComponent(JSON.stringify(this.net.connections.map(c => c.weight)));
 		if (exportWeights === 2) params.weights = LZString.compressToEncodedURIComponent(JSON.stringify(this.net.startWeights));
 		if (this.isCustom) {
@@ -317,9 +317,9 @@ class Simulation {
 		return url + $.param(params);
 	}
 	deserializeFromUrl() {
-		let urlParams = Util.parseUrlParameters();
-		let preset = urlParams["preset"], config = urlParams["config"];
-		let weightString = urlParams["weights"];
+		const urlParams = Util.parseUrlParameters();
+		const preset = urlParams["preset"], config = urlParams["config"];
+		const weightString = urlParams["weights"];
 		let weights: double[];
 		if (weightString)
 			weights = JSON.parse(LZString.decompressFromEncodedURIComponent(weightString));

@@ -58,11 +58,11 @@ module Net {
 			this.outputs = Util.makeArray(output.neuronCount, i => new OutputNeuron(output.activation, nid++, i, output.names[i]));
 			this.layers.push(this.outputs);
 			for (let i = 0; i < this.layers.length - 1; i++) {
-				let inLayer = this.layers[i];
-				let outLayer = this.layers[i + 1];
+				const inLayer = this.layers[i];
+				const outLayer = this.layers[i + 1];
 				inLayer.push(new InputNeuron(nid++, -1, "Bias", 1));
 
-				for (let input of inLayer) for (let output of outLayer) {
+				for (const input of inLayer) for (const output of outLayer) {
 					var conn = new Net.NeuronConnection(input, output);
 					input.outputs.push(conn);
 					output.inputs.push(conn);
@@ -77,7 +77,7 @@ module Net {
 		setInputsAndCalculate(inputVals: double[]) {
 			for (let i = 0; i < this.inputs.length; i++)
 				this.inputs[i].output = inputVals[i];
-			for (let layer of this.layers.slice(1)) for (let neuron of layer)
+			for (const layer of this.layers.slice(1)) for (const neuron of layer)
 				neuron.calculateOutput();
 		}
 		getOutput(inputVals: double[]) {
@@ -88,7 +88,7 @@ module Net {
 		getLoss(expectedOutput: double[]) {
 			let sum = 0;
 			for (let i = 0; i < this.outputs.length; i++) {
-				let neuron = this.outputs[i];
+				const neuron = this.outputs[i];
 				sum += Math.pow(neuron.output - expectedOutput[i], 2);
 			}
 			return Math.sqrt(sum / this.outputs.length);
@@ -99,13 +99,13 @@ module Net {
 			for (var i = 0; i < this.outputs.length; i++)
 				this.outputs[i].targetOutput = expectedOutput[i];
 			for (let i = this.layers.length - 1; i > 0; i--) {
-				for (let neuron of this.layers[i]) {
+				for (const neuron of this.layers[i]) {
 					neuron.calculateError();
-					for (let conn of neuron.inputs)
+					for (const conn of neuron.inputs)
 						conn.calculateDeltaWeight(this.learnRate);
 				}
 			}
-			for (let conn of this.connections) conn.weight += conn.deltaWeight;
+			for (const conn of this.connections) conn.weight += conn.deltaWeight;
 		}
 	}
 
@@ -128,7 +128,7 @@ module Net {
 
 		calculateWeightedInputs() {
 			this.weightedInputs = 0;
-			for (let conn of this.inputs) {
+			for (const conn of this.inputs) {
 				this.weightedInputs += conn.inp.output * conn.weight;
 			}
 		}
@@ -139,7 +139,7 @@ module Net {
 
 		calculateError() {
 			var δ = 0;
-			for (let output of this.outputs) {
+			for (const output of this.outputs) {
 				δ += output.out.error * output.weight;
 			}
 			this.error = δ * NonLinearities[this.activation].df(this.weightedInputs);

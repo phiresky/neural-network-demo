@@ -1,4 +1,4 @@
-declare let vis:any; // vis.js library
+declare const vis:any; // vis.js library
 class NetworkGraph implements Visualization {
 	actions = ["Network Graph"];
 	graph:any; //vis.Network
@@ -13,10 +13,10 @@ class NetworkGraph implements Visualization {
 	instantiateGraph() {
 		this.nodes = new vis.DataSet([], {queue:true});
 		this.edges = new vis.DataSet([], {queue:true});
-		let graphData = {
+		const graphData = {
 			nodes: this.nodes,
 			edges: this.edges };
-		let options = {
+		const options = {
 			nodes: { shape: 'dot' },
 			edges: { 
 				smooth: {type: 'curvedCW',roundness:0},
@@ -47,9 +47,9 @@ class NetworkGraph implements Visualization {
 		this.edges.clear();
 		this.net = net;
 		for (let lid = 0; lid < net.layers.length; lid++) {
-			let layer = net.layers[lid];
+			const layer = net.layers[lid];
 			for (let nid = 0; nid < layer.length; nid++) {
-				let neuron = layer[nid];
+				const neuron = layer[nid];
 				let type = 'Hidden Neuron '+(nid+1);
 				let color = '#000';
 				if (neuron instanceof Net.InputNeuron) {
@@ -70,7 +70,7 @@ class NetworkGraph implements Visualization {
 				});
 			}
 		}
-		for (let conn of net.connections) {
+		for (const conn of net.connections) {
 			this.edges.add({
 				id: conn.inp.id * net.connections.length + conn.out.id,
 				from: conn.inp.id,
@@ -89,7 +89,7 @@ class NetworkGraph implements Visualization {
 			// skip some frames because slow
 			return;
 		}
-		for (let conn of this.net.connections) {
+		for (const conn of this.net.connections) {
 			this.edges.update({
 				id: conn.inp.id * this.net.connections.length + conn.out.id,
 				label: conn.weight.toFixed(2),

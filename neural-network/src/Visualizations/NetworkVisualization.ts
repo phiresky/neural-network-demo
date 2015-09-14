@@ -35,7 +35,7 @@ class NetworkVisualization implements Visualization {
 	}
 
 	constructor(public sim: Simulation) {
-		let tmp = NetworkVisualization.colors.multiClass;
+		const tmp = NetworkVisualization.colors.multiClass;
 		tmp.bg = tmp.fg.map(c => Util.printColor(<any>Util.parseColor(c).map(x => (x*1.3)|0))); 
 		this.canvas = <HTMLCanvasElement>$("<canvas class=fullsize>")[0];
 		this.canvas.width = 550;
@@ -65,7 +65,7 @@ class NetworkVisualization implements Visualization {
 			case NetType.MultiClass:
 				this.actions = [];
 				let i = 0;
-				for(let name of this.sim.config.outputLayer.names)
+				for(const name of this.sim.config.outputLayer.names)
 					this.actions.push({name:name, color:NetworkVisualization.colors.multiClass.bg[i++]});
 				this.actions.push("Remove");
 				this.actions.push("Move View");
@@ -95,20 +95,20 @@ class NetworkVisualization implements Visualization {
 	drawDataPoints() {
 		this.ctx.strokeStyle = "#000";
 		if (this.netType === NetType.BinaryClassify) {
-			for (let val of this.sim.config.data) {
+			for (const val of this.sim.config.data) {
 				this.drawPoint(val.input[0], val.input[1], NetworkVisualization.colors.binaryClassify.fg[val.output[0] | 0]);
 			}
 		} else if (this.netType === NetType.AutoEncode) {
-			for (let val of this.sim.config.data) {
-				let ix = val.input[0], iy = val.input[1];
-				let out = this.sim.net.getOutput(val.input);
-				let ox = out[0], oy = out[1];
+			for (const val of this.sim.config.data) {
+				const ix = val.input[0], iy = val.input[1];
+				const out = this.sim.net.getOutput(val.input);
+				const ox = out[0], oy = out[1];
 				this.drawLine(ix, iy, ox, oy, "black");
 				this.drawPoint(ix, iy, NetworkVisualization.colors.autoencoder.input);
 				this.drawPoint(ox, oy, NetworkVisualization.colors.autoencoder.output);
 			}
 		} else if(this.netType === NetType.MultiClass) {
-			for (let val of this.sim.config.data) {
+			for (const val of this.sim.config.data) {
 				this.drawPoint(val.input[0], val.input[1], NetworkVisualization.colors.multiClass.fg[Util.getMaxIndex(val.output)]);
 			}
 		} else {
@@ -148,8 +148,8 @@ class NetworkVisualization implements Visualization {
 		if(this.sim.config.outputLayer.neuronCount > 2) {
 		for (let x = 0; x < this.canvas.width; x += this.backgroundResolution) {
 			for (let y = 0; y < this.canvas.height; y += this.backgroundResolution) {
-				let vals = this.sim.net.getOutput([this.trafo.toReal.x(x + this.backgroundResolution / 2), this.trafo.toReal.y(y + this.backgroundResolution / 2)]);
-				let maxi = Util.getMaxIndex(vals);
+				const vals = this.sim.net.getOutput([this.trafo.toReal.x(x + this.backgroundResolution / 2), this.trafo.toReal.y(y + this.backgroundResolution / 2)]);
+				const maxi = Util.getMaxIndex(vals);
 				this.ctx.fillStyle = NetworkVisualization.colors.multiClass.bg[maxi];
 				this.ctx.fillRect(x, y, this.backgroundResolution, this.backgroundResolution);
 			}
@@ -157,7 +157,7 @@ class NetworkVisualization implements Visualization {
 		} else {
 		for (let x = 0; x < this.canvas.width; x += this.backgroundResolution) {
 			for (let y = 0; y < this.canvas.height; y += this.backgroundResolution) {
-				let val = this.sim.net.getOutput([this.trafo.toReal.x(x + this.backgroundResolution / 2), this.trafo.toReal.y(y + this.backgroundResolution / 2)])[0];
+				const val = this.sim.net.getOutput([this.trafo.toReal.x(x + this.backgroundResolution / 2), this.trafo.toReal.y(y + this.backgroundResolution / 2)])[0];
 
 				if (this.sim.config.showGradient) {
 					this.ctx.fillStyle = NetworkVisualization.colors.binaryClassify.gradient(val);
@@ -167,8 +167,8 @@ class NetworkVisualization implements Visualization {
 		}}
 	}
 	drawCoordinateSystem() {
-		let marklen = 0.2;
-		let ctx = this.ctx, toc = this.trafo.toCanvas;
+		const marklen = 0.2;
+		const ctx = this.ctx, toc = this.trafo.toCanvas;
 		ctx.strokeStyle = "#000";
 		ctx.fillStyle = "#000";
 		ctx.textBaseline = "middle";
@@ -201,9 +201,9 @@ class NetworkVisualization implements Visualization {
 		if(this.sim.config.data.length < 3) return;
 		// update transform
 		if(this.sim.config.inputLayer.neuronCount == 2) {
-			let fillamount = 0.6;
-			let bounds = Util.bounds2dTrainingsInput(this.sim.config.data);
-			let w = bounds.maxx - bounds.minx, h = bounds.maxy - bounds.miny;
+			const fillamount = 0.6;
+			const bounds = Util.bounds2dTrainingsInput(this.sim.config.data);
+			const w = bounds.maxx - bounds.minx, h = bounds.maxy - bounds.miny;
 			this.trafo.scalex = this.canvas.width / w * fillamount;
 			this.trafo.scaley = - this.canvas.height / h * fillamount;
 			this.trafo.offsetx -= this.trafo.toCanvas.x(bounds.minx - w*(1-fillamount)/1.5);// / bounds.minx;
@@ -212,17 +212,17 @@ class NetworkVisualization implements Visualization {
 	}
 	canvasClicked(evt: MouseEvent) {
 		evt.preventDefault();
-		let data = this.sim.config.data;
-		let rect = this.canvas.getBoundingClientRect();
-		let x = this.trafo.toReal.x(evt.clientX - rect.left);
-		let y = this.trafo.toReal.y(evt.clientY - rect.top);
-		let removeMode = this.actions.length - 2;
+		const data = this.sim.config.data;
+		const rect = this.canvas.getBoundingClientRect();
+		const x = this.trafo.toReal.x(evt.clientX - rect.left);
+		const y = this.trafo.toReal.y(evt.clientY - rect.top);
+		const removeMode = this.actions.length - 2;
 		if (this.inputMode === removeMode || evt.button == 2 || evt.shiftKey) {
 			//remove nearest
 			let nearestDist = Infinity, nearest = -1;
 			for (let i = 0; i < data.length; i++) {
-				let p = data[i];
-				let dx = p.input[0] - x, dy = p.input[1] - y, dist = dx * dx + dy * dy;
+				const p = data[i];
+				const dx = p.input[0] - x, dy = p.input[1] - y, dist = dx * dx + dy * dy;
 				if (dist < nearestDist) nearest = i, nearestDist = dist;
 			}
 			if (nearest >= 0) data.splice(nearest, 1);
@@ -231,7 +231,7 @@ class NetworkVisualization implements Visualization {
 			if (this.netType === NetType.AutoEncode) {
 				data.push({ input: [x, y], output: [x, y] });
 			} else {
-				let inv = (x: int) => x == 0 ? 1 : 0;
+				const inv = (x: int) => x == 0 ? 1 : 0;
 				let label = this.inputMode;
 				if (evt.button != 0) label = inv(label);
 				if (evt.ctrlKey || evt.metaKey || evt.altKey) label = inv(label);
