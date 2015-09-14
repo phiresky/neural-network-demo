@@ -1079,8 +1079,7 @@ var NetworkGraph = (function () {
         this.instantiateGraph();
     }
     NetworkGraph.prototype.instantiateGraph = function () {
-        // need only be run once, but removes bounciness if run every time
-        this.nodes = new vis.DataSet([], { queue: true }); // don't use clear (listener leak)
+        this.nodes = new vis.DataSet([], { queue: true });
         this.edges = new vis.DataSet([], { queue: true });
         var graphData = {
             nodes: this.nodes,
@@ -1109,7 +1108,8 @@ var NetworkGraph = (function () {
             return;
         }
         this.showbias = this.sim.config.bias;
-        this.instantiateGraph();
+        this.nodes.clear();
+        this.edges.clear();
         this.net = net;
         for (var lid = 0; lid < net.layers.length; lid++) {
             var layer = net.layers[lid];
@@ -1149,6 +1149,8 @@ var NetworkGraph = (function () {
         }
         this.nodes.flush();
         this.edges.flush();
+        this.graph.stabilize();
+        this.graph.fit();
     };
     NetworkGraph.prototype.onFrame = function (framenum) {
         if (this.net.connections.length > 20 && framenum % 15 !== 0) {

@@ -11,8 +11,7 @@ class NetworkGraph implements Visualization {
 		this.instantiateGraph();
 	}
 	instantiateGraph() {
-		// need only be run once, but removes bounciness if run every time
-		this.nodes = new vis.DataSet([], {queue:true}); // don't use clear (listener leak)
+		this.nodes = new vis.DataSet([], {queue:true});
 		this.edges = new vis.DataSet([], {queue:true});
 		let graphData = {
 			nodes: this.nodes,
@@ -27,6 +26,7 @@ class NetworkGraph implements Visualization {
 				}*/
 			},
 			layout: { hierarchical: { direction: "LR" } },
+
 			interaction: { dragNodes: false }
 		}
 		if(this.graph) this.graph.destroy();
@@ -43,7 +43,8 @@ class NetworkGraph implements Visualization {
 			return;
 		}
 		this.showbias = this.sim.config.bias;
-		this.instantiateGraph();
+		this.nodes.clear();
+		this.edges.clear();
 		this.net = net;
 		for (let lid = 0; lid < net.layers.length; lid++) {
 			let layer = net.layers[lid];
@@ -80,6 +81,8 @@ class NetworkGraph implements Visualization {
 		}
 		this.nodes.flush();
 		this.edges.flush();
+		this.graph.stabilize();
+		this.graph.fit();
 	}
 	onFrame(framenum:int) {
 		if(this.net.connections.length > 20 && framenum % 15 !== 0) {
