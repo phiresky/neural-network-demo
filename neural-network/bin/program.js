@@ -22,11 +22,10 @@ function checkSanity() {
         throw "insanity!";
     return "ok";
 }
-var __extends = this.__extends || function (d, b) {
+var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
-    __.prototype = b.prototype;
-    d.prototype = new __();
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 // this neural network uses stochastic gradient descent with the squared error as the loss function
 var Net;
@@ -652,7 +651,7 @@ var Simulation = (function () {
         });
         var doSerialize = function () {
             _this.stop();
-            $("#urlExport").text(_this.serializeToUrl(+$("#exportWeights").val()));
+            $("#urlExport").val(_this.serializeToUrl(+$("#exportWeights").val()));
         };
         $("#exportModal").on("shown.bs.modal", doSerialize);
         $("#exportModal select").on("change", doSerialize);

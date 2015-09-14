@@ -34,7 +34,7 @@ class Simulation {
 		});
 		let doSerialize = () => {
 			this.stop();
-			$("#urlExport").text(this.serializeToUrl(+$("#exportWeights").val()));
+			$("#urlExport").val(this.serializeToUrl(+$("#exportWeights").val()));
 		};
 		$("#exportModal").on("shown.bs.modal", doSerialize);
 		$("#exportModal select").on("change", doSerialize);
