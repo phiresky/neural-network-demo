@@ -686,6 +686,7 @@ var Simulation = (function () {
                     var conf = JSON.parse(text);
                     _this.config = conf;
                     $("#exportModal").modal('hide');
+                    $("#presetName").text(file.name);
                     _this.setConfig();
                     _this.initializeNet();
                 }
@@ -732,6 +733,7 @@ var Simulation = (function () {
                     }
                     _this.config.data = trainingsData;
                     _this.table.loadData();
+                    $("#presetName").text(file.name);
                     $("#exportModal").modal('hide');
                 }
                 catch (e) {

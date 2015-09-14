@@ -67,6 +67,7 @@ class Simulation {
 					const conf = JSON.parse(text);
 					this.config = conf;
 					$("#exportModal").modal('hide');
+					$("#presetName").text(file.name);
 					this.setConfig();
 					this.initializeNet();
 				} catch (e) {
@@ -110,6 +111,7 @@ class Simulation {
 					}
 					this.config.data = trainingsData;
 					this.table.loadData();
+					$("#presetName").text(file.name);
 					$("#exportModal").modal('hide');
 				} catch (e) {
 					ioError("Error while reading " + file.name + ": " + e);
