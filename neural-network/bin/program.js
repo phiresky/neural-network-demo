@@ -1507,7 +1507,7 @@ var TableEditor = (function () {
                     return conf;
                 }
             },
-            customBorders: false /*[{ // bug when larger than ~4
+            /*customBorders: false[{ // bug when larger than ~4
                 range: {
                     from: { row: 0, col: ic },
                     to: { row: 100, col: ic }
@@ -1519,7 +1519,7 @@ var TableEditor = (function () {
                         to: { row: 100, col: ic + oc }
                     },
                     left: { width: 2, color: 'black' }
-                }]*/,
+                }],*/
             allowInvalid: false,
             mergeCells: mergeCells,
             afterChange: this.afterChange.bind(this)

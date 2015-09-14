@@ -1,0 +1,24 @@
+{
+  "version": "v4",
+  "repo": "borisyankov/DefinitelyTyped",
+  "ref": "master",
+  "path": "typings",
+  "bundle": "typings/tsd.d.ts",
+  "installed": {
+    "react/react.d.ts": {
+      "commit": "7a3ca1f0b8a0960af9fc1838f3234cc9d6ce0645"
+    },
+    "highcharts/highcharts.d.ts": {
+      "commit": "7a3ca1f0b8a0960af9fc1838f3234cc9d6ce0645"
+    },
+    "jquery-handsontable/jquery-handsontable.d.ts": {
+      "commit": "7a3ca1f0b8a0960af9fc1838f3234cc9d6ce0645"
+    },
+    "jquery/jquery.d.ts": {
+      "commit": "7a3ca1f0b8a0960af9fc1838f3234cc9d6ce0645"
+    },
+    "highcharts/highstock.d.ts": {
+      "commit": "7a3ca1f0b8a0960af9fc1838f3234cc9d6ce0645"
+    }
+  }
+}

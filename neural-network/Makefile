@@ -1,13 +1,19 @@
-all: bin/styles.min.css bin/program.js bin/libs.min.js
-
-bin/styles.min.css: lib/bootstrap.min.css lib/bootstrap-slider.min.css lib/vis.min.css lib/handsontable.full.min.css
-	cat $^ > bin/styles.min.css
+all: bin/libs.css bin/program.js bin/libs.js
 
 bin/program.js:
 	tsc
 
-bin/libs.min.js: lib/jquery.min.js lib/bootstrap.min.js lib/bootstrap-slider.min.js lib/vis.min.js lib/handsontable.full.min.js lib/lz-string.min.js lib/highstock.min.js
-	cat $^ > bin/libs.min.js
+bin/libs.css: lib/bower_components/bootstrap/dist/css/bootstrap.min.css \
+		lib/bower_components/seiyria-bootstrap-slider/dist/css/bootstrap-slider.min.css lib/bower_components/vis/dist/vis.min.css \
+		lib/bower_components/handsontable/dist/handsontable.full.min.css
+	paste -d '\n' -s $^ > bin/libs.css
+
+
+bin/libs.js: lib/bower_components/jquery/dist/jquery.min.js lib/bower_components/bootstrap/dist/js/bootstrap.min.js \
+		lib/bower_components/seiyria-bootstrap-slider/dist/bootstrap-slider.min.js lib/bower_components/vis/dist/vis.min.js \
+		lib/bower_components/handsontable/dist/handsontable.full.min.js \
+		lib/bower_components/lz-string/libs/lz-string.min.js lib/bower_components/highstock/highstock.js
+	paste -d '\n' -s $^ > bin/libs.js
 
 watch:
 	tsc --watch

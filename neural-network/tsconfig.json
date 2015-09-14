@@ -8,12 +8,7 @@
 		"module": "amd"
 	},
 	"files": [
-		"./lib/typings/highcharts/highcharts.d.ts",
-		"./lib/typings/highcharts/highstock.d.ts",
-		"./lib/typings/jquery-handsontable/jquery-handsontable.d.ts",
-		"./lib/typings/jquery/jquery.d.ts",
-		"./lib/typings/react/react-global.d.ts",
-		"./lib/typings/sigmajs/sigmajs.d.ts",
+		"./lib/typings/tsd.d.ts",
 		"./src/main.ts",
 		"./src/Net.ts",
 		"./src/NeuronGui.ts",

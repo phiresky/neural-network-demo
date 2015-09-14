@@ -36,7 +36,7 @@ class TableEditor implements Visualization {
 			mergeCells.push({ row: 0, col: ic, rowspan: 1, colspan: oc });
 			mergeCells.push({ row: 0, col: ic + oc, rowspan: 1, colspan: oc });
 		}
-		let _conf: Handsontable.Options = {
+		let _conf = <Handsontable.Options>{
 			minSpareRows: 1,
 			colWidths: ic + oc + oc <= 6 ? 80 : 45,
 			cells: (row, col, prop) => {
@@ -47,7 +47,7 @@ class TableEditor implements Visualization {
 					return conf;
 				}
 			},
-			customBorders: false/*[{ // bug when larger than ~4
+			/*customBorders: false[{ // bug when larger than ~4
 				range: {
 					from: { row: 0, col: ic },
 					to: { row: 100, col: ic }
@@ -59,7 +59,7 @@ class TableEditor implements Visualization {
 						to: { row: 100, col: ic + oc }
 					},
 					left: { width: 2, color: 'black' }
-				}]*/,
+				}],*/
 			allowInvalid: false,
 			mergeCells: mergeCells,
 			afterChange: this.afterChange.bind(this)

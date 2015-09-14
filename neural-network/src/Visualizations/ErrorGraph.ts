@@ -3,7 +3,7 @@ class ErrorGraph implements Visualization {
 	actions = ["Error History"];
 	container = $("<div>");
 	constructor(public sim: Simulation) {
-		this.container.highcharts({
+		this.container.highcharts(<any>{
 			title: { text: 'Average RMSE' },
 			chart: { type: 'line', animation: false },
 			plotOptions: { line: { marker: { enabled: false } } },

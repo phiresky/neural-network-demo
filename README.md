@@ -6,6 +6,13 @@ This repository contains various demonstrations for the lecture “Kognitive Sys
 
 The compiled files are included in `*/bin/`
 
-### Dependencies
+```bash
+sudo npm -g install typescript bower tsd
+(cd lib
+	tsd install
+	bower install
+)
+```
 
-    sudo npm -g install typescript uglify-js
+Then build via `make` or `make watch`
+
