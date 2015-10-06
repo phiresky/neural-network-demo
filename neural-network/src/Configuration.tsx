@@ -1,4 +1,3 @@
-//class NumberInput extends React.Component<{name:string, min:number, max:number, , {}
 class BSFormGroup extends React.Component<{
 		label: string, children?: any, id:string, isStatic?:boolean
 	}, {}> {
@@ -34,8 +33,8 @@ class ConfigurationGui extends React.Component<Configuration, {}> {
 				<div className="col-sm-6">
 					<h4>Net</h4>
 					<BSFormGroup id="learningRate" label="Learning Rate" isStatic>
-						<span id="learningRateVal" style={{marginRight: '1em'}}>{conf.learningRate}</span>
-						<input type="range" min={0.01} max={1} step={0.01} id="learningRate" value={""+conf.learningRate} onChange={loadConfig} />
+						<span id="learningRateVal" style={{marginRight: '1em'}}>{conf.learningRate.toFixed(3)}</span>
+						<input type="range" min={0.005} max={1} step={0.005} id="learningRate" value={Util.logScale(conf.learningRate)+""} onChange={loadConfig} />
 					</BSFormGroup>
 					<BSFormGroup label="Show bias input" id="bias" isStatic>
 						<input type="checkbox" checked={conf.bias} id="bias" onChange={() => {loadConfig(); sim.initializeNet()}} />
@@ -50,7 +49,8 @@ class NeuronLayer extends React.Component<{
 		layer: {neuronCount: number, activation?: string},
 		name: string,
 		activationChanged: (activation: string) => void,
-		countChanged: (delta: number) => void
+		countChanged: (delta: number) => void,
+		key?: number
 	}, {}> {
 	render() {
 		const p = this.props;
@@ -121,7 +121,7 @@ class NeuronGui extends React.Component<Configuration, {}> {
 			<button className="btn btn-xs btn-default" onClick={()=>this.removeLayer()}>-</button>
 			<NeuronLayer layer={conf.inputLayer} name="Input" {...neuronListeners(-1)} />
 			{conf.hiddenLayers.map((layer,i) => 
-				<NeuronLayer layer={layer} name="Hidden" {...neuronListeners(i)} />
+				<NeuronLayer key={i} layer={layer} name="Hidden" {...neuronListeners(i)} />
 			)}
 			<NeuronLayer layer={conf.outputLayer} name="Output" {...neuronListeners(conf.hiddenLayers.length)} />
 		</div>;

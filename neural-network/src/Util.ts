@@ -97,4 +97,11 @@ module Util {
 			return `"${s}"`;
 		else return s;
 	}
+	
+	export function logScale(n:number) {
+		return Math.log(n*9 + 1)/Math.LN10;
+	}
+	export function expScale(n:number) {
+		return (Math.pow(10, n) - 1) / 9;
+	}
 }

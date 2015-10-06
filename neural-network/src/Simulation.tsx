@@ -263,6 +263,7 @@ class Simulation {
 				config[conf] = +ele.value;
 			else config[conf] = ele.value;
 		}
+		this.config.learningRate = Util.expScale(this.config.learningRate);
 		if (oldConfig.simType != config.simType) config.data = [];
 		if (this.net) this.net.learnRate = this.config.learningRate;
 		if (!this.config.autoRestart) clearTimeout(this.restartTimeout);

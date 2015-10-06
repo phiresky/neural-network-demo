@@ -805,6 +805,7 @@ var Simulation = (function () {
             else
                 config[conf] = ele.value;
         }
+        this.config.learningRate = Util.expScale(this.config.learningRate);
         if (oldConfig.simType != config.simType)
             config.data = [];
         if (this.net)
@@ -1033,8 +1034,15 @@ var Util;
             return s;
     }
     Util.csvSanitize = csvSanitize;
+    function logScale(n) {
+        return Math.log(n * 9 + 1) / Math.LN10;
+    }
+    Util.logScale = logScale;
+    function expScale(n) {
+        return (Math.pow(10, n) - 1) / 9;
+    }
+    Util.expScale = expScale;
 })(Util || (Util = {}));
-//class NumberInput extends React.Component<{name:string, min:number, max:number, , {}
 var BSFormGroup = (function (_super) {
     __extends(BSFormGroup, _super);
     function BSFormGroup() {
@@ -1053,7 +1061,7 @@ var ConfigurationGui = (function (_super) {
     ConfigurationGui.prototype.render = function () {
         var conf = this.props;
         var loadConfig = function () { return sim.loadConfig(); };
-        return React.createElement("div", {"className": "form-horizontal"}, React.createElement("div", {"className": "col-sm-6"}, React.createElement("h4", null, "Display"), React.createElement(BSFormGroup, {"label": "Iterations per click on 'Step'", "id": "iterationsPerClick"}, React.createElement("input", {"className": "form-control", "type": "number", "min": 0, "max": 10000, "id": "iterationsPerClick", "value": "" + conf.iterationsPerClick, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Steps per Frame", "id": "stepsPerFrame"}, React.createElement("input", {"className": "form-control", "type": "number", "min": 1, "max": 1000, "id": "stepsPerFrame", "value": "" + conf.stepsPerFrame, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "When correct, restart after 5 seconds", "id": "autoRestart", "isStatic": true}, React.createElement("input", {"type": "checkbox", "id": "autoRestart", "checked": conf.autoRestart, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Show class propabilities as gradient", "id": "showGradient", "isStatic": true}, React.createElement("input", {"type": "checkbox", "checked": conf.showGradient, "id": "showGradient", "onChange": function () { loadConfig(); sim.onFrame(false); }})), React.createElement("button", {"className": "btn btn-default", "data-toggle": "modal", "data-target": "#exportModal"}, "Import / Export")), React.createElement("div", {"className": "col-sm-6"}, React.createElement("h4", null, "Net"), React.createElement(BSFormGroup, {"id": "learningRate", "label": "Learning Rate", "isStatic": true}, React.createElement("span", {"id": "learningRateVal", "style": { marginRight: '1em' }}, conf.learningRate), React.createElement("input", {"type": "range", "min": 0.01, "max": 1, "step": 0.01, "id": "learningRate", "value": "" + conf.learningRate, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Show bias input", "id": "bias", "isStatic": true}, React.createElement("input", {"type": "checkbox", "checked": conf.bias, "id": "bias", "onChange": function () { loadConfig(); sim.initializeNet(); }})), React.createElement(NeuronGui, React.__spread({}, this.props))));
+        return React.createElement("div", {"className": "form-horizontal"}, React.createElement("div", {"className": "col-sm-6"}, React.createElement("h4", null, "Display"), React.createElement(BSFormGroup, {"label": "Iterations per click on 'Step'", "id": "iterationsPerClick"}, React.createElement("input", {"className": "form-control", "type": "number", "min": 0, "max": 10000, "id": "iterationsPerClick", "value": "" + conf.iterationsPerClick, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Steps per Frame", "id": "stepsPerFrame"}, React.createElement("input", {"className": "form-control", "type": "number", "min": 1, "max": 1000, "id": "stepsPerFrame", "value": "" + conf.stepsPerFrame, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "When correct, restart after 5 seconds", "id": "autoRestart", "isStatic": true}, React.createElement("input", {"type": "checkbox", "id": "autoRestart", "checked": conf.autoRestart, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Show class propabilities as gradient", "id": "showGradient", "isStatic": true}, React.createElement("input", {"type": "checkbox", "checked": conf.showGradient, "id": "showGradient", "onChange": function () { loadConfig(); sim.onFrame(false); }})), React.createElement("button", {"className": "btn btn-default", "data-toggle": "modal", "data-target": "#exportModal"}, "Import / Export")), React.createElement("div", {"className": "col-sm-6"}, React.createElement("h4", null, "Net"), React.createElement(BSFormGroup, {"id": "learningRate", "label": "Learning Rate", "isStatic": true}, React.createElement("span", {"id": "learningRateVal", "style": { marginRight: '1em' }}, conf.learningRate.toFixed(3)), React.createElement("input", {"type": "range", "min": 0.005, "max": 1, "step": 0.005, "id": "learningRate", "value": Util.logScale(conf.learningRate) + "", "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Show bias input", "id": "bias", "isStatic": true}, React.createElement("input", {"type": "checkbox", "checked": conf.bias, "id": "bias", "onChange": function () { loadConfig(); sim.initializeNet(); }})), React.createElement(NeuronGui, React.__spread({}, this.props))));
     };
     return ConfigurationGui;
 })(React.Component);
@@ -1125,7 +1133,7 @@ var NeuronGui = (function (_super) {
             countChanged: function (c) { return _this.countChanged(i, c); }
         }); };
         return React.createElement("div", null, (conf.hiddenLayers.length + 2) + " layers ", React.createElement("button", {"className": "btn btn-xs btn-default", "onClick": function () { return _this.addLayer(); }}, "+"), React.createElement("button", {"className": "btn btn-xs btn-default", "onClick": function () { return _this.removeLayer(); }}, "-"), React.createElement(NeuronLayer, React.__spread({"layer": conf.inputLayer, "name": "Input"}, neuronListeners(-1))), conf.hiddenLayers.map(function (layer, i) {
-            return React.createElement(NeuronLayer, React.__spread({"layer": layer, "name": "Hidden"}, neuronListeners(i)));
+            return React.createElement(NeuronLayer, React.__spread({"key": i, "layer": layer, "name": "Hidden"}, neuronListeners(i)));
         }), React.createElement(NeuronLayer, React.__spread({"layer": conf.outputLayer, "name": "Output"}, neuronListeners(conf.hiddenLayers.length))));
     };
     return NeuronGui;
