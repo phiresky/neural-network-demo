@@ -27,3 +27,8 @@ function checkSanity() {
 	if (realout.every((e, i) => e !== out[i])) throw "insanity!";
 	return "ok";
 }
+
+function enableDev() {
+	localStorage.setItem("dev", "true");
+	location.reload();
+}

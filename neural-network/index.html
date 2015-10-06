@@ -144,7 +144,14 @@
 		</div>
 	</div>
 </div>
-<script src="bin/libs.js"></script>
+<script>
+	var libs = ["bin/libs.js"];
+	if(localStorage["dev"]) {
+		libs = "jquery/dist/jquery.min,bootstrap/dist/js/bootstrap,vis/dist/vis,handsontable/dist/handsontable.full,lz-string/libs/lz-string,highstock/highstock.src,react/react".split(",")
+		.map(function(s) { return "lib/bower_components/"+s+".js"})
+	}
+	document.writeln.apply(document, libs.map(function(s) { return "<script src='"+s+"'></"+"script>"}));
+</script>
 <script src="bin/program.js"></script>
 <script>
 	// Use Ghostery / µBlock Origin or Google Analytics opt out
