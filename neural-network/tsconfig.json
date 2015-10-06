@@ -12,7 +12,7 @@
 		"./src/main.ts",
 		"./src/Net.ts",
 		"./src/Presets.ts",
-		"./src/Simulation.ts",
+		"./src/Simulation.tsx",
 		"./src/TransformNavigation.ts",
 		"./src/Util.ts",
 		"./src/Configuration.tsx",

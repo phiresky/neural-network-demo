@@ -16,21 +16,15 @@ module Util {
 		}
 		return output;
 	}
-	export function min(input: double[]) {
-		return input.reduce((a, b) => Math.min(a, b), Infinity);
-	}
-	export function max(input: double[]) {
-		return input.reduce((a, b) => Math.max(a, b), -Infinity);
-	}
 	export interface Bounds {
 		minx:double, maxx:double, miny:double, maxy:double
 	}
 	export function bounds2dTrainingsInput(data: TrainingData[]):Bounds {
 		return {
-			minx: Util.min(data.map(d => d.input[0])),
-			miny: Util.min(data.map(d => d.input[1])),
-			maxx: Util.max(data.map(d => d.input[0])),
-			maxy: Util.max(data.map(d => d.input[1]))
+			minx: Math.min(...data.map(d => d.input[0])),
+			miny: Math.min(...data.map(d => d.input[1])),
+			maxx: Math.max(...data.map(d => d.input[0])),
+			maxy: Math.max(...data.map(d => d.input[1]))
 		}
 	}
 	let _nextGaussian: double;

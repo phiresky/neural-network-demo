@@ -14,7 +14,7 @@ class ConfigurationGui extends React.Component<Configuration, {}> {
 	render() {
 		const conf = this.props;
 		const loadConfig = () => sim.loadConfig();
-		return <div id="configuration" className="form-horizontal">
+		return <div className="form-horizontal">
 				<div className="col-sm-6">
 					<h4>Display</h4>
 					<BSFormGroup label="Iterations per click on 'Step'" id="iterationsPerClick">

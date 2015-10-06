@@ -23,10 +23,8 @@ class Simulation {
 	constructor(autoRun: boolean) {
 		for (const name of Presets.getNames())
 			$("#presetLoader").append($("<li>").append($("<a>").text(name)));
-		$("#presetLoader").on("click", "a", e => {
-			const name = e.target.textContent;
-			this.loadPreset(name);
-		});
+		$("#presetLoader").on("click", "a", e => this.loadPreset(e.target.textContent));
+
 		const doSerialize = () => {
 			this.stop();
 			$("#urlExport").val(this.serializeToUrl(+$("#exportWeights").val()));
@@ -52,7 +50,7 @@ class Simulation {
 		});
 		$("#exportModal .importJSON").change(e => {
 			const ev = e.originalEvent;
-			const files = (<HTMLInputElement>ev.target).files;
+			const files = (ev.target as HTMLInputElement).files;
 			if (files.length !== 1) ioError("invalid selection");
 			const file = files.item(0);
 			const r = new FileReader();
@@ -73,13 +71,13 @@ class Simulation {
 		});
 		$("#exportModal .importCSV").change(e => {
 			const ev = e.originalEvent;
-			const files = (<HTMLInputElement>ev.target).files;
+			const files = (ev.target as HTMLInputElement).files;
 			if (files.length !== 1) ioError("invalid selection");
 			const file = files.item(0);
 			const r = new FileReader();
 			r.onload = t => {
 				try {
-					const text = <string>r.result;
+					const text = r.result as string;
 					const data = text.split("\n").map(l => l.split(","));
 					const lens = data.map(l => l.length);
 					const len = Math.min(...lens);
@@ -255,10 +253,10 @@ class Simulation {
 	}
 
 	loadConfig() { // from gui
-		const config = <any>this.config;
+		const config = this.config as any;
 		const oldConfig = $.extend({}, config);
 		for (const conf in config) {
-			const ele = <HTMLInputElement>document.getElementById(conf);
+			const ele = document.getElementById(conf) as HTMLInputElement;
 			if (!ele) continue;
 			if (ele.type == 'checkbox') config[conf] = ele.checked;
 			else if (typeof config[conf] === 'number')
