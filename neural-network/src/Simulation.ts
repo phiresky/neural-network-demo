@@ -14,7 +14,6 @@ class Simulation {
 	averageError = 1;
 
 	net: Net.NeuralNet;
-	neuronGui: NeuronGui;
 	config: Configuration;
 	leftVis: TabSwitchVisualizationContainer;
 	rightVis: TabSwitchVisualizationContainer;
@@ -23,9 +22,6 @@ class Simulation {
 	errorHistory: [number, number][];
 
 	constructor(autoRun: boolean) {
-		(<any>$("#learningRate")).slider({
-			min: 0.01, max: 1, step: 0.005, scale: "logarithmic", value: 0.05
-		}).on('change', (e: any) => $("#learningRateVal").text(e.value.newValue.toFixed(3)));
 		for (const name of Presets.getNames())
 			$("#presetLoader").append($("<li>").append($("<a>").text(name)));
 		$("#presetLoader").on("click", "a", e => {
@@ -68,7 +64,7 @@ class Simulation {
 					this.config = conf;
 					$("#exportModal").modal('hide');
 					$("#presetName").text(file.name);
-					this.setConfig();
+					this.renderConfigGui();
 					this.initializeNet();
 				} catch (e) {
 					ioError("Error while reading " + file.name + ": " + e);
@@ -119,8 +115,6 @@ class Simulation {
 			}
 			r.readAsText(file);
 		});
-		this.neuronGui = new NeuronGui(this);
-
 		this.netviz = new NetworkVisualization(this);
 		this.netgraph = new NetworkGraph(this);
 		this.errorGraph = new ErrorGraph(this);
@@ -132,6 +126,7 @@ class Simulation {
 		this.rightVis = new TabSwitchVisualizationContainer($("#rightVisHeader"), $("#rightVisBody"), "rightVis", [
 			this.netviz, this.table]);
 		this.deserializeFromUrl();
+		this.renderConfigGui();
 		this.leftVis.setMode(0);
 		this.rightVis.setMode(0);
 		this.constructed = true;
@@ -274,27 +269,20 @@ class Simulation {
 		if (oldConfig.simType != config.simType) config.data = [];
 		if (this.net) this.net.learnRate = this.config.learningRate;
 		if (!this.config.autoRestart) clearTimeout(this.restartTimeout);
+		this.renderConfigGui();
+	}
+	
+	renderConfigGui() {
+		React.render(React.createElement(ConfigurationGui, this.config), document.getElementById("configurationTarget"));
 	}
 
 	loadPreset(name: string, weights?: double[]) {
 		this.isCustom = false;
 		$("#presetName").text(`Preset: ${name}`);
 		this.config = Presets.get(name);
-		this.setConfig();
+		this.renderConfigGui();
 		history.replaceState({}, "", "?" + $.param({ preset: name }));
 		this.initializeNet(weights);
-	}
-	setConfig() { // in gui
-		const config = <any>this.config;
-		for (const conf in config) {
-			const ele = <HTMLInputElement>document.getElementById(conf);
-			if (!ele) continue;
-			if (ele.type == 'checkbox') ele.checked = config[conf];
-			else ele.value = config[conf];
-		}
-		$("#learningRate").slider('setValue', this.config.learningRate);
-		$("#learningRateVal").text(this.config.learningRate.toFixed(3));
-		this.neuronGui.regenerate();
 	}
 
 	runtoggle() {

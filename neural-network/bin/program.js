@@ -235,89 +235,6 @@ var Net;
     })(Neuron);
     Net.OutputNeuron = OutputNeuron;
 })(Net || (Net = {}));
-var NeuronGui = (function () {
-    function NeuronGui(sim) {
-        var _this = this;
-        this.sim = sim;
-        this.layerDiv = $("#hiddenLayersModify > div").clone();
-        $("#hiddenLayersModify").on("click", "button", function (e) {
-            var inc = e.target.textContent == '+';
-            var layer = $(e.target.parentNode).index();
-            var newval = sim.config.hiddenLayers[layer].neuronCount + (inc ? 1 : -1);
-            if (newval < 1)
-                return;
-            sim.config.hiddenLayers[layer].neuronCount = newval;
-            $("#hiddenLayersModify .neuronCount").eq(layer).text(newval);
-            sim.setIsCustom();
-            sim.initializeNet();
-        });
-        $("#inputLayerModify,#outputLayerModify").on("click", "button", function (e) {
-            var isInput = $(e.target).closest("#inputLayerModify").length > 0;
-            var name = isInput ? "input" : "output";
-            var targetLayer = isInput ? sim.config.inputLayer : sim.config.outputLayer;
-            var inc = e.target.textContent == '+';
-            var newval = targetLayer.neuronCount + (inc ? 1 : -1);
-            if (newval < 1 || newval > 10)
-                return;
-            targetLayer.neuronCount = newval;
-            $("#" + name + "LayerModify .neuronCount").text(newval);
-            sim.config.data = [];
-            sim.setIsCustom(true);
-            sim.initializeNet();
-        });
-        $("#layerCountModifier").on("click", "button", function (e) {
-            var inc = e.target.textContent == '+';
-            if (!inc) {
-                if (sim.config.hiddenLayers.length == 0)
-                    return;
-                sim.config.hiddenLayers.shift();
-                _this.removeLayer();
-            }
-            else {
-                sim.config.hiddenLayers.unshift({ activation: 'sigmoid', neuronCount: 2 });
-                _this.addLayer();
-            }
-            $("#layerCount").text(sim.config.hiddenLayers.length + 2);
-            sim.setIsCustom();
-            sim.initializeNet();
-        });
-        $("#outputLayerModify").on("change", "select", function (e) {
-            sim.config.outputLayer.activation = e.target.value;
-            sim.setIsCustom();
-            sim.initializeNet();
-        });
-        $("#hiddenLayersModify").on("change", "select", function (e) {
-            var layer = $(e.target.parentNode).index();
-            sim.config.hiddenLayers[layer].activation = e.target.value;
-            sim.setIsCustom();
-            sim.initializeNet();
-        });
-    }
-    NeuronGui.prototype.removeLayer = function () {
-        $("#hiddenLayersModify > div").eq(0).remove();
-    };
-    NeuronGui.prototype.addLayer = function () {
-        $("#hiddenLayersModify > div").eq(0).before(this.layerDiv.clone());
-    };
-    NeuronGui.prototype.setActivation = function (layer, activ) {
-    };
-    NeuronGui.prototype.regenerate = function () {
-        var targetCount = this.sim.config.hiddenLayers.length;
-        while ($("#hiddenLayersModify > div").length > targetCount)
-            this.removeLayer();
-        while ($("#hiddenLayersModify > div").length < targetCount)
-            this.addLayer();
-        this.sim.config.hiddenLayers.forEach(function (c, i) {
-            $("#hiddenLayersModify .neuronCount").eq(i).text(c.neuronCount);
-            $("#hiddenLayersModify > div").eq(i).children("select.activation").val(c.activation);
-        });
-        $("#outputLayerModify").children("select.activation").val(this.sim.config.outputLayer.activation);
-        $("#inputLayerModify .neuronCount").text(this.sim.config.inputLayer.neuronCount);
-        $("#outputLayerModify .neuronCount").text(this.sim.config.outputLayer.neuronCount);
-        $("#layerCount").text(this.sim.config.hiddenLayers.length + 2);
-    };
-    return NeuronGui;
-})();
 var Presets;
 (function (Presets) {
     Presets.presets = [
@@ -638,9 +555,6 @@ var Simulation = (function () {
         this.statusIterEle = document.getElementById('statusIteration');
         this.statusCorrectEle = document.getElementById('statusCorrect');
         this.aniFrameCallback = this.animationStep.bind(this);
-        $("#learningRate").slider({
-            min: 0.01, max: 1, step: 0.005, scale: "logarithmic", value: 0.05
-        }).on('change', function (e) { return $("#learningRateVal").text(e.value.newValue.toFixed(3)); });
         for (var _i = 0, _a = Presets.getNames(); _i < _a.length; _i++) {
             var name_1 = _a[_i];
             $("#presetLoader").append($("<li>").append($("<a>").text(name_1)));
@@ -687,7 +601,7 @@ var Simulation = (function () {
                     _this.config = conf;
                     $("#exportModal").modal('hide');
                     $("#presetName").text(file.name);
-                    _this.setConfig();
+                    _this.renderConfigGui();
                     _this.initializeNet();
                 }
                 catch (e) {
@@ -742,7 +656,6 @@ var Simulation = (function () {
             };
             r.readAsText(file);
         });
-        this.neuronGui = new NeuronGui(this);
         this.netviz = new NetworkVisualization(this);
         this.netgraph = new NetworkGraph(this);
         this.errorGraph = new ErrorGraph(this);
@@ -753,6 +666,7 @@ var Simulation = (function () {
         this.rightVis = new TabSwitchVisualizationContainer($("#rightVisHeader"), $("#rightVisBody"), "rightVis", [
             this.netviz, this.table]);
         this.deserializeFromUrl();
+        this.renderConfigGui();
         this.leftVis.setMode(0);
         this.rightVis.setMode(0);
         this.constructed = true;
@@ -901,29 +815,18 @@ var Simulation = (function () {
             this.net.learnRate = this.config.learningRate;
         if (!this.config.autoRestart)
             clearTimeout(this.restartTimeout);
+        this.renderConfigGui();
+    };
+    Simulation.prototype.renderConfigGui = function () {
+        React.render(React.createElement(ConfigurationGui, this.config), document.getElementById("configurationTarget"));
     };
     Simulation.prototype.loadPreset = function (name, weights) {
         this.isCustom = false;
         $("#presetName").text("Preset: " + name);
         this.config = Presets.get(name);
-        this.setConfig();
+        this.renderConfigGui();
         history.replaceState({}, "", "?" + $.param({ preset: name }));
         this.initializeNet(weights);
-    };
-    Simulation.prototype.setConfig = function () {
-        var config = this.config;
-        for (var conf in config) {
-            var ele = document.getElementById(conf);
-            if (!ele)
-                continue;
-            if (ele.type == 'checkbox')
-                ele.checked = config[conf];
-            else
-                ele.value = config[conf];
-        }
-        $("#learningRate").slider('setValue', this.config.learningRate);
-        $("#learningRateVal").text(this.config.learningRate.toFixed(3));
-        this.neuronGui.regenerate();
     };
     Simulation.prototype.runtoggle = function () {
         if (this.running)
@@ -1143,6 +1046,77 @@ var Util;
     }
     Util.csvSanitize = csvSanitize;
 })(Util || (Util = {}));
+//class NumberInput extends React.Component<{name:string, min:number, max:number, , {}
+var NeuronLayer = (function (_super) {
+    __extends(NeuronLayer, _super);
+    function NeuronLayer() {
+        _super.apply(this, arguments);
+    }
+    NeuronLayer.prototype.render = function () {
+        var _this = this;
+        return React.createElement("div", null, this.props.name, " layer:", React.createElement("span", {"className": "neuronCount"}, this.props.layer.neuronCount), " neurons", React.createElement("button", {"className": "btn btn-xs btn-default", "onClick": function () { return _this.props.countChanged(1); }}, "+"), React.createElement("button", {"className": "btn btn-xs btn-default", "onClick": function () { return _this.props.countChanged(-1); }}, "-"), React.createElement("select", {"className": "btn btn-xs btn-default activation", "onChange": function (e) { return _this.props.activationChanged(e.target.value); }, "value": this.props.layer.activation}, React.createElement("option", null, "sigmoid"), React.createElement("option", null, "tanh"), React.createElement("option", null, "linear"), React.createElement("option", null, "relu")));
+    };
+    return NeuronLayer;
+})(React.Component);
+var ConfigurationGui = (function (_super) {
+    __extends(ConfigurationGui, _super);
+    function ConfigurationGui(props) {
+        _super.call(this, props);
+    }
+    ConfigurationGui.prototype.loadConfig = function () {
+        sim.loadConfig();
+    };
+    ConfigurationGui.prototype.addLayer = function () {
+        sim.config.hiddenLayers.unshift({ activation: 'sigmoid', neuronCount: 2 });
+        sim.setIsCustom();
+        sim.initializeNet();
+        sim.renderConfigGui();
+    };
+    ConfigurationGui.prototype.removeLayer = function () {
+        if (sim.config.hiddenLayers.length == 0)
+            return;
+        sim.config.hiddenLayers.shift();
+        sim.setIsCustom();
+        sim.initializeNet();
+        sim.renderConfigGui();
+    };
+    ConfigurationGui.prototype.activationChanged = function (i, a) {
+        if (i == this.props.hiddenLayers.length)
+            sim.config.outputLayer.activation = a;
+        else
+            sim.config.hiddenLayers[i].activation = a;
+        sim.setIsCustom();
+        sim.initializeNet();
+        sim.renderConfigGui();
+    };
+    ConfigurationGui.prototype.countChanged = function (i, inc) {
+        var targetLayer = sim.config.inputLayer;
+        if (i === this.props.hiddenLayers.length) {
+            targetLayer = sim.config.outputLayer;
+            if (targetLayer.neuronCount >= 10)
+                return;
+        }
+        else if (i >= 0) {
+            targetLayer = sim.config.hiddenLayers[i];
+        }
+        var newval = targetLayer.neuronCount + inc;
+        if (newval < 1)
+            return;
+        targetLayer.neuronCount = newval;
+        sim.config.data = [];
+        sim.setIsCustom(true);
+        sim.initializeNet();
+        sim.renderConfigGui();
+    };
+    ConfigurationGui.prototype.render = function () {
+        var _this = this;
+        var conf = this.props;
+        return React.createElement("div", {"id": "configuration", "className": "form-horizontal"}, React.createElement("div", {"className": "col-sm-6"}, React.createElement("h4", null, "Display"), React.createElement("div", {"className": "form-group"}, React.createElement("label", {"htmlFor": "iterationsPerClick", "className": "col-sm-6 control-label"}, "Iterations per click on 'Step'"), React.createElement("div", {"className": "col-sm-6"}, React.createElement("input", {"className": "form-control", "type": "number", "min": 0, "max": 10000, "id": "iterationsPerClick", "value": "" + conf.iterationsPerClick, "onChange": this.loadConfig.bind(this)}))), React.createElement("div", {"className": "form-group"}, React.createElement("label", {"htmlFor": "stepsPerFrame", "className": "col-sm-6 control-label"}, "Steps per Frame"), React.createElement("div", {"className": "col-sm-6"}, React.createElement("input", {"className": "form-control", "type": "number", "min": 1, "max": 1000, "id": "stepsPerFrame", "value": "" + conf.stepsPerFrame, "onChange": this.loadConfig.bind(this)}))), React.createElement("div", {"className": "form-group"}, React.createElement("label", {"htmlFor": "autoRestart", "className": "col-sm-6 control-label"}, "When correct, restart after 5 seconds"), React.createElement("div", {"className": "col-sm-6 form-control-static"}, React.createElement("input", {"type": "checkbox", "id": "autoRestart", "checked": conf.autoRestart, "onChange": this.loadConfig.bind(this)}))), React.createElement("div", {"className": "form-group"}, React.createElement("label", {"htmlFor": "showGradient", "className": "col-sm-6 control-label"}, "Show class propabilities as gradient"), React.createElement("div", {"className": "col-sm-6 form-control-static"}, React.createElement("input", {"type": "checkbox", "checked": conf.showGradient, "id": "showGradient", "onChange": function () { _this.loadConfig(); sim.onFrame(false); }}))), React.createElement("button", {"className": "btn btn-default", "data-toggle": "modal", "data-target": "#exportModal"}, "Import / Export")), React.createElement("div", {"className": "col-sm-6"}, React.createElement("h4", null, "Net"), React.createElement("div", {"className": "form-group"}, React.createElement("label", {"htmlFor": "learningRate", "className": "col-sm-6 control-label"}, "Learning Rate"), React.createElement("div", {"className": "col-sm-6 form-control-static"}, React.createElement("span", {"id": "learningRateVal", "style": { marginRight: '1em' }}, conf.learningRate), React.createElement("input", {"type": "range", "min": 0.01, "max": 1, "step": 0.01, "id": "learningRate", "value": "" + conf.learningRate, "onChange": this.loadConfig.bind(this)}))), React.createElement("div", {"className": "form-group"}, React.createElement("label", {"htmlFor": "bias", "className": "col-sm-6 control-label"}, "Show bias input"), React.createElement("div", {"className": "col-sm-6 form-control-static"}, React.createElement("input", {"type": "checkbox", "checked": conf.bias, "id": "bias", "onChange": function () { _this.loadConfig(); sim.initializeNet(); }}))), React.createElement("div", {"id": "layerCountModifier"}, React.createElement("span", {"id": "layerCount"}, conf.hiddenLayers.length + 2), " layers", React.createElement("button", {"className": "btn btn-xs btn-default", "onClick": function () { return _this.addLayer(); }}, "+"), React.createElement("button", {"className": "btn btn-xs btn-default", "onClick": function () { return _this.removeLayer(); }}, "-")), React.createElement("div", {"id": "layersModify"}, React.createElement("div", {"id": "inputLayerModify"}, "Input layer:", React.createElement("span", {"className": "neuronCount"}, conf.inputLayer.neuronCount), " neurons", React.createElement("button", {"className": "btn btn-xs btn-default"}, "+"), React.createElement("button", {"className": "btn btn-xs btn-default"}, "-")), React.createElement("div", {"id": "hiddenLayersModify"}, conf.hiddenLayers.map(function (layer, i) {
+            return React.createElement(NeuronLayer, {"layer": layer, "name": "Hidden", "activationChanged": function (a) { return _this.activationChanged(i, a); }, "countChanged": function (c) { return _this.countChanged(i, c); }});
+        })), React.createElement("div", {"id": "outputLayerModify"}, React.createElement(NeuronLayer, {"layer": conf.outputLayer, "name": "Output", "activationChanged": function (a) { return _this.activationChanged(conf.hiddenLayers.length, a); }, "countChanged": function (c) { return _this.countChanged(conf.hiddenLayers.length, c); }})))));
+    };
+    return ConfigurationGui;
+})(React.Component);
 var ErrorGraph = (function () {
     function ErrorGraph(sim) {
         this.sim = sim;

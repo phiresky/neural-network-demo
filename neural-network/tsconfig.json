@@ -5,17 +5,18 @@
 		"watch": false,
 		"sourceMap": true,
 		"noImplicitAny": true,
-		"module": "amd"
+		"module": "amd",
+		"jsx": "react"
 	},
 	"files": [
 		"./lib/typings/tsd.d.ts",
 		"./src/main.ts",
 		"./src/Net.ts",
-		"./src/NeuronGui.ts",
 		"./src/Presets.ts",
 		"./src/Simulation.ts",
 		"./src/TransformNavigation.ts",
 		"./src/Util.ts",
+		"./src/Configuration.tsx",
 		"./src/Visualizations/ErrorGraph.ts",
 		"./src/Visualizations/NetworkGraph.ts",
 		"./src/Visualizations/NetworkVisualization.ts",
