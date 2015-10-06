@@ -19,7 +19,6 @@
     "highstock": "highstock-release#v2.1.8",
     "jquery": "~2.1.4",
     "lz-string": "~1.4.4",
-    "seiyria-bootstrap-slider": "~5.1.1",
     "vis": "~4.8.2",
     "react": "~0.13.3"
   }

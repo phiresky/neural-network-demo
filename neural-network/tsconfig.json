@@ -5,7 +5,6 @@
 		"watch": false,
 		"sourceMap": true,
 		"noImplicitAny": true,
-		"module": "amd",
 		"jsx": "react"
 	},
 	"files": [

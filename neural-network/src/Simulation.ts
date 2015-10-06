@@ -1,4 +1,3 @@
-interface JQuery { slider: any };
 class Simulation {
 	netviz: NetworkVisualization;
 	netgraph: NetworkGraph;

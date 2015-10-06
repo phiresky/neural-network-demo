@@ -540,7 +540,6 @@ var Presets;
     }
     Presets.loadPetersonBarney = loadPetersonBarney;
 })(Presets || (Presets = {}));
-;
 var Simulation = (function () {
     function Simulation(autoRun) {
         var _this = this;
@@ -1047,32 +1046,53 @@ var Util;
     Util.csvSanitize = csvSanitize;
 })(Util || (Util = {}));
 //class NumberInput extends React.Component<{name:string, min:number, max:number, , {}
+var BSFormGroup = (function (_super) {
+    __extends(BSFormGroup, _super);
+    function BSFormGroup() {
+        _super.apply(this, arguments);
+    }
+    BSFormGroup.prototype.render = function () {
+        return React.createElement("div", {"className": "form-group"}, React.createElement("label", {"htmlFor": this.props.id, "className": "col-sm-6 control-label"}, this.props.label), React.createElement("div", {"className": "col-sm-6 " + (this.props.isStatic ? "form-control-static" : "")}, this.props.children));
+    };
+    return BSFormGroup;
+})(React.Component);
+var ConfigurationGui = (function (_super) {
+    __extends(ConfigurationGui, _super);
+    function ConfigurationGui() {
+        _super.apply(this, arguments);
+    }
+    ConfigurationGui.prototype.render = function () {
+        var conf = this.props;
+        var loadConfig = function () { return sim.loadConfig(); };
+        return React.createElement("div", {"id": "configuration", "className": "form-horizontal"}, React.createElement("div", {"className": "col-sm-6"}, React.createElement("h4", null, "Display"), React.createElement(BSFormGroup, {"label": "Iterations per click on 'Step'", "id": "iterationsPerClick"}, React.createElement("input", {"className": "form-control", "type": "number", "min": 0, "max": 10000, "id": "iterationsPerClick", "value": "" + conf.iterationsPerClick, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Steps per Frame", "id": "stepsPerFrame"}, React.createElement("input", {"className": "form-control", "type": "number", "min": 1, "max": 1000, "id": "stepsPerFrame", "value": "" + conf.stepsPerFrame, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "When correct, restart after 5 seconds", "id": "autoRestart", "isStatic": true}, React.createElement("input", {"type": "checkbox", "id": "autoRestart", "checked": conf.autoRestart, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Show class propabilities as gradient", "id": "showGradient", "isStatic": true}, React.createElement("input", {"type": "checkbox", "checked": conf.showGradient, "id": "showGradient", "onChange": function () { loadConfig(); sim.onFrame(false); }})), React.createElement("button", {"className": "btn btn-default", "data-toggle": "modal", "data-target": "#exportModal"}, "Import / Export")), React.createElement("div", {"className": "col-sm-6"}, React.createElement("h4", null, "Net"), React.createElement(BSFormGroup, {"id": "learningRate", "label": "Learning Rate", "isStatic": true}, React.createElement("span", {"id": "learningRateVal", "style": { marginRight: '1em' }}, conf.learningRate), React.createElement("input", {"type": "range", "min": 0.01, "max": 1, "step": 0.01, "id": "learningRate", "value": "" + conf.learningRate, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Show bias input", "id": "bias", "isStatic": true}, React.createElement("input", {"type": "checkbox", "checked": conf.bias, "id": "bias", "onChange": function () { loadConfig(); sim.initializeNet(); }})), React.createElement(NeuronGui, React.__spread({}, this.props))));
+    };
+    return ConfigurationGui;
+})(React.Component);
 var NeuronLayer = (function (_super) {
     __extends(NeuronLayer, _super);
     function NeuronLayer() {
         _super.apply(this, arguments);
     }
     NeuronLayer.prototype.render = function () {
-        var _this = this;
-        return React.createElement("div", null, this.props.name, " layer:", React.createElement("span", {"className": "neuronCount"}, this.props.layer.neuronCount), " neurons", React.createElement("button", {"className": "btn btn-xs btn-default", "onClick": function () { return _this.props.countChanged(1); }}, "+"), React.createElement("button", {"className": "btn btn-xs btn-default", "onClick": function () { return _this.props.countChanged(-1); }}, "-"), React.createElement("select", {"className": "btn btn-xs btn-default activation", "onChange": function (e) { return _this.props.activationChanged(e.target.value); }, "value": this.props.layer.activation}, React.createElement("option", null, "sigmoid"), React.createElement("option", null, "tanh"), React.createElement("option", null, "linear"), React.createElement("option", null, "relu")));
+        var p = this.props;
+        return React.createElement("div", null, p.name, " layer: ", p.layer.neuronCount, " neurons ", React.createElement("button", {"className": "btn btn-xs btn-default", "onClick": function () { return p.countChanged(1); }}, "+"), React.createElement("button", {"className": "btn btn-xs btn-default", "onClick": function () { return p.countChanged(-1); }}, "-"), p.layer.activation ?
+            React.createElement("select", {"className": "btn btn-xs btn-default activation", "onChange": function (e) { return p.activationChanged(e.target.value); }, "value": p.layer.activation}, React.createElement("option", null, "sigmoid"), React.createElement("option", null, "tanh"), React.createElement("option", null, "linear"), React.createElement("option", null, "relu"))
+            : "");
     };
     return NeuronLayer;
 })(React.Component);
-var ConfigurationGui = (function (_super) {
-    __extends(ConfigurationGui, _super);
-    function ConfigurationGui(props) {
-        _super.call(this, props);
+var NeuronGui = (function (_super) {
+    __extends(NeuronGui, _super);
+    function NeuronGui() {
+        _super.apply(this, arguments);
     }
-    ConfigurationGui.prototype.loadConfig = function () {
-        sim.loadConfig();
-    };
-    ConfigurationGui.prototype.addLayer = function () {
+    NeuronGui.prototype.addLayer = function () {
         sim.config.hiddenLayers.unshift({ activation: 'sigmoid', neuronCount: 2 });
         sim.setIsCustom();
         sim.initializeNet();
         sim.renderConfigGui();
     };
-    ConfigurationGui.prototype.removeLayer = function () {
+    NeuronGui.prototype.removeLayer = function () {
         if (sim.config.hiddenLayers.length == 0)
             return;
         sim.config.hiddenLayers.shift();
@@ -1080,7 +1100,7 @@ var ConfigurationGui = (function (_super) {
         sim.initializeNet();
         sim.renderConfigGui();
     };
-    ConfigurationGui.prototype.activationChanged = function (i, a) {
+    NeuronGui.prototype.activationChanged = function (i, a) {
         if (i == this.props.hiddenLayers.length)
             sim.config.outputLayer.activation = a;
         else
@@ -1089,7 +1109,7 @@ var ConfigurationGui = (function (_super) {
         sim.initializeNet();
         sim.renderConfigGui();
     };
-    ConfigurationGui.prototype.countChanged = function (i, inc) {
+    NeuronGui.prototype.countChanged = function (i, inc) {
         var targetLayer = sim.config.inputLayer;
         if (i === this.props.hiddenLayers.length) {
             targetLayer = sim.config.outputLayer;
@@ -1108,14 +1128,18 @@ var ConfigurationGui = (function (_super) {
         sim.initializeNet();
         sim.renderConfigGui();
     };
-    ConfigurationGui.prototype.render = function () {
+    NeuronGui.prototype.render = function () {
         var _this = this;
         var conf = this.props;
-        return React.createElement("div", {"id": "configuration", "className": "form-horizontal"}, React.createElement("div", {"className": "col-sm-6"}, React.createElement("h4", null, "Display"), React.createElement("div", {"className": "form-group"}, React.createElement("label", {"htmlFor": "iterationsPerClick", "className": "col-sm-6 control-label"}, "Iterations per click on 'Step'"), React.createElement("div", {"className": "col-sm-6"}, React.createElement("input", {"className": "form-control", "type": "number", "min": 0, "max": 10000, "id": "iterationsPerClick", "value": "" + conf.iterationsPerClick, "onChange": this.loadConfig.bind(this)}))), React.createElement("div", {"className": "form-group"}, React.createElement("label", {"htmlFor": "stepsPerFrame", "className": "col-sm-6 control-label"}, "Steps per Frame"), React.createElement("div", {"className": "col-sm-6"}, React.createElement("input", {"className": "form-control", "type": "number", "min": 1, "max": 1000, "id": "stepsPerFrame", "value": "" + conf.stepsPerFrame, "onChange": this.loadConfig.bind(this)}))), React.createElement("div", {"className": "form-group"}, React.createElement("label", {"htmlFor": "autoRestart", "className": "col-sm-6 control-label"}, "When correct, restart after 5 seconds"), React.createElement("div", {"className": "col-sm-6 form-control-static"}, React.createElement("input", {"type": "checkbox", "id": "autoRestart", "checked": conf.autoRestart, "onChange": this.loadConfig.bind(this)}))), React.createElement("div", {"className": "form-group"}, React.createElement("label", {"htmlFor": "showGradient", "className": "col-sm-6 control-label"}, "Show class propabilities as gradient"), React.createElement("div", {"className": "col-sm-6 form-control-static"}, React.createElement("input", {"type": "checkbox", "checked": conf.showGradient, "id": "showGradient", "onChange": function () { _this.loadConfig(); sim.onFrame(false); }}))), React.createElement("button", {"className": "btn btn-default", "data-toggle": "modal", "data-target": "#exportModal"}, "Import / Export")), React.createElement("div", {"className": "col-sm-6"}, React.createElement("h4", null, "Net"), React.createElement("div", {"className": "form-group"}, React.createElement("label", {"htmlFor": "learningRate", "className": "col-sm-6 control-label"}, "Learning Rate"), React.createElement("div", {"className": "col-sm-6 form-control-static"}, React.createElement("span", {"id": "learningRateVal", "style": { marginRight: '1em' }}, conf.learningRate), React.createElement("input", {"type": "range", "min": 0.01, "max": 1, "step": 0.01, "id": "learningRate", "value": "" + conf.learningRate, "onChange": this.loadConfig.bind(this)}))), React.createElement("div", {"className": "form-group"}, React.createElement("label", {"htmlFor": "bias", "className": "col-sm-6 control-label"}, "Show bias input"), React.createElement("div", {"className": "col-sm-6 form-control-static"}, React.createElement("input", {"type": "checkbox", "checked": conf.bias, "id": "bias", "onChange": function () { _this.loadConfig(); sim.initializeNet(); }}))), React.createElement("div", {"id": "layerCountModifier"}, React.createElement("span", {"id": "layerCount"}, conf.hiddenLayers.length + 2), " layers", React.createElement("button", {"className": "btn btn-xs btn-default", "onClick": function () { return _this.addLayer(); }}, "+"), React.createElement("button", {"className": "btn btn-xs btn-default", "onClick": function () { return _this.removeLayer(); }}, "-")), React.createElement("div", {"id": "layersModify"}, React.createElement("div", {"id": "inputLayerModify"}, "Input layer:", React.createElement("span", {"className": "neuronCount"}, conf.inputLayer.neuronCount), " neurons", React.createElement("button", {"className": "btn btn-xs btn-default"}, "+"), React.createElement("button", {"className": "btn btn-xs btn-default"}, "-")), React.createElement("div", {"id": "hiddenLayersModify"}, conf.hiddenLayers.map(function (layer, i) {
-            return React.createElement(NeuronLayer, {"layer": layer, "name": "Hidden", "activationChanged": function (a) { return _this.activationChanged(i, a); }, "countChanged": function (c) { return _this.countChanged(i, c); }});
-        })), React.createElement("div", {"id": "outputLayerModify"}, React.createElement(NeuronLayer, {"layer": conf.outputLayer, "name": "Output", "activationChanged": function (a) { return _this.activationChanged(conf.hiddenLayers.length, a); }, "countChanged": function (c) { return _this.countChanged(conf.hiddenLayers.length, c); }})))));
+        var neuronListeners = function (i) { return ({
+            activationChanged: function (a) { return _this.activationChanged(i, a); },
+            countChanged: function (c) { return _this.countChanged(i, c); }
+        }); };
+        return React.createElement("div", null, (conf.hiddenLayers.length + 2) + " layers ", React.createElement("button", {"className": "btn btn-xs btn-default", "onClick": function () { return _this.addLayer(); }}, "+"), React.createElement("button", {"className": "btn btn-xs btn-default", "onClick": function () { return _this.removeLayer(); }}, "-"), React.createElement(NeuronLayer, React.__spread({"layer": conf.inputLayer, "name": "Input"}, neuronListeners(-1))), conf.hiddenLayers.map(function (layer, i) {
+            return React.createElement(NeuronLayer, React.__spread({"layer": layer, "name": "Hidden"}, neuronListeners(i)));
+        }), React.createElement(NeuronLayer, React.__spread({"layer": conf.outputLayer, "name": "Output"}, neuronListeners(conf.hiddenLayers.length))));
     };
-    return ConfigurationGui;
+    return NeuronGui;
 })(React.Component);
 var ErrorGraph = (function () {
     function ErrorGraph(sim) {
