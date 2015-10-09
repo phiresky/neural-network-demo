@@ -1,4 +1,10 @@
 declare const vis:any; // vis.js library
+interface NetGraphUpdate {
+	nodes: any[];
+	edges: any[];
+	highlightNodes?: number[];
+	highlightEdges?: number[];
+}
 class NetworkGraph implements Visualization {
 	actions = ["Network Graph"];
 	graph:any; //vis.Network
@@ -31,6 +37,9 @@ class NetworkGraph implements Visualization {
 		}
 		if(this.graph) this.graph.destroy();
 		this.graph = new vis.Network(this.container[0], graphData, options);
+	}
+	private edgeId(conn:Net.NeuronConnection) {
+		return conn.inp.id * this.net.connections.length + conn.out.id
 	}
 	onNetworkLoaded(net:Net.NeuralNet) {
 		if(this.net
@@ -72,7 +81,7 @@ class NetworkGraph implements Visualization {
 		}
 		for (const conn of net.connections) {
 			this.edges.add({
-				id: conn.inp.id * net.connections.length + conn.out.id,
+				id: this.edgeId(conn),
 				from: conn.inp.id,
 				to: conn.out.id,
 				arrows:'to',
@@ -84,6 +93,69 @@ class NetworkGraph implements Visualization {
 		this.graph.stabilize();
 		this.graph.fit();
 	}
+	forwardPass(data:TrainingData): NetGraphUpdate[] {
+		this.net.setInputsAndCalculate(data.input);
+		const updates:NetGraphUpdate[] = [{nodes:[], edges:[]}];
+		// reset all names
+		
+		for(const layer of this.net.layers) for(const neuron of layer) {
+			updates[0].nodes.push({
+				id:neuron.id,
+				label: `0`
+			});
+		}
+		for(let i = 0; i < data.input.length; i++) {
+			updates[0].nodes.push({
+				id:this.net.inputs[i].id,
+				label: `${this.net.inputs[i].name} = ${data.input[i]}`
+			});
+		}
+		const allEdgesInvisible = () => this.net.connections.map(conn => ({
+			id:this.edgeId(conn),
+			color:"rgba(255,255,255,0)",
+			label:undefined
+		}));
+		updates[0].edges = allEdgesInvisible();
+		for(const layer of this.net.layers.slice(1)) {
+			for(const neuron of layer) {
+				if(neuron instanceof Net.InputNeuron) continue; // bias neuron
+				updates.push({
+					highlightNodes:[neuron.id],
+					nodes: [],
+					edges:allEdgesInvisible().concat(neuron.inputs.map(i => ({
+						id:this.edgeId(i),
+						color:"black",
+						label: ""
+					})))
+				});
+				let neuronVal = 0;
+				for(const input of neuron.inputs) {
+					const add = input.inp.output * input.weight;
+					neuronVal += add;
+					const update:NetGraphUpdate = {
+						nodes:[{id:neuron.id, label: `∑ = ${neuronVal.toFixed(2)}`}],
+						edges:[{id:this.edgeId(input), label:`+ ${input.inp.output.toFixed(2)} · (${input.weight.toFixed(2)})`}],
+						highlightNodes:[],
+						highlightEdges:[this.edgeId(input)]
+					}
+					updates.push(update);
+				}
+				updates.push({
+					nodes:[{id:neuron.id, label: `σ(${neuronVal.toFixed(2)}) = ${neuron.output.toFixed(2)}`}],
+					edges:allEdgesInvisible()
+				})
+			}
+		}
+		return updates;
+	}
+	applyUpdate(update: NetGraphUpdate) {
+		this.edges.update(update.edges);
+		this.nodes.update(update.nodes);
+		this.nodes.flush();
+		this.edges.flush();
+		if(update.highlightNodes) this.graph.selectNodes(update.highlightNodes, false);
+		if(update.highlightEdges) this.graph.selectEdges(update.highlightEdges);
+	}
 	onFrame(framenum:int) {
 		if(this.net.connections.length > 20 && framenum % 15 !== 0) {
 			// skip some frames because slow
@@ -91,7 +163,7 @@ class NetworkGraph implements Visualization {
 		}
 		for (const conn of this.net.connections) {
 			this.edges.update({
-				id: conn.inp.id * this.net.connections.length + conn.out.id,
+				id: this.edgeId(conn),
 				label: conn.weight.toFixed(2),
 				width: Math.min(6, Math.abs(conn.weight*2)),
 				color: conn.weight > 0 ? 'blue':'red'
