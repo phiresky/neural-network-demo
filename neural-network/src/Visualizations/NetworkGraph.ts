@@ -13,6 +13,9 @@ class NetworkGraph implements Visualization {
 	net:Net.NeuralNet;
 	container = $("<div>");
 	showbias: boolean;
+	currentlyDisplayingForwardPass = false;
+	biasBeforeForwardPass = false;
+	
 	constructor(public sim: Simulation) {
 		this.instantiateGraph();
 	}
@@ -41,8 +44,8 @@ class NetworkGraph implements Visualization {
 	private edgeId(conn:Net.NeuronConnection) {
 		return conn.inp.id * this.net.connections.length + conn.out.id
 	}
-	onNetworkLoaded(net:Net.NeuralNet) {
-		if(this.net
+	onNetworkLoaded(net:Net.NeuralNet, forceRedraw = false) {
+		if(!forceRedraw && this.net
 			&& this.net.layers.length == net.layers.length 
 			&& this.net.layers.every((layer,index) => layer.length == net.layers[index].length)
 			&& this.showbias === this.sim.config.bias) {
@@ -57,9 +60,9 @@ class NetworkGraph implements Visualization {
 		this.net = net;
 		for (let lid = 0; lid < net.layers.length; lid++) {
 			const layer = net.layers[lid];
-			for (let nid = 0; nid < layer.length; nid++) {
-				const neuron = layer[nid];
-				let type = 'Hidden Neuron '+(nid+1);
+			let nid = 1;
+			for (const neuron of (this.showbias&&net.biases[lid]?layer.concat(net.biases[lid]):layer)) {
+				let type = 'Hidden Neuron '+(nid++);
 				let color = '#000';
 				if (neuron instanceof Net.InputNeuron) {
 					type = 'Input: '+neuron.name;
@@ -94,6 +97,11 @@ class NetworkGraph implements Visualization {
 		this.graph.fit();
 	}
 	forwardPass(data:TrainingData): NetGraphUpdate[] {
+		if(this.currentlyDisplayingForwardPass) this.onFrame(0);
+		this.biasBeforeForwardPass = this.sim.config.bias;
+		this.sim.config.bias = true;
+		this.currentlyDisplayingForwardPass = true;
+		this.onNetworkLoaded(this.net);
 		this.net.setInputsAndCalculate(data.input);
 		const updates:NetGraphUpdate[] = [{nodes:[], edges:[]}];
 		// reset all names
@@ -103,6 +111,12 @@ class NetworkGraph implements Visualization {
 				id:neuron.id,
 				label: `0`
 			});
+		}
+		for(const neuron of this.net.biases) {
+			updates[0].nodes.push({
+				id:neuron.id,
+				label: `Bias (1)`
+			})
 		}
 		for(let i = 0; i < data.input.length; i++) {
 			updates[0].nodes.push({
@@ -116,12 +130,14 @@ class NetworkGraph implements Visualization {
 			label:undefined
 		}));
 		updates[0].edges = allEdgesInvisible();
+		// passes
+		let lastNeuron: Net.Neuron;
 		for(const layer of this.net.layers.slice(1)) {
 			for(const neuron of layer) {
 				if(neuron instanceof Net.InputNeuron) continue; // bias neuron
 				updates.push({
 					highlightNodes:[neuron.id],
-					nodes: [],
+					nodes: lastNeuron?[{id:lastNeuron.id,label:lastNeuron.output.toFixed(2)}]:[],
 					edges:allEdgesInvisible().concat(neuron.inputs.map(i => ({
 						id:this.edgeId(i),
 						color:"black",
@@ -144,6 +160,7 @@ class NetworkGraph implements Visualization {
 					nodes:[{id:neuron.id, label: `σ(${neuronVal.toFixed(2)}) = ${neuron.output.toFixed(2)}`}],
 					edges:allEdgesInvisible()
 				})
+				lastNeuron = neuron;
 			}
 		}
 		return updates;
@@ -157,6 +174,12 @@ class NetworkGraph implements Visualization {
 		if(update.highlightEdges) this.graph.selectEdges(update.highlightEdges);
 	}
 	onFrame(framenum:int) {
+		if(this.currentlyDisplayingForwardPass) {
+			// abort forward pass
+			this.sim.config.bias = this.biasBeforeForwardPass;
+			this.onNetworkLoaded(this.net, true);
+			this.currentlyDisplayingForwardPass = false;
+		}
 		if(this.net.connections.length > 20 && framenum % 15 !== 0) {
 			// skip some frames because slow
 			return;

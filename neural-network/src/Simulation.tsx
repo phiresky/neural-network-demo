@@ -134,7 +134,7 @@ class Simulation {
 	initializeNet(weights?: double[]) {
 		console.log(`initializeNet(${weights})`);
 		if (this.net) this.stop();
-		this.net = new Net.NeuralNet(this.config.inputLayer, this.config.hiddenLayers, this.config.outputLayer, this.config.learningRate, this.config.bias, undefined, weights);
+		this.net = new Net.NeuralNet(this.config.inputLayer, this.config.hiddenLayers, this.config.outputLayer, this.config.learningRate, undefined, weights);
 		this.stepNum = 0;
 		this.errorHistory = [];
 		this.leftVis.onNetworkLoaded(this.net);
@@ -147,6 +147,31 @@ class Simulation {
 		this.stepNum++;
 		for (const val of this.config.data) {
 			this.net.train(val.input, val.output);
+		}
+	}
+	
+	forwardPassState = -1;
+	forwardPassEles:NetGraphUpdate[] = [];
+	forwardPassStep() {
+		if(!this.netgraph.currentlyDisplayingForwardPass) {
+			this.forwardPassEles = [];
+			this.forwardPassState = -1;
+		}
+		this.stop();
+		if(this.forwardPassEles.length > 0) {
+			this.netgraph.applyUpdate(this.forwardPassEles.shift());
+		} else {
+			if(this.forwardPassState < this.config.data.length - 1) {
+				// start next
+				this.leftVis.setMode(0);
+				this.forwardPassState++;
+				this.forwardPassEles = this.netgraph.forwardPass(this.config.data[this.forwardPassState]);
+				this.netgraph.applyUpdate(this.forwardPassEles.shift());
+			} else {
+				// end
+				this.forwardPassState = -1;
+				this.netgraph.onFrame(0);
+			}
 		}
 	}
 
@@ -265,7 +290,13 @@ class Simulation {
 		}
 		this.config.learningRate = Util.expScale(this.config.learningRate);
 		if (oldConfig.simType != config.simType) config.data = [];
-		if (this.net) this.net.learnRate = this.config.learningRate;
+		if (this.net) {
+			if(oldConfig.bias != config.bias) {
+				//this.net.
+				this.netgraph.onNetworkLoaded(this.net);
+			}
+			this.net.learnRate = this.config.learningRate;
+		}
 		if (!this.config.autoRestart) clearTimeout(this.restartTimeout);
 		this.renderConfigGui();
 	}

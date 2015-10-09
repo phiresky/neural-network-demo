@@ -76,13 +76,13 @@ var Net;
     })(Util = Net.Util || (Net.Util = {}));
     // back propagation code adapted from https://de.wikipedia.org/wiki/Backpropagation
     var NeuralNet = (function () {
-        function NeuralNet(input, hidden, output, learnRate, addBiasToLayers, startWeight, startWeights) {
+        function NeuralNet(input, hidden, output, learnRate, startWeight, startWeights) {
             var _this = this;
             if (startWeight === void 0) { startWeight = function () { return Math.random() - 0.5; }; }
             this.learnRate = learnRate;
-            this.addBiasToLayers = addBiasToLayers;
             this.startWeights = startWeights;
             this.layers = [];
+            this.biases = [];
             this.connections = [];
             var nid = 0;
             this.inputs = Util.makeArray(input.neuronCount, function (i) { return new InputNeuron(nid++, i, input.names[i]); });
@@ -107,8 +107,7 @@ var Net;
                         this.connections.push(conn);
                     }
                 }
-                if (!addBiasToLayers)
-                    inLayer.pop();
+                this.biases[i] = inLayer.pop();
             }
             if (!this.startWeights) {
                 this.startWeights = this.connections.map(function (c) { return c.weight = startWeight(); });
@@ -557,6 +556,8 @@ var Simulation = (function () {
         this.constructed = false;
         this.statusIterEle = document.getElementById('statusIteration');
         this.statusCorrectEle = document.getElementById('statusCorrect');
+        this.forwardPassState = -1;
+        this.forwardPassEles = [];
         this.aniFrameCallback = this.animationStep.bind(this);
         for (var _i = 0, _a = Presets.getNames(); _i < _a.length; _i++) {
             var name_1 = _a[_i];
@@ -678,7 +679,7 @@ var Simulation = (function () {
         console.log("initializeNet(" + weights + ")");
         if (this.net)
             this.stop();
-        this.net = new Net.NeuralNet(this.config.inputLayer, this.config.hiddenLayers, this.config.outputLayer, this.config.learningRate, this.config.bias, undefined, weights);
+        this.net = new Net.NeuralNet(this.config.inputLayer, this.config.hiddenLayers, this.config.outputLayer, this.config.learningRate, undefined, weights);
         this.stepNum = 0;
         this.errorHistory = [];
         this.leftVis.onNetworkLoaded(this.net);
@@ -691,6 +692,30 @@ var Simulation = (function () {
         for (var _i = 0, _a = this.config.data; _i < _a.length; _i++) {
             var val = _a[_i];
             this.net.train(val.input, val.output);
+        }
+    };
+    Simulation.prototype.forwardPassStep = function () {
+        if (!this.netgraph.currentlyDisplayingForwardPass) {
+            this.forwardPassEles = [];
+            this.forwardPassState = -1;
+        }
+        this.stop();
+        if (this.forwardPassEles.length > 0) {
+            this.netgraph.applyUpdate(this.forwardPassEles.shift());
+        }
+        else {
+            if (this.forwardPassState < this.config.data.length - 1) {
+                // start next
+                this.leftVis.setMode(0);
+                this.forwardPassState++;
+                this.forwardPassEles = this.netgraph.forwardPass(this.config.data[this.forwardPassState]);
+                this.netgraph.applyUpdate(this.forwardPassEles.shift());
+            }
+            else {
+                // end
+                this.forwardPassState = -1;
+                this.netgraph.onFrame(0);
+            }
         }
     };
     Simulation.prototype.onFrame = function (forceDraw) {
@@ -812,8 +837,13 @@ var Simulation = (function () {
         this.config.learningRate = Util.expScale(this.config.learningRate);
         if (oldConfig.simType != config.simType)
             config.data = [];
-        if (this.net)
+        if (this.net) {
+            if (oldConfig.bias != config.bias) {
+                //this.net.
+                this.netgraph.onNetworkLoaded(this.net);
+            }
             this.net.learnRate = this.config.learningRate;
+        }
         if (!this.config.autoRestart)
             clearTimeout(this.restartTimeout);
         this.renderConfigGui();
@@ -1065,7 +1095,7 @@ var ConfigurationGui = (function (_super) {
     ConfigurationGui.prototype.render = function () {
         var conf = this.props;
         var loadConfig = function () { return sim.loadConfig(); };
-        return React.createElement("div", {"className": "form-horizontal"}, React.createElement("div", {"className": "col-sm-6"}, React.createElement("h4", null, "Display"), React.createElement(BSFormGroup, {"label": "Iterations per click on 'Step'", "id": "iterationsPerClick"}, React.createElement("input", {"className": "form-control", "type": "number", "min": 0, "max": 10000, "id": "iterationsPerClick", "value": "" + conf.iterationsPerClick, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Steps per Frame", "id": "stepsPerFrame"}, React.createElement("input", {"className": "form-control", "type": "number", "min": 1, "max": 1000, "id": "stepsPerFrame", "value": "" + conf.stepsPerFrame, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "When correct, restart after 5 seconds", "id": "autoRestart", "isStatic": true}, React.createElement("input", {"type": "checkbox", "id": "autoRestart", "checked": conf.autoRestart, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Show class propabilities as gradient", "id": "showGradient", "isStatic": true}, React.createElement("input", {"type": "checkbox", "checked": conf.showGradient, "id": "showGradient", "onChange": function () { loadConfig(); sim.onFrame(false); }})), React.createElement("button", {"className": "btn btn-default", "data-toggle": "modal", "data-target": "#exportModal"}, "Import / Export")), React.createElement("div", {"className": "col-sm-6"}, React.createElement("h4", null, "Net"), React.createElement(BSFormGroup, {"id": "learningRate", "label": "Learning Rate", "isStatic": true}, React.createElement("span", {"id": "learningRateVal", "style": { marginRight: '1em' }}, conf.learningRate.toFixed(3)), React.createElement("input", {"type": "range", "min": 0.005, "max": 1, "step": 0.005, "id": "learningRate", "value": Util.logScale(conf.learningRate) + "", "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Show bias input", "id": "bias", "isStatic": true}, React.createElement("input", {"type": "checkbox", "checked": conf.bias, "id": "bias", "onChange": function () { loadConfig(); sim.initializeNet(); }})), React.createElement(NeuronGui, React.__spread({}, this.props))));
+        return React.createElement("div", {"className": "form-horizontal"}, React.createElement("div", {"className": "col-sm-6"}, React.createElement("h4", null, "Display"), React.createElement(BSFormGroup, {"label": "Iterations per click on 'Step'", "id": "iterationsPerClick"}, React.createElement("input", {"className": "form-control", "type": "number", "min": 0, "max": 10000, "id": "iterationsPerClick", "value": "" + conf.iterationsPerClick, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Steps per Frame", "id": "stepsPerFrame"}, React.createElement("input", {"className": "form-control", "type": "number", "min": 1, "max": 1000, "id": "stepsPerFrame", "value": "" + conf.stepsPerFrame, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "When correct, restart after 5 seconds", "id": "autoRestart", "isStatic": true}, React.createElement("input", {"type": "checkbox", "id": "autoRestart", "checked": conf.autoRestart, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Show class propabilities as gradient", "id": "showGradient", "isStatic": true}, React.createElement("input", {"type": "checkbox", "checked": conf.showGradient, "id": "showGradient", "onChange": function () { loadConfig(); sim.onFrame(false); }})), React.createElement("button", {"className": "btn btn-default", "data-toggle": "modal", "data-target": "#exportModal"}, "Import / Export")), React.createElement("div", {"className": "col-sm-6"}, React.createElement("h4", null, "Net"), React.createElement(BSFormGroup, {"id": "learningRate", "label": "Learning Rate", "isStatic": true}, React.createElement("span", {"id": "learningRateVal", "style": { marginRight: '1em' }}, conf.learningRate.toFixed(3)), React.createElement("input", {"type": "range", "min": 0.005, "max": 1, "step": 0.005, "id": "learningRate", "value": Util.logScale(conf.learningRate) + "", "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Show bias input", "id": "bias", "isStatic": true}, React.createElement("input", {"type": "checkbox", "checked": conf.bias, "id": "bias", "onChange": function () { sim.loadConfig(); sim.netgraph.onNetworkLoaded(sim.net); }})), React.createElement(NeuronGui, React.__spread({}, this.props))));
     };
     return ConfigurationGui;
 })(React.Component);
@@ -1179,6 +1209,8 @@ var NetworkGraph = (function () {
         this.sim = sim;
         this.actions = ["Network Graph"];
         this.container = $("<div>");
+        this.currentlyDisplayingForwardPass = false;
+        this.biasBeforeForwardPass = false;
         this.instantiateGraph();
     }
     NetworkGraph.prototype.instantiateGraph = function () {
@@ -1200,8 +1232,12 @@ var NetworkGraph = (function () {
             this.graph.destroy();
         this.graph = new vis.Network(this.container[0], graphData, options);
     };
-    NetworkGraph.prototype.onNetworkLoaded = function (net) {
-        if (this.net
+    NetworkGraph.prototype.edgeId = function (conn) {
+        return conn.inp.id * this.net.connections.length + conn.out.id;
+    };
+    NetworkGraph.prototype.onNetworkLoaded = function (net, forceRedraw) {
+        if (forceRedraw === void 0) { forceRedraw = false; }
+        if (!forceRedraw && this.net
             && this.net.layers.length == net.layers.length
             && this.net.layers.every(function (layer, index) { return layer.length == net.layers[index].length; })
             && this.showbias === this.sim.config.bias) {
@@ -1216,9 +1252,10 @@ var NetworkGraph = (function () {
         this.net = net;
         for (var lid = 0; lid < net.layers.length; lid++) {
             var layer = net.layers[lid];
-            for (var nid = 0; nid < layer.length; nid++) {
-                var neuron = layer[nid];
-                var type = 'Hidden Neuron ' + (nid + 1);
+            var nid = 1;
+            for (var _i = 0, _a = (this.showbias && net.biases[lid] ? layer.concat(net.biases[lid]) : layer); _i < _a.length; _i++) {
+                var neuron = _a[_i];
+                var type = 'Hidden Neuron ' + (nid++);
                 var color = '#000';
                 if (neuron instanceof Net.InputNeuron) {
                     type = 'Input: ' + neuron.name;
@@ -1240,10 +1277,10 @@ var NetworkGraph = (function () {
                 });
             }
         }
-        for (var _i = 0, _a = net.connections; _i < _a.length; _i++) {
-            var conn = _a[_i];
+        for (var _b = 0, _c = net.connections; _b < _c.length; _b++) {
+            var conn = _c[_b];
             this.edges.add({
-                id: conn.inp.id * net.connections.length + conn.out.id,
+                id: this.edgeId(conn),
                 from: conn.inp.id,
                 to: conn.out.id,
                 arrows: 'to',
@@ -1255,7 +1292,102 @@ var NetworkGraph = (function () {
         this.graph.stabilize();
         this.graph.fit();
     };
+    NetworkGraph.prototype.forwardPass = function (data) {
+        var _this = this;
+        if (this.currentlyDisplayingForwardPass)
+            this.onFrame(0);
+        this.biasBeforeForwardPass = this.sim.config.bias;
+        this.sim.config.bias = true;
+        this.currentlyDisplayingForwardPass = true;
+        this.onNetworkLoaded(this.net);
+        this.net.setInputsAndCalculate(data.input);
+        var updates = [{ nodes: [], edges: [] }];
+        // reset all names
+        for (var _i = 0, _a = this.net.layers; _i < _a.length; _i++) {
+            var layer = _a[_i];
+            for (var _b = 0; _b < layer.length; _b++) {
+                var neuron = layer[_b];
+                updates[0].nodes.push({
+                    id: neuron.id,
+                    label: "0"
+                });
+            }
+        }
+        for (var _c = 0, _d = this.net.biases; _c < _d.length; _c++) {
+            var neuron = _d[_c];
+            updates[0].nodes.push({
+                id: neuron.id,
+                label: "Bias (1)"
+            });
+        }
+        for (var i = 0; i < data.input.length; i++) {
+            updates[0].nodes.push({
+                id: this.net.inputs[i].id,
+                label: this.net.inputs[i].name + " = " + data.input[i]
+            });
+        }
+        var allEdgesInvisible = function () { return _this.net.connections.map(function (conn) { return ({
+            id: _this.edgeId(conn),
+            color: "rgba(255,255,255,0)",
+            label: undefined
+        }); }); };
+        updates[0].edges = allEdgesInvisible();
+        // passes
+        var lastNeuron;
+        for (var _e = 0, _f = this.net.layers.slice(1); _e < _f.length; _e++) {
+            var layer = _f[_e];
+            for (var _g = 0; _g < layer.length; _g++) {
+                var neuron = layer[_g];
+                if (neuron instanceof Net.InputNeuron)
+                    continue; // bias neuron
+                updates.push({
+                    highlightNodes: [neuron.id],
+                    nodes: lastNeuron ? [{ id: lastNeuron.id, label: lastNeuron.output.toFixed(2) }] : [],
+                    edges: allEdgesInvisible().concat(neuron.inputs.map(function (i) { return ({
+                        id: _this.edgeId(i),
+                        color: "black",
+                        label: ""
+                    }); }))
+                });
+                var neuronVal = 0;
+                for (var _h = 0, _j = neuron.inputs; _h < _j.length; _h++) {
+                    var input = _j[_h];
+                    var add = input.inp.output * input.weight;
+                    neuronVal += add;
+                    var update = {
+                        nodes: [{ id: neuron.id, label: "\u2211 = " + neuronVal.toFixed(2) }],
+                        edges: [{ id: this.edgeId(input), label: "+ " + input.inp.output.toFixed(2) + " \u00B7 (" + input.weight.toFixed(2) + ")" }],
+                        highlightNodes: [],
+                        highlightEdges: [this.edgeId(input)]
+                    };
+                    updates.push(update);
+                }
+                updates.push({
+                    nodes: [{ id: neuron.id, label: "\u03C3(" + neuronVal.toFixed(2) + ") = " + neuron.output.toFixed(2) }],
+                    edges: allEdgesInvisible()
+                });
+                lastNeuron = neuron;
+            }
+        }
+        return updates;
+    };
+    NetworkGraph.prototype.applyUpdate = function (update) {
+        this.edges.update(update.edges);
+        this.nodes.update(update.nodes);
+        this.nodes.flush();
+        this.edges.flush();
+        if (update.highlightNodes)
+            this.graph.selectNodes(update.highlightNodes, false);
+        if (update.highlightEdges)
+            this.graph.selectEdges(update.highlightEdges);
+    };
     NetworkGraph.prototype.onFrame = function (framenum) {
+        if (this.currentlyDisplayingForwardPass) {
+            // abort forward pass
+            this.sim.config.bias = this.biasBeforeForwardPass;
+            this.onNetworkLoaded(this.net, true);
+            this.currentlyDisplayingForwardPass = false;
+        }
         if (this.net.connections.length > 20 && framenum % 15 !== 0) {
             // skip some frames because slow
             return;
@@ -1263,7 +1395,7 @@ var NetworkGraph = (function () {
         for (var _i = 0, _a = this.net.connections; _i < _a.length; _i++) {
             var conn = _a[_i];
             this.edges.update({
-                id: conn.inp.id * this.net.connections.length + conn.out.id,
+                id: this.edgeId(conn),
                 label: conn.weight.toFixed(2),
                 width: Math.min(6, Math.abs(conn.weight * 2)),
                 color: conn.weight > 0 ? 'blue' : 'red'
@@ -1687,6 +1819,7 @@ var TableEditor = (function () {
     };
     TableEditor.prototype.onView = function () {
         this.onNetworkLoaded(this.sim.net);
+        this.onFrame();
     };
     TableEditor.prototype.onHide = function () {
         //this.reparseData();

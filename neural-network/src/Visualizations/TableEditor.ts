@@ -120,6 +120,7 @@ class TableEditor implements Visualization {
 	}
 	onView() {
 		this.onNetworkLoaded(this.sim.net);
+		this.onFrame();
 	}
 	onHide() {
 		//this.reparseData();

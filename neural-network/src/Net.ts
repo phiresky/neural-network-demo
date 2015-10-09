@@ -46,9 +46,10 @@ module Net {
 		layers: Neuron[][] = [];
 		inputs: InputNeuron[];
 		outputs: OutputNeuron[];
+		biases: InputNeuron[] = [];
 		connections: NeuronConnection[] = [];
 		constructor(input: InputLayerConfig, hidden: LayerConfig[], output: OutputLayerConfig, public learnRate: number,
-			public addBiasToLayers: boolean, startWeight = () => Math.random() - 0.5, public startWeights?: double[]) {
+			startWeight = () => Math.random() - 0.5, public startWeights?: double[]) {
 			let nid = 0;
 			this.inputs = Util.makeArray(input.neuronCount, i => new InputNeuron(nid++, i, input.names[i]));
 			this.layers.push(this.inputs.slice());
@@ -68,7 +69,7 @@ module Net {
 					output.inputs.push(conn);
 					this.connections.push(conn);
 				}
-				if (!addBiasToLayers) inLayer.pop();
+				this.biases[i] = inLayer.pop() as InputNeuron;
 			}
 			if (!this.startWeights) {
 				this.startWeights = this.connections.map(c => c.weight = startWeight());

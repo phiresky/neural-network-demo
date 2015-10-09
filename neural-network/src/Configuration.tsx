@@ -37,7 +37,7 @@ class ConfigurationGui extends React.Component<Configuration, {}> {
 						<input type="range" min={0.005} max={1} step={0.005} id="learningRate" value={Util.logScale(conf.learningRate)+""} onChange={loadConfig} />
 					</BSFormGroup>
 					<BSFormGroup label="Show bias input" id="bias" isStatic>
-						<input type="checkbox" checked={conf.bias} id="bias" onChange={() => {loadConfig(); sim.initializeNet()}} />
+						<input type="checkbox" checked={conf.bias} id="bias" onChange={() => {sim.loadConfig(); sim.netgraph.onNetworkLoaded(sim.net)}} />
 					</BSFormGroup>
 					<NeuronGui {...this.props} />
 				</div>
