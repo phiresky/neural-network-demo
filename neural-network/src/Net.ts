@@ -14,22 +14,27 @@ module Net {
 		f: (x: double) => double,
 		df: (x: double) => double
 	}
-	var NonLinearities: { [name: string]: ActivationFunction } = {
+	export var NonLinearities: { [name: string]: ActivationFunction } = {
 		sigmoid: {
-			f: (x: double) => 1 / (1 + Math.exp(-x)),
-			df: (x: double) => { x = 1 / (1 + Math.exp(-x)); return x * (1 - x) }
+			f: x => 1 / (1 + Math.exp(-x)),
+			df: x => { x = 1 / (1 + Math.exp(-x)); return x * (1 - x) }
 		},
 		tanh: {
-			f: (x: double) => tanh(x),
-			df: (x: double) => { x = tanh(x); return 1 - x * x }
+			f: x => tanh(x),
+			df: x => { x = tanh(x); return 1 - x * x }
 		},
 		linear: {
-			f: (x: double) => x,
-			df: (x: double) => 1
+			f: x => x,
+			df: x => 1
 		},
 		relu: {
-			f: (x: double) => Math.max(x, 0),
-			df: (x: double) => x <= 0 ? 0 : 1
+			f: x => Math.max(x, 0),
+			df: x => x <= 0 ? 0 : 1
+		},
+		// used for Rosenblatt Perceptron (fake df)
+		"threshold (≥ 0)": {
+			f: x => (x>=0)?1:0,
+			df: x => 1
 		}
 	}
 
@@ -94,29 +99,48 @@ module Net {
 			}
 			return Math.sqrt(sum / this.outputs.length);
 		}
+		
+		/** if individual is true, train individually, else train as a set (usually better)*/
+		trainAll(data: TrainingData[], individual = false) {
+			if(!individual) for (const conn of this.connections) conn.zeroDeltaWeight();
+			for (const val of data) {
+				this.train(val.input, val.output, individual);
+			}
+			if(!individual) for (const conn of this.connections) conn.flushDeltaWeight();
+		}
 
-		train(inputVals: double[], expectedOutput: double[]) {
+		/** if flush is false, only calculate deltas but don't reset or add them */
+		train(inputVals: double[], expectedOutput: double[], flush = true) {
 			this.setInputsAndCalculate(inputVals);
 			for (var i = 0; i < this.outputs.length; i++)
 				this.outputs[i].targetOutput = expectedOutput[i];
 			for (let i = this.layers.length - 1; i > 0; i--) {
 				for (const neuron of this.layers[i]) {
 					neuron.calculateError();
-					for (const conn of neuron.inputs)
-						conn.calculateDeltaWeight(this.learnRate);
+					for (const conn of neuron.inputs) {
+						if(flush) conn.zeroDeltaWeight();
+						conn.addDeltaWeight(this.learnRate);
+					}
 				}
 			}
-			for (const conn of this.connections) conn.weight += conn.deltaWeight;
+			if(flush) for (const conn of this.connections) conn.flushDeltaWeight();
 		}
 	}
 
 	export class NeuronConnection {
-		public deltaWeight = 0; public weight = 0;
+		private deltaWeight = NaN; public weight = 0;
 		constructor(public inp: Neuron, public out: Neuron) {
 
 		}
-		calculateDeltaWeight(learnRate: double) {
-			this.deltaWeight = learnRate * this.out.error * this.inp.output;
+		zeroDeltaWeight() {
+			this.deltaWeight = 0;
+		}
+		addDeltaWeight(learnRate: double) {
+			this.deltaWeight += learnRate * this.out.error * this.inp.output;
+		}
+		flushDeltaWeight() {
+			this.weight += this.deltaWeight;
+			this.deltaWeight = NaN;
 		}
 	}
 	export class Neuron {
@@ -146,14 +170,14 @@ module Net {
 			this.error = δ * NonLinearities[this.activation].df(this.weightedInputs);
 		}
 		
-		toLinearFunction(): (x:number) => number {
+		toLinearFunction(threshold: number): (x:number) => number {
 			if(this.inputs.length !== 3) throw Error("only works for two dimensions");
 			// w1*x + w2*y + w3 = 0.5
 			// w2*y = 0.5 - w3 - w1*x
 			// y = (0.5 - w3 - w1*x) / w2
 			let wy = this.inputs[1].weight;
 			if(wy === 0) wy = 0.00001;
-			return x => (0.5 - this.inputs[2].weight - this.inputs[0].weight * x) / wy;
+			return x => (threshold - this.inputs[2].weight - this.inputs[0].weight * x) / wy;
 		}
 	}
 	export class InputNeuron extends Neuron {

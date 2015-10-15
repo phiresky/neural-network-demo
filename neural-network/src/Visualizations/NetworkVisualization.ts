@@ -88,7 +88,7 @@ class NetworkVisualization implements Visualization {
 			return;
 		}
 		const isSinglePerceptron = this.sim.net.layers.length === 2 && this.netType === NetType.BinaryClassify;
-		const separator:Util.Bounds = isSinglePerceptron && this.getSeparator(this.sim.net.outputs[0].toLinearFunction());
+		const separator:Util.Bounds = isSinglePerceptron && this.getSeparator(this.sim.net.outputs[0].toLinearFunction(0));
 		if(isSinglePerceptron)
 			this.drawPolyBackground(separator);
 		else this.drawBackground();
@@ -135,6 +135,7 @@ class NetworkVisualization implements Visualization {
 		y = this.trafo.toCanvas.y(y); y2 = this.trafo.toCanvas.y(y2);
 		this.ctx.strokeStyle = color;
 		this.ctx.beginPath();
+		this.ctx.lineWidth = 2;
 		this.ctx.moveTo(x, y);
 		this.ctx.lineTo(x2, y2);
 		this.ctx.stroke();
@@ -144,6 +145,7 @@ class NetworkVisualization implements Visualization {
 		x = this.trafo.toCanvas.x(x); y = this.trafo.toCanvas.y(y);
 		this.ctx.fillStyle = color;
 		this.ctx.beginPath();
+		this.ctx.lineWidth = 1;
 		this.ctx.arc(x, y, 5, 0, 2 * Math.PI);
 		this.ctx.fill();
 		this.ctx.arc(x, y, 5, 0, 2 * Math.PI);
@@ -192,7 +194,7 @@ class NetworkVisualization implements Visualization {
 		}
 	}
 	drawCoordinateSystem() {
-		const marklen = 0.2;
+		const marklen = 0.1;
 		const ctx = this.ctx, toc = this.trafo.toCanvas;
 		ctx.strokeStyle = "#000";
 		ctx.fillStyle = "#000";
@@ -200,6 +202,7 @@ class NetworkVisualization implements Visualization {
 		ctx.textAlign = "center";
 		ctx.font = "20px monospace";
 		ctx.beginPath();
+		this.ctx.lineWidth = 2;
 
 		ctx.moveTo(toc.x(0), 0);
 		ctx.lineTo(toc.x(0), this.canvas.height);

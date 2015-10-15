@@ -145,9 +145,7 @@ class Simulation {
 	statusCorrectEle = document.getElementById('statusCorrect');
 	step() {
 		this.stepNum++;
-		for (const val of this.config.data) {
-			this.net.train(val.input, val.output);
-		}
+		this.net.trainAll(this.config.data);
 	}
 	
 	forwardPassState = -1;
@@ -192,7 +190,7 @@ class Simulation {
 
 	stop() {
 		clearTimeout(this.restartTimeout);
-		$("#runButton").text("Run").addClass("btn-primary").removeClass("btn-danger");
+		$("#runButton").text("Animate").addClass("btn-primary").removeClass("btn-danger");
 		this.restartTimeout = -1;
 		this.running = false;
 		cancelAnimationFrame(this.runningId);
@@ -271,6 +269,7 @@ class Simulation {
 		if (this.isCustom && !forceNeuronRename) return;
 		this.isCustom = true;
 		$("#presetName").text("Custom Network");
+		this.config.name = "Custom Network";
 		let layer = this.config.inputLayer;
 		layer.names = Net.Util.makeArray(layer.neuronCount, i => `in${i + 1}`);
 		layer = this.config.outputLayer;

@@ -16,9 +16,9 @@ class ConfigurationGui extends React.Component<Configuration, {}> {
 		return <div className="form-horizontal">
 				<div className="col-sm-6">
 					<h4>Display</h4>
-					{/*<BSFormGroup label="Iterations per click on 'Step'" id="iterationsPerClick">
+					<BSFormGroup label="Iterations per click on 'Train'" id="iterationsPerClick">
 						<input className="form-control" type="number" min={0} max={10000} id="iterationsPerClick" value={""+conf.iterationsPerClick} onChange={loadConfig} />
-					</BSFormGroup>*/}
+					</BSFormGroup>
 					<BSFormGroup label="Steps per Frame" id="stepsPerFrame">
 						<input className="form-control" type="number" min={1} max={1000} id="stepsPerFrame" value={""+conf.stepsPerFrame} onChange={loadConfig} />
 					</BSFormGroup>
@@ -61,10 +61,7 @@ class NeuronLayer extends React.Component<{
 				<select className="btn btn-xs btn-default activation"
 						onChange={(e) => p.activationChanged((e.target as HTMLInputElement).value)} 
 						value={p.layer.activation}>
-					<option>sigmoid</option>
-					<option>tanh</option>
-					<option>linear</option>
-					<option>relu</option>
+					{Object.keys(Net.NonLinearities).map(name => <option>{name}</option>)}
 				</select>
 			:""}
 		</div>

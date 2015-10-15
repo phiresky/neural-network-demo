@@ -241,7 +241,33 @@ module Presets {
 				{ input: [0.95, -0.39], output: [0.95, -0.39] },
 				{ input: [0.86, -0.53], output: [0.86, -0.53] }]
 		},
-		{ "name": "Bit Position Auto Encoder", "learningRate": 0.05, "data": [{ "input": [1, 0, 0, 0], "output": [1, 0, 0, 0] }, { "input": [0, 1, 0, 0], "output": [0, 1, 0, 0] }, { "input": [0, 0, 1, 0], "output": [0, 0, 1, 0] }, { "input": [0, 0, 0, 1], "output": [0, 0, 0, 1] }], "inputLayer": { "neuronCount": 4, "names": ["in1", "in2", "in3", "in4"] }, "outputLayer": { "neuronCount": 4, "activation": "sigmoid", "names": ["out1", "out2", "out3", "out4"] }, "hiddenLayers": [{ "neuronCount": 2, "activation": "sigmoid" }], "netLayers": [{ "activation": "sigmoid", "neuronCount": 2 }, { "activation": "linear", "neuronCount": 1 }, { "neuronCount": 2, "activation": "sigmoid" }] }
+		{ "name": "Bit Position Auto Encoder", "learningRate": 0.05, "data": [{ "input": [1, 0, 0, 0], "output": [1, 0, 0, 0] }, { "input": [0, 1, 0, 0], "output": [0, 1, 0, 0] }, { "input": [0, 0, 1, 0], "output": [0, 0, 1, 0] }, { "input": [0, 0, 0, 1], "output": [0, 0, 0, 1] }], "inputLayer": { "neuronCount": 4, "names": ["in1", "in2", "in3", "in4"] }, "outputLayer": { "neuronCount": 4, "activation": "sigmoid", "names": ["out1", "out2", "out3", "out4"] }, "hiddenLayers": [{ "neuronCount": 2, "activation": "sigmoid" }], "netLayers": [{ "activation": "sigmoid", "neuronCount": 2 }, { "activation": "linear", "neuronCount": 1 }, { "neuronCount": 2, "activation": "sigmoid" }] },
+		{
+			"name": "Rosenblatt Perzeptron",
+			"stepsPerFrame": 1,
+			"learningRate": 0.5,
+			"showGradient": false,
+			"bias": false,
+			"autoRestartTime": 5000,
+			"autoRestart": false,
+			"iterationsPerClick": 1,
+			"data": [{"input":[0.39,1.12],"output":[0]},{"input":[0.48,0.31],"output":[0]},{"input":[0.51,0.73],"output":[0]},{"input":[0.27,1],"output":[0]},{"input":[1.21,0.62],"output":[1]},{"input":[1.05,-0.01],"output":[1]},{"input":[0.93,-0.09],"output":[1]},{"input":[0.86,0.55],"output":[1]},{"input":[0.73,2.62],"output":[1]},{"input":[0.8,1.82],"output":[1]}],
+			"inputLayer": {
+				"neuronCount": 2,
+				"names": [
+					"x",
+					"y"
+				]
+			},
+			"outputLayer": {
+				"neuronCount": 1,
+				"activation": "threshold (≥ 0)",
+				"names": [
+					"class"
+				]
+			},
+			"hiddenLayers": []
+		}
 	];
 	export function getNames(): string[] {
 		return presets.map(p => p.name).filter(c => c !== "Default");

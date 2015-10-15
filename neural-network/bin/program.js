@@ -46,7 +46,7 @@ var Net;
             return (y - 1) / (y + 1);
         }
     };
-    var NonLinearities = {
+    Net.NonLinearities = {
         sigmoid: {
             f: function (x) { return 1 / (1 + Math.exp(-x)); },
             df: function (x) { x = 1 / (1 + Math.exp(-x)); return x * (1 - x); }
@@ -62,6 +62,11 @@ var Net;
         relu: {
             f: function (x) { return Math.max(x, 0); },
             df: function (x) { return x <= 0 ? 0 : 1; }
+        },
+        // used for Rosenblatt Perceptron (fake df)
+        "threshold (≥ 0)": {
+            f: function (x) { return (x >= 0) ? 1 : 0; },
+            df: function (x) { return 1; }
         }
     };
     var Util;
@@ -139,7 +144,27 @@ var Net;
             }
             return Math.sqrt(sum / this.outputs.length);
         };
-        NeuralNet.prototype.train = function (inputVals, expectedOutput) {
+        /** if individual is true, train individually, else train as a set (usually better)*/
+        NeuralNet.prototype.trainAll = function (data, individual) {
+            if (individual === void 0) { individual = false; }
+            if (!individual)
+                for (var _i = 0, _a = this.connections; _i < _a.length; _i++) {
+                    var conn = _a[_i];
+                    conn.zeroDeltaWeight();
+                }
+            for (var _b = 0; _b < data.length; _b++) {
+                var val = data[_b];
+                this.train(val.input, val.output, individual);
+            }
+            if (!individual)
+                for (var _c = 0, _d = this.connections; _c < _d.length; _c++) {
+                    var conn = _d[_c];
+                    conn.flushDeltaWeight();
+                }
+        };
+        /** if flush is false, only calculate deltas but don't reset or add them */
+        NeuralNet.prototype.train = function (inputVals, expectedOutput, flush) {
+            if (flush === void 0) { flush = true; }
             this.setInputsAndCalculate(inputVals);
             for (var i = 0; i < this.outputs.length; i++)
                 this.outputs[i].targetOutput = expectedOutput[i];
@@ -149,14 +174,17 @@ var Net;
                     neuron.calculateError();
                     for (var _b = 0, _c = neuron.inputs; _b < _c.length; _b++) {
                         var conn = _c[_b];
-                        conn.calculateDeltaWeight(this.learnRate);
+                        if (flush)
+                            conn.zeroDeltaWeight();
+                        conn.addDeltaWeight(this.learnRate);
                     }
                 }
             }
-            for (var _d = 0, _e = this.connections; _d < _e.length; _d++) {
-                var conn = _e[_d];
-                conn.weight += conn.deltaWeight;
-            }
+            if (flush)
+                for (var _d = 0, _e = this.connections; _d < _e.length; _d++) {
+                    var conn = _e[_d];
+                    conn.flushDeltaWeight();
+                }
         };
         return NeuralNet;
     })();
@@ -165,11 +193,18 @@ var Net;
         function NeuronConnection(inp, out) {
             this.inp = inp;
             this.out = out;
-            this.deltaWeight = 0;
+            this.deltaWeight = NaN;
             this.weight = 0;
         }
-        NeuronConnection.prototype.calculateDeltaWeight = function (learnRate) {
-            this.deltaWeight = learnRate * this.out.error * this.inp.output;
+        NeuronConnection.prototype.zeroDeltaWeight = function () {
+            this.deltaWeight = 0;
+        };
+        NeuronConnection.prototype.addDeltaWeight = function (learnRate) {
+            this.deltaWeight += learnRate * this.out.error * this.inp.output;
+        };
+        NeuronConnection.prototype.flushDeltaWeight = function () {
+            this.weight += this.deltaWeight;
+            this.deltaWeight = NaN;
         };
         return NeuronConnection;
     })();
@@ -194,7 +229,7 @@ var Net;
         };
         Neuron.prototype.calculateOutput = function () {
             this.calculateWeightedInputs();
-            this.output = NonLinearities[this.activation].f(this.weightedInputs);
+            this.output = Net.NonLinearities[this.activation].f(this.weightedInputs);
         };
         Neuron.prototype.calculateError = function () {
             var δ = 0;
@@ -202,9 +237,9 @@ var Net;
                 var output = _a[_i];
                 δ += output.out.error * output.weight;
             }
-            this.error = δ * NonLinearities[this.activation].df(this.weightedInputs);
+            this.error = δ * Net.NonLinearities[this.activation].df(this.weightedInputs);
         };
-        Neuron.prototype.toLinearFunction = function () {
+        Neuron.prototype.toLinearFunction = function (threshold) {
             var _this = this;
             if (this.inputs.length !== 3)
                 throw Error("only works for two dimensions");
@@ -214,7 +249,7 @@ var Net;
             var wy = this.inputs[1].weight;
             if (wy === 0)
                 wy = 0.00001;
-            return function (x) { return (0.5 - _this.inputs[2].weight - _this.inputs[0].weight * x) / wy; };
+            return function (x) { return (threshold - _this.inputs[2].weight - _this.inputs[0].weight * x) / wy; };
         };
         return Neuron;
     })();
@@ -244,7 +279,7 @@ var Net;
             this.name = name;
         }
         OutputNeuron.prototype.calculateError = function () {
-            this.error = NonLinearities[this.activation].df(this.weightedInputs) * (this.targetOutput - this.output);
+            this.error = Net.NonLinearities[this.activation].df(this.weightedInputs) * (this.targetOutput - this.output);
         };
         return OutputNeuron;
     })(Neuron);
@@ -464,7 +499,33 @@ var Presets;
                 { input: [0.95, -0.39], output: [0.95, -0.39] },
                 { input: [0.86, -0.53], output: [0.86, -0.53] }]
         },
-        { "name": "Bit Position Auto Encoder", "learningRate": 0.05, "data": [{ "input": [1, 0, 0, 0], "output": [1, 0, 0, 0] }, { "input": [0, 1, 0, 0], "output": [0, 1, 0, 0] }, { "input": [0, 0, 1, 0], "output": [0, 0, 1, 0] }, { "input": [0, 0, 0, 1], "output": [0, 0, 0, 1] }], "inputLayer": { "neuronCount": 4, "names": ["in1", "in2", "in3", "in4"] }, "outputLayer": { "neuronCount": 4, "activation": "sigmoid", "names": ["out1", "out2", "out3", "out4"] }, "hiddenLayers": [{ "neuronCount": 2, "activation": "sigmoid" }], "netLayers": [{ "activation": "sigmoid", "neuronCount": 2 }, { "activation": "linear", "neuronCount": 1 }, { "neuronCount": 2, "activation": "sigmoid" }] }
+        { "name": "Bit Position Auto Encoder", "learningRate": 0.05, "data": [{ "input": [1, 0, 0, 0], "output": [1, 0, 0, 0] }, { "input": [0, 1, 0, 0], "output": [0, 1, 0, 0] }, { "input": [0, 0, 1, 0], "output": [0, 0, 1, 0] }, { "input": [0, 0, 0, 1], "output": [0, 0, 0, 1] }], "inputLayer": { "neuronCount": 4, "names": ["in1", "in2", "in3", "in4"] }, "outputLayer": { "neuronCount": 4, "activation": "sigmoid", "names": ["out1", "out2", "out3", "out4"] }, "hiddenLayers": [{ "neuronCount": 2, "activation": "sigmoid" }], "netLayers": [{ "activation": "sigmoid", "neuronCount": 2 }, { "activation": "linear", "neuronCount": 1 }, { "neuronCount": 2, "activation": "sigmoid" }] },
+        {
+            "name": "Rosenblatt Perzeptron",
+            "stepsPerFrame": 1,
+            "learningRate": 0.5,
+            "showGradient": false,
+            "bias": false,
+            "autoRestartTime": 5000,
+            "autoRestart": false,
+            "iterationsPerClick": 1,
+            "data": [{ "input": [0.39, 1.12], "output": [0] }, { "input": [0.48, 0.31], "output": [0] }, { "input": [0.51, 0.73], "output": [0] }, { "input": [0.27, 1], "output": [0] }, { "input": [1.21, 0.62], "output": [1] }, { "input": [1.05, -0.01], "output": [1] }, { "input": [0.93, -0.09], "output": [1] }, { "input": [0.86, 0.55], "output": [1] }, { "input": [0.73, 2.62], "output": [1] }, { "input": [0.8, 1.82], "output": [1] }],
+            "inputLayer": {
+                "neuronCount": 2,
+                "names": [
+                    "x",
+                    "y"
+                ]
+            },
+            "outputLayer": {
+                "neuronCount": 1,
+                "activation": "threshold (≥ 0)",
+                "names": [
+                    "class"
+                ]
+            },
+            "hiddenLayers": []
+        }
     ];
     function getNames() {
         return Presets.presets.map(function (p) { return p.name; }).filter(function (c) { return c !== "Default"; });
@@ -701,10 +762,7 @@ var Simulation = (function () {
     };
     Simulation.prototype.step = function () {
         this.stepNum++;
-        for (var _i = 0, _a = this.config.data; _i < _a.length; _i++) {
-            var val = _a[_i];
-            this.net.train(val.input, val.output);
-        }
+        this.net.trainAll(this.config.data);
     };
     Simulation.prototype.forwardPassStep = function () {
         if (!this.netgraph.currentlyDisplayingForwardPass) {
@@ -746,7 +804,7 @@ var Simulation = (function () {
     };
     Simulation.prototype.stop = function () {
         clearTimeout(this.restartTimeout);
-        $("#runButton").text("Run").addClass("btn-primary").removeClass("btn-danger");
+        $("#runButton").text("Animate").addClass("btn-primary").removeClass("btn-danger");
         this.restartTimeout = -1;
         this.running = false;
         cancelAnimationFrame(this.runningId);
@@ -827,6 +885,7 @@ var Simulation = (function () {
             return;
         this.isCustom = true;
         $("#presetName").text("Custom Network");
+        this.config.name = "Custom Network";
         var layer = this.config.inputLayer;
         layer.names = Net.Util.makeArray(layer.neuronCount, function (i) { return ("in" + (i + 1)); });
         layer = this.config.outputLayer;
@@ -1130,7 +1189,7 @@ var ConfigurationGui = (function (_super) {
     ConfigurationGui.prototype.render = function () {
         var conf = this.props;
         var loadConfig = function () { return sim.loadConfig(); };
-        return React.createElement("div", {"className": "form-horizontal"}, React.createElement("div", {"className": "col-sm-6"}, React.createElement("h4", null, "Display"), React.createElement(BSFormGroup, {"label": "Steps per Frame", "id": "stepsPerFrame"}, React.createElement("input", {"className": "form-control", "type": "number", "min": 1, "max": 1000, "id": "stepsPerFrame", "value": "" + conf.stepsPerFrame, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "When correct, restart after 5 seconds", "id": "autoRestart", "isStatic": true}, React.createElement("input", {"type": "checkbox", "id": "autoRestart", "checked": conf.autoRestart, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Show class propabilities as gradient", "id": "showGradient", "isStatic": true}, React.createElement("input", {"type": "checkbox", "checked": conf.showGradient, "id": "showGradient", "onChange": function () { loadConfig(); sim.onFrame(false); }})), React.createElement("button", {"className": "btn btn-default", "data-toggle": "modal", "data-target": "#exportModal"}, "Import / Export")), React.createElement("div", {"className": "col-sm-6"}, React.createElement("h4", null, "Net"), React.createElement(BSFormGroup, {"id": "learningRate", "label": "Learning Rate", "isStatic": true}, React.createElement("span", {"id": "learningRateVal", "style": { marginRight: '1em' }}, conf.learningRate.toFixed(3)), React.createElement("input", {"type": "range", "min": 0.005, "max": 1, "step": 0.005, "id": "learningRate", "value": Util.logScale(conf.learningRate) + "", "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Show bias input", "id": "bias", "isStatic": true}, React.createElement("input", {"type": "checkbox", "checked": conf.bias, "id": "bias", "onChange": function () { sim.loadConfig(); sim.netgraph.onNetworkLoaded(sim.net); }})), React.createElement(NeuronGui, React.__spread({}, this.props))));
+        return React.createElement("div", {"className": "form-horizontal"}, React.createElement("div", {"className": "col-sm-6"}, React.createElement("h4", null, "Display"), React.createElement(BSFormGroup, {"label": "Iterations per click on 'Train'", "id": "iterationsPerClick"}, React.createElement("input", {"className": "form-control", "type": "number", "min": 0, "max": 10000, "id": "iterationsPerClick", "value": "" + conf.iterationsPerClick, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Steps per Frame", "id": "stepsPerFrame"}, React.createElement("input", {"className": "form-control", "type": "number", "min": 1, "max": 1000, "id": "stepsPerFrame", "value": "" + conf.stepsPerFrame, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "When correct, restart after 5 seconds", "id": "autoRestart", "isStatic": true}, React.createElement("input", {"type": "checkbox", "id": "autoRestart", "checked": conf.autoRestart, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Show class propabilities as gradient", "id": "showGradient", "isStatic": true}, React.createElement("input", {"type": "checkbox", "checked": conf.showGradient, "id": "showGradient", "onChange": function () { loadConfig(); sim.onFrame(false); }})), React.createElement("button", {"className": "btn btn-default", "data-toggle": "modal", "data-target": "#exportModal"}, "Import / Export")), React.createElement("div", {"className": "col-sm-6"}, React.createElement("h4", null, "Net"), React.createElement(BSFormGroup, {"id": "learningRate", "label": "Learning Rate", "isStatic": true}, React.createElement("span", {"id": "learningRateVal", "style": { marginRight: '1em' }}, conf.learningRate.toFixed(3)), React.createElement("input", {"type": "range", "min": 0.005, "max": 1, "step": 0.005, "id": "learningRate", "value": Util.logScale(conf.learningRate) + "", "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Show bias input", "id": "bias", "isStatic": true}, React.createElement("input", {"type": "checkbox", "checked": conf.bias, "id": "bias", "onChange": function () { sim.loadConfig(); sim.netgraph.onNetworkLoaded(sim.net); }})), React.createElement(NeuronGui, React.__spread({}, this.props))));
     };
     return ConfigurationGui;
 })(React.Component);
@@ -1142,7 +1201,7 @@ var NeuronLayer = (function (_super) {
     NeuronLayer.prototype.render = function () {
         var p = this.props;
         return React.createElement("div", null, p.name, " layer: ", p.layer.neuronCount, " neurons ", React.createElement("button", {"className": "btn btn-xs btn-default", "onClick": function () { return p.countChanged(1); }}, "+"), React.createElement("button", {"className": "btn btn-xs btn-default", "onClick": function () { return p.countChanged(-1); }}, "-"), p.layer.activation ?
-            React.createElement("select", {"className": "btn btn-xs btn-default activation", "onChange": function (e) { return p.activationChanged(e.target.value); }, "value": p.layer.activation}, React.createElement("option", null, "sigmoid"), React.createElement("option", null, "tanh"), React.createElement("option", null, "linear"), React.createElement("option", null, "relu"))
+            React.createElement("select", {"className": "btn btn-xs btn-default activation", "onChange": function (e) { return p.activationChanged(e.target.value); }, "value": p.layer.activation}, Object.keys(Net.NonLinearities).map(function (name) { return React.createElement("option", null, name); }))
             : "");
     };
     return NeuronLayer;
@@ -1530,7 +1589,7 @@ var NetworkVisualization = (function () {
             return;
         }
         var isSinglePerceptron = this.sim.net.layers.length === 2 && this.netType === NetType.BinaryClassify;
-        var separator = isSinglePerceptron && this.getSeparator(this.sim.net.outputs[0].toLinearFunction());
+        var separator = isSinglePerceptron && this.getSeparator(this.sim.net.outputs[0].toLinearFunction(0));
         if (isSinglePerceptron)
             this.drawPolyBackground(separator);
         else
@@ -1583,6 +1642,7 @@ var NetworkVisualization = (function () {
         y2 = this.trafo.toCanvas.y(y2);
         this.ctx.strokeStyle = color;
         this.ctx.beginPath();
+        this.ctx.lineWidth = 2;
         this.ctx.moveTo(x, y);
         this.ctx.lineTo(x2, y2);
         this.ctx.stroke();
@@ -1592,6 +1652,7 @@ var NetworkVisualization = (function () {
         y = this.trafo.toCanvas.y(y);
         this.ctx.fillStyle = color;
         this.ctx.beginPath();
+        this.ctx.lineWidth = 1;
         this.ctx.arc(x, y, 5, 0, 2 * Math.PI);
         this.ctx.fill();
         this.ctx.arc(x, y, 5, 0, 2 * Math.PI);
@@ -1643,7 +1704,7 @@ var NetworkVisualization = (function () {
         }
     };
     NetworkVisualization.prototype.drawCoordinateSystem = function () {
-        var marklen = 0.2;
+        var marklen = 0.1;
         var ctx = this.ctx, toc = this.trafo.toCanvas;
         ctx.strokeStyle = "#000";
         ctx.fillStyle = "#000";
@@ -1651,6 +1712,7 @@ var NetworkVisualization = (function () {
         ctx.textAlign = "center";
         ctx.font = "20px monospace";
         ctx.beginPath();
+        this.ctx.lineWidth = 2;
         ctx.moveTo(toc.x(0), 0);
         ctx.lineTo(toc.x(0), this.canvas.height);
         ctx.moveTo(toc.x(-marklen / 2), toc.y(1));
