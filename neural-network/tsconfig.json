@@ -20,7 +20,7 @@
 		"./src/Visualizations/NetworkGraph.ts",
 		"./src/Visualizations/NetworkVisualization.ts",
 		"./src/Visualizations/TableEditor.ts",
-		"./src/Visualizations/Visualization.ts",
+		"./src/Visualizations/Visualization.tsx",
 		"./src/Visualizations/WeightsGraph.ts"
 	]
 }

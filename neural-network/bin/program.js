@@ -632,11 +632,6 @@ var Simulation = (function () {
         this.forwardPassState = -1;
         this.forwardPassEles = [];
         this.aniFrameCallback = this.animationStep.bind(this);
-        for (var _i = 0, _a = Presets.getNames(); _i < _a.length; _i++) {
-            var name_1 = _a[_i];
-            $("#presetLoader").append($("<li>").append($("<a>").text(name_1)));
-        }
-        $("#presetLoader").on("click", "a", function (e) { return _this.loadPreset(e.target.textContent); });
         var doSerialize = function () {
             _this.stop();
             $("#urlExport").val(_this.serializeToUrl(+$("#exportWeights").val()));
@@ -735,14 +730,9 @@ var Simulation = (function () {
         this.errorGraph = new ErrorGraph(this);
         this.table = new TableEditor(this);
         this.weightsGraph = new WeightsGraph(this);
-        this.leftVis = new TabSwitchVisualizationContainer($("#leftVisHeader"), $("#leftVisBody"), "leftVis", [
-            this.netgraph, this.errorGraph, this.weightsGraph]);
-        this.rightVis = new TabSwitchVisualizationContainer($("#rightVisHeader"), $("#rightVisBody"), "rightVis", [
-            this.netviz, this.table]);
+        this.lrVis = React.render(React.createElement(LRVis, {"sim": this}), document.getElementById("lrVisTarget"));
         this.deserializeFromUrl();
         this.renderConfigGui();
-        this.leftVis.setMode(0);
-        this.rightVis.setMode(0);
         this.constructed = true;
         this.onFrame(true);
         if (autoRun)
@@ -755,8 +745,8 @@ var Simulation = (function () {
         this.net = new Net.NeuralNet(this.config.inputLayer, this.config.hiddenLayers, this.config.outputLayer, this.config.learningRate, undefined, weights);
         this.stepNum = 0;
         this.errorHistory = [];
-        this.leftVis.onNetworkLoaded(this.net);
-        this.rightVis.onNetworkLoaded(this.net);
+        this.lrVis.leftVis.onNetworkLoaded(this.net);
+        this.lrVis.rightVis.onNetworkLoaded(this.net);
         if (this.constructed)
             this.onFrame(true);
     };
@@ -776,7 +766,7 @@ var Simulation = (function () {
         else {
             if (this.forwardPassState < this.config.data.length - 1) {
                 // start next
-                this.leftVis.setMode(0);
+                this.lrVis.leftVis.setMode(0);
                 this.forwardPassState++;
                 this.forwardPassEles = this.netgraph.forwardPass(this.config.data[this.forwardPassState]);
                 this.netgraph.applyUpdate(this.forwardPassEles.shift());
@@ -791,22 +781,22 @@ var Simulation = (function () {
     Simulation.prototype.onFrame = function (forceDraw) {
         this.frameNum++;
         this.calculateAverageError();
-        this.rightVis.currentVisualization.onFrame(forceDraw ? 0 : this.frameNum);
-        this.leftVis.currentVisualization.onFrame(forceDraw ? 0 : this.frameNum);
+        this.lrVis.state.leftVisBody.onFrame(forceDraw ? 0 : this.frameNum);
+        this.lrVis.state.rightVisBody.onFrame(forceDraw ? 0 : this.frameNum);
         this.updateStatusLine();
     };
     Simulation.prototype.run = function () {
         if (this.running)
             return;
-        $("#runButton").text("Stop").addClass("btn-danger").removeClass("btn-primary");
         this.running = true;
+        this.lrVis.setState({ running: true });
         this.animationStep();
     };
     Simulation.prototype.stop = function () {
         clearTimeout(this.restartTimeout);
-        $("#runButton").text("Animate").addClass("btn-primary").removeClass("btn-danger");
         this.restartTimeout = -1;
         this.running = false;
+        this.lrVis.setState({ running: false });
         cancelAnimationFrame(this.runningId);
     };
     Simulation.prototype.reset = function () {
@@ -844,12 +834,12 @@ var Simulation = (function () {
                 if (+(res[0] > 0.5) == val.output[0])
                     correct++;
             }
-            this.statusCorrectEle.innerHTML = "Correct: " + correct + "/" + this.config.data.length;
+            this.lrVis.setState({ correct: "Correct: " + correct + "/" + this.config.data.length });
         }
         else {
-            this.statusCorrectEle.innerHTML = "Error: " + (this.averageError).toFixed(2);
+            this.lrVis.setState({ correct: "Error: " + (this.averageError).toFixed(2) });
         }
-        this.statusIterEle.innerHTML = this.stepNum.toString();
+        this.lrVis.setState({ stepNum: this.stepNum });
         if (correct == this.config.data.length) {
             if (this.config.autoRestart && this.running && this.restartTimeout == -1) {
                 this.restartTimeout = setTimeout(function () {
@@ -920,7 +910,7 @@ var Simulation = (function () {
         this.renderConfigGui();
     };
     Simulation.prototype.renderConfigGui = function () {
-        React.render(React.createElement(ConfigurationGui, this.config), document.getElementById("configurationTarget"));
+        React.render(React.createElement(ConfigurationGui, React.__spread({}, this.config)), document.getElementById("configurationTarget"));
     };
     Simulation.prototype.loadPreset = function (name, weights) {
         this.isCustom = false;
@@ -1201,7 +1191,7 @@ var NeuronLayer = (function (_super) {
     NeuronLayer.prototype.render = function () {
         var p = this.props;
         return React.createElement("div", null, p.name, " layer: ", p.layer.neuronCount, " neurons ", React.createElement("button", {"className": "btn btn-xs btn-default", "onClick": function () { return p.countChanged(1); }}, "+"), React.createElement("button", {"className": "btn btn-xs btn-default", "onClick": function () { return p.countChanged(-1); }}, "-"), p.layer.activation ?
-            React.createElement("select", {"className": "btn btn-xs btn-default activation", "onChange": function (e) { return p.activationChanged(e.target.value); }, "value": p.layer.activation}, Object.keys(Net.NonLinearities).map(function (name) { return React.createElement("option", null, name); }))
+            React.createElement("select", {"className": "btn btn-xs btn-default activation", "onChange": function (e) { return p.activationChanged(e.target.value); }, "value": p.layer.activation}, Object.keys(Net.NonLinearities).map(function (name) { return React.createElement("option", {"key": name}, name); }))
             : "");
     };
     return NeuronLayer;
@@ -1566,8 +1556,8 @@ var NetworkVisualization = (function () {
                 this.actions = [];
                 var i = 0;
                 for (var _i = 0, _a = this.sim.config.outputLayer.names; _i < _a.length; _i++) {
-                    var name_2 = _a[_i];
-                    this.actions.push({ name: name_2, color: NetworkVisualization.colors.multiClass.bg[i++] });
+                    var name_1 = _a[_i];
+                    this.actions.push({ name: name_1, color: NetworkVisualization.colors.multiClass.bg[i++] });
                 }
                 this.actions.push("Remove");
                 this.actions.push("Move View");
@@ -1952,78 +1942,104 @@ var TableEditor = (function () {
     };
     return TableEditor;
 })();
-var TabSwitchVisualizationContainer = (function () {
-    function TabSwitchVisualizationContainer(headContainer, bodyContainer, name, things) {
-        var _this = this;
-        this.headContainer = headContainer;
-        this.bodyContainer = bodyContainer;
-        this.name = name;
-        this.things = things;
-        this.modes = [];
-        this.ul = $("<ul class='nav nav-pills'>");
-        this.body = $("<div class='visbody'>");
-        this.currentMode = -1;
-        this.createButtonsAndActions();
-        this.ul.on("click", "a", function (e) { return _this.setMode($(e.target).parent().index()); });
-        headContainer.append(this.ul);
-        bodyContainer.append(this.body);
+var LRVis = (function (_super) {
+    __extends(LRVis, _super);
+    function LRVis() {
+        _super.call(this);
+        this.state = {
+            running: false,
+            leftVisBody: null,
+            rightVisBody: null,
+            correct: "",
+            stepNum: 0
+        };
     }
-    TabSwitchVisualizationContainer.prototype.createButtonsAndActions = function () {
+    LRVis.prototype.render = function () {
         var _this = this;
-        this.ul.empty();
-        this.modes = [];
-        this.things.forEach(function (thing, thingid) {
+        var sim = this.props.sim;
+        return React.createElement("div", null, React.createElement("div", {"className": "row"}, React.createElement("div", {"className": "col-sm-6"}, React.createElement(TabSwitcher, {"ref": function (c) { return _this.leftVis = c; }, "things": [sim.netgraph, sim.errorGraph, sim.weightsGraph], "onChangeVisualization": function (vis, aft) { return _this.setState({ leftVisBody: vis }, aft); }})), React.createElement("div", {"className": "col-sm-6"}, React.createElement(TabSwitcher, {"ref": function (c) { return _this.rightVis = c; }, "things": [sim.netviz, sim.table], "onChangeVisualization": function (vis, aft) { return _this.setState({ rightVisBody: vis }, aft); }}))), React.createElement("div", {"className": "row"}, React.createElement("div", {"className": "col-sm-6"}, React.createElement("div", {"id": "leftVisBody", "className": "visbody"}), React.createElement("div", {"className": "h3"}, React.createElement("button", {"className": this.state.running ? "btn btn-danger" : "btn btn-primary", "onClick": sim.runtoggle.bind(sim)}, this.state.running ? "Stop" : "Animate"), " ", React.createElement("button", {"className": "btn btn-warning", "onClick": sim.reset.bind(sim)}, "Reset"), " ", React.createElement("button", {"className": "btn btn-default", "onClick": sim.iterations.bind(sim)}, "Train"), " ", React.createElement("button", {"className": "btn btn-default", "onClick": sim.forwardPassStep.bind(sim)}, "Forward Pass Step"), React.createElement("div", {"className": "btn-group pull-right"}, React.createElement("button", {"className": "btn btn-default dropdown-toggle", "data-toggle": "dropdown"}, "Load ", React.createElement("span", {"className": "caret"})), React.createElement("ul", {"className": "dropdown-menu"}, Presets.getNames().map(function (name) {
+            return React.createElement("li", {"key": name}, React.createElement("a", {"onClick": function (e) { return sim.loadPreset(e.target.textContent); }}, name));
+        })))), React.createElement("hr", null)), React.createElement("div", {"className": "col-sm-6"}, React.createElement("div", {"id": "rightVisBody", "className": "visbody"}), React.createElement("div", {"id": "status"}, React.createElement("h2", null, this.state.correct, " — Iteration: ", this.state.stepNum)), React.createElement("hr", null))));
+    };
+    LRVis.prototype.componentDidUpdate = function (prevProps, prevState) {
+        if (prevState.leftVisBody !== this.state.leftVisBody) {
+            $("#leftVisBody").children().detach();
+            $("#leftVisBody").append(this.state.leftVisBody.container);
+        }
+        if (prevState.rightVisBody !== this.state.rightVisBody) {
+            $("#rightVisBody").children().detach();
+            $("#rightVisBody").append(this.state.rightVisBody.container);
+        }
+    };
+    return LRVis;
+})(React.Component);
+var TabSwitcher = (function (_super) {
+    __extends(TabSwitcher, _super);
+    function TabSwitcher(props) {
+        _super.call(this, props);
+        this.state = {
+            modes: this.createButtonsAndActions(),
+            currentMode: 0
+        };
+        this.props.onChangeVisualization(this.props.things[this.state.modes[this.state.currentMode].thing], function () { });
+    }
+    TabSwitcher.prototype.render = function () {
+        var _this = this;
+        var isDark = function (color) { return Util.parseColor(color).reduce(function (a, b) { return a + b; }) / 3 < 127; };
+        return React.createElement("div", null, React.createElement("ul", {"className": "nav nav-pills"}, this.state.modes.map(function (mode, i) {
+            return React.createElement("li", {"key": i, "className": _this.state.currentMode === i ? "custom-active" : ""}, React.createElement("a", {"style": mode.color ? { backgroundColor: mode.color, color: isDark(mode.color) ? "white" : "black" } : {}, "onClick": function (e) { return _this.setMode(i); }}, mode.text));
+        })));
+    };
+    TabSwitcher.prototype.createButtonsAndActions = function () {
+        var modes = [];
+        this.props.things.forEach(function (thing, thingid) {
             return thing.actions.forEach(function (button, buttonid) {
-                _this.modes.push({ thing: thingid, action: buttonid });
-                var a = $("<a>");
+                var text = "", color = "";
                 if (typeof button === 'string') {
-                    a.text(button);
+                    text = button;
                 }
                 else {
-                    a.text(button.name).css("background-color", button.color);
-                    var dark = Util.parseColor(button.color).reduce(function (a, b) { return a + b; }) / 3 < 127;
-                    a.css("color", dark ? 'white' : 'black');
+                    text = button.name;
+                    color = button.color;
                 }
-                var li = $("<li>").append(a);
-                if (!button)
-                    li.hide();
-                _this.ul.append(li);
+                modes.push({ thing: thingid, action: buttonid, text: text, color: color });
             });
         });
+        return modes;
     };
-    TabSwitchVisualizationContainer.prototype.setMode = function (mode) {
-        this.ul.children("li.custom-active").removeClass("custom-active");
-        this.ul.children().eq(mode).addClass("custom-active");
-        if (mode == this.currentMode)
+    TabSwitcher.prototype.setMode = function (mode, force) {
+        if (force === void 0) { force = false; }
+        if (!force && mode == this.state.currentMode)
             return;
-        var action = this.modes[mode];
-        var lastAction = this.modes[this.currentMode];
-        this.currentMode = mode;
-        this.currentVisualization = this.things[action.thing];
-        if (!lastAction || action.thing != lastAction.thing) {
+        var action = this.state.modes[mode];
+        var lastAction = this.state.modes[this.state.currentMode];
+        this.setState({ currentMode: mode });
+        var currentVisualization = this.props.things[action.thing];
+        if (force || !lastAction || action.thing != lastAction.thing) {
             if (lastAction)
-                this.things[lastAction.thing].onHide();
-            this.body.children().detach(); // keep event handlers
-            this.body.append(this.currentVisualization.container);
-            this.currentVisualization.onView(true, action.action);
+                this.props.things[lastAction.thing].onHide();
+            this.props.onChangeVisualization(currentVisualization, function () {
+                return currentVisualization.onView(true, action.action);
+            });
         }
         else if (action.action !== lastAction.action) {
-            this.currentVisualization.onView(false, action.action);
+            currentVisualization.onView(false, action.action);
         }
     };
-    TabSwitchVisualizationContainer.prototype.onNetworkLoaded = function (net) {
+    TabSwitcher.prototype.onNetworkLoaded = function (net) {
         //todo: ugly hack
-        var beforeActions = JSON.stringify(this.things.map(function (t) { return t.actions; }));
-        this.things.forEach(function (thing) { return thing.onNetworkLoaded(net); });
-        var afterActions = JSON.stringify(this.things.map(function (t) { return t.actions; }));
-        if (beforeActions !== afterActions) {
-            this.createButtonsAndActions();
-            this.currentMode = -1;
-            this.setMode(0);
-        }
+        var beforeActions = JSON.stringify(this.props.things.map(function (t) { return t.actions; }));
+        this.props.things.forEach(function (thing) { return thing.onNetworkLoaded(net); });
+        var afterActions = JSON.stringify(this.props.things.map(function (t) { return t.actions; }));
+        if (beforeActions !== afterActions)
+            this.setState({
+                modes: this.createButtonsAndActions(),
+                currentMode: 0
+            });
+        this.setMode(this.state.currentMode, true);
     };
-    return TabSwitchVisualizationContainer;
-})();
+    return TabSwitcher;
+})(React.Component);
 var WeightsGraph = (function () {
     function WeightsGraph(sim) {
         var _this = this;

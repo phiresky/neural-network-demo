@@ -14,17 +14,12 @@ class Simulation {
 
 	net: Net.NeuralNet;
 	config: Configuration;
-	leftVis: TabSwitchVisualizationContainer;
-	rightVis: TabSwitchVisualizationContainer;
+	lrVis: LRVis;
 
 	constructed = false;
 	errorHistory: [number, number][];
 
 	constructor(autoRun: boolean) {
-		for (const name of Presets.getNames())
-			$("#presetLoader").append($("<li>").append($("<a>").text(name)));
-		$("#presetLoader").on("click", "a", e => this.loadPreset(e.target.textContent));
-
 		const doSerialize = () => {
 			this.stop();
 			$("#urlExport").val(this.serializeToUrl(+$("#exportWeights").val()));
@@ -117,15 +112,9 @@ class Simulation {
 		this.errorGraph = new ErrorGraph(this);
 		this.table = new TableEditor(this);
 		this.weightsGraph = new WeightsGraph(this);
-
-		this.leftVis = new TabSwitchVisualizationContainer($("#leftVisHeader"), $("#leftVisBody"), "leftVis", [
-			this.netgraph, this.errorGraph, this.weightsGraph]);
-		this.rightVis = new TabSwitchVisualizationContainer($("#rightVisHeader"), $("#rightVisBody"), "rightVis", [
-			this.netviz, this.table]);
+		this.lrVis = React.render(<LRVis sim={this}/>, document.getElementById("lrVisTarget")) as LRVis;
 		this.deserializeFromUrl();
 		this.renderConfigGui();
-		this.leftVis.setMode(0);
-		this.rightVis.setMode(0);
 		this.constructed = true;
 		this.onFrame(true);
 		if (autoRun) this.run();
@@ -137,8 +126,8 @@ class Simulation {
 		this.net = new Net.NeuralNet(this.config.inputLayer, this.config.hiddenLayers, this.config.outputLayer, this.config.learningRate, undefined, weights);
 		this.stepNum = 0;
 		this.errorHistory = [];
-		this.leftVis.onNetworkLoaded(this.net);
-		this.rightVis.onNetworkLoaded(this.net);
+		this.lrVis.leftVis.onNetworkLoaded(this.net);
+		this.lrVis.rightVis.onNetworkLoaded(this.net);
 		if (this.constructed) this.onFrame(true);
 	}
 	statusIterEle = document.getElementById('statusIteration');
@@ -161,7 +150,7 @@ class Simulation {
 		} else {
 			if(this.forwardPassState < this.config.data.length - 1) {
 				// start next
-				this.leftVis.setMode(0);
+				this.lrVis.leftVis.setMode(0);
 				this.forwardPassState++;
 				this.forwardPassEles = this.netgraph.forwardPass(this.config.data[this.forwardPassState]);
 				this.netgraph.applyUpdate(this.forwardPassEles.shift());
@@ -176,23 +165,23 @@ class Simulation {
 	onFrame(forceDraw: boolean) {
 		this.frameNum++;
 		this.calculateAverageError();
-		this.rightVis.currentVisualization.onFrame(forceDraw ? 0 : this.frameNum);
-		this.leftVis.currentVisualization.onFrame(forceDraw ? 0 : this.frameNum);
+		this.lrVis.state.leftVisBody.onFrame(forceDraw ? 0 : this.frameNum);
+		this.lrVis.state.rightVisBody.onFrame(forceDraw ? 0 : this.frameNum);
 		this.updateStatusLine();
 	}
 
 	run() {
 		if (this.running) return;
-		$("#runButton").text("Stop").addClass("btn-danger").removeClass("btn-primary");
 		this.running = true;
+		this.lrVis.setState({running:true});
 		this.animationStep();
 	}
 
 	stop() {
 		clearTimeout(this.restartTimeout);
-		$("#runButton").text("Animate").addClass("btn-primary").removeClass("btn-danger");
 		this.restartTimeout = -1;
 		this.running = false;
+		this.lrVis.setState({running:false});
 		cancelAnimationFrame(this.runningId);
 	}
 
@@ -229,11 +218,11 @@ class Simulation {
 				const res = this.net.getOutput(val.input);
 				if (+(res[0] > 0.5) == val.output[0]) correct++;
 			}
-			this.statusCorrectEle.innerHTML = `Correct: ${correct}/${this.config.data.length}`;
+			this.lrVis.setState({correct:`Correct: ${correct}/${this.config.data.length}`});
 		} else {
-			this.statusCorrectEle.innerHTML = `Error: ${(this.averageError).toFixed(2) }`;
+			this.lrVis.setState({correct:`Error: ${(this.averageError).toFixed(2) }`});
 		}
-		this.statusIterEle.innerHTML = this.stepNum.toString();
+		this.lrVis.setState({stepNum: this.stepNum});
 
 		if (correct == this.config.data.length) {
 			if (this.config.autoRestart && this.running && this.restartTimeout == -1) {
@@ -301,7 +290,7 @@ class Simulation {
 	}
 	
 	renderConfigGui() {
-		React.render(React.createElement(ConfigurationGui, this.config), document.getElementById("configurationTarget"));
+		React.render(<ConfigurationGui {...this.config}/>, document.getElementById("configurationTarget"));
 	}
 
 	loadPreset(name: string, weights?: double[]) {
