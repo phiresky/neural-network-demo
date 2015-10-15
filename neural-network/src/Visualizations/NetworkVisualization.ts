@@ -45,6 +45,7 @@ class NetworkVisualization implements Visualization {
 		window.addEventListener('resize', this.canvasResized.bind(this));
 		this.canvas.addEventListener("click", this.canvasClicked.bind(this));
 		this.canvas.addEventListener("contextmenu", this.canvasClicked.bind(this));
+		this.canvas.addEventListener("mousedown", Util.stopEvent); // prevent select text
 		$(this.canvas).appendTo(this.container);
 	}
 
@@ -86,10 +87,15 @@ class NetworkVisualization implements Visualization {
 			this.ctx.fillText("Cannot draw this data", this.canvas.width / 2, this.canvas.height / 2);
 			return;
 		}
-
-		this.drawBackground();
+		const isSinglePerceptron = this.sim.net.layers.length === 2 && this.netType === NetType.BinaryClassify;
+		const separator:Util.Bounds = isSinglePerceptron && this.getSeparator(this.sim.net.outputs[0].toLinearFunction());
+		if(isSinglePerceptron)
+			this.drawPolyBackground(separator);
+		else this.drawBackground();
 		this.drawCoordinateSystem();
 		this.drawDataPoints();
+		if(isSinglePerceptron)
+			this.drawLine.call(this, separator.minx, separator.miny, separator.maxx, separator.maxy, "black");
 	}
 
 	drawDataPoints() {
@@ -114,6 +120,14 @@ class NetworkVisualization implements Visualization {
 		} else {
 			throw "can't draw this"
 		}
+	}
+	
+	getSeparator(lineFunction:(x:number) => number):Util.Bounds {
+		const minx = this.trafo.toReal.x(0);
+		const maxx = this.trafo.toReal.x(this.canvas.width);
+		const miny = lineFunction(minx);
+		const maxy = lineFunction(maxx);
+		return {minx, miny, maxx, maxy};
 	}
 
 	drawLine(x: double, y: double, x2: double, y2: double, color: string) {
@@ -140,31 +154,42 @@ class NetworkVisualization implements Visualization {
 		this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 		return;
 	}
+	drawPolyBackground(sep: Util.Bounds) {
+		const colors = NetworkVisualization.colors.binaryClassify.bg;
+		const ctx = this.ctx;
+		const c = this.trafo.toCanvas;
+		const tmp = (y:number) => {
+			ctx.beginPath();
+			ctx.moveTo(c.x(sep.minx), c.y(sep.miny));
+			ctx.lineTo(c.x(sep.minx), y);
+			ctx.lineTo(c.x(sep.maxx), y);
+			ctx.lineTo(c.x(sep.maxx), c.y(sep.maxy));
+			ctx.fill();
+		}
+		const upperIsClass1 = +(this.sim.net.getOutput([sep.minx, sep.miny - 1])[0] > 0.5);
+		ctx.fillStyle = colors[1 - upperIsClass1];
+		tmp(0);
+		ctx.fillStyle = colors[upperIsClass1];
+		tmp(this.canvas.height);
+	}
 	drawBackground() {
 		if (this.sim.config.outputLayer.neuronCount === 2) {
 			this.clear('white');
 			return;
 		}
-		if(this.sim.config.outputLayer.neuronCount > 2) {
 		for (let x = 0; x < this.canvas.width; x += this.backgroundResolution) {
 			for (let y = 0; y < this.canvas.height; y += this.backgroundResolution) {
-				const vals = this.sim.net.getOutput([this.trafo.toReal.x(x + this.backgroundResolution / 2), this.trafo.toReal.y(y + this.backgroundResolution / 2)]);
-				const maxi = Util.getMaxIndex(vals);
-				this.ctx.fillStyle = NetworkVisualization.colors.multiClass.bg[maxi];
+					const vals = this.sim.net.getOutput([this.trafo.toReal.x(x + this.backgroundResolution / 2), this.trafo.toReal.y(y + this.backgroundResolution / 2)]);
+				if(this.sim.config.outputLayer.neuronCount > 2) {
+					this.ctx.fillStyle = NetworkVisualization.colors.multiClass.bg[Util.getMaxIndex(vals)];
+				} else {	
+					if (this.sim.config.showGradient) {
+						this.ctx.fillStyle = NetworkVisualization.colors.binaryClassify.gradient(vals[0]);
+					} else this.ctx.fillStyle = NetworkVisualization.colors.binaryClassify.bg[+(vals[0] > 0.5)];
+				}
 				this.ctx.fillRect(x, y, this.backgroundResolution, this.backgroundResolution);
 			}
 		}
-		} else {
-		for (let x = 0; x < this.canvas.width; x += this.backgroundResolution) {
-			for (let y = 0; y < this.canvas.height; y += this.backgroundResolution) {
-				const val = this.sim.net.getOutput([this.trafo.toReal.x(x + this.backgroundResolution / 2), this.trafo.toReal.y(y + this.backgroundResolution / 2)])[0];
-
-				if (this.sim.config.showGradient) {
-					this.ctx.fillStyle = NetworkVisualization.colors.binaryClassify.gradient(val);
-				} else this.ctx.fillStyle = NetworkVisualization.colors.binaryClassify.bg[+(val > 0.5)];
-				this.ctx.fillRect(x, y, this.backgroundResolution, this.backgroundResolution);
-			}
-		}}
 	}
 	drawCoordinateSystem() {
 		const marklen = 0.2;
@@ -211,7 +236,7 @@ class NetworkVisualization implements Visualization {
 		}
 	}
 	canvasClicked(evt: MouseEvent) {
-		evt.preventDefault();
+		Util.stopEvent(evt);
 		const data = this.sim.config.data;
 		const rect = this.canvas.getBoundingClientRect();
 		const x = this.trafo.toReal.x(evt.clientX - rect.left);

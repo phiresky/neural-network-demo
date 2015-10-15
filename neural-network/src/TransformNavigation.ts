@@ -23,15 +23,16 @@ class TransformNavigation {
 			this.scalex *= 1 - delta / 10;
 			this.scaley *= 1 - delta / 10;
 			transformChanged();
-			e.preventDefault();
+			Util.stopEvent(e);
 		});
 		canvas.addEventListener('mousedown', e => {
 			if (!transformActive()) return;
 			this.mousedown = true;
 			this.mousestart.x = e.pageX;
 			this.mousestart.y = e.pageY;
+			Util.stopEvent(e);
 		});
-		canvas.addEventListener('mousemove', e => {
+		window.addEventListener('mousemove', e => {
 			if (!transformActive()) return;
 			if (!this.mousedown) return;
 			this.offsetx += e.pageX - this.mousestart.x;
@@ -39,7 +40,13 @@ class TransformNavigation {
 			this.mousestart.x = e.pageX;
 			this.mousestart.y = e.pageY;
 			transformChanged();
+			Util.stopEvent(e);
 		});
-		document.addEventListener('mouseup', e => this.mousedown = false);
+		window.addEventListener('mouseup', e => {
+			if(this.mousedown) {
+				this.mousedown = false;
+				Util.stopEvent(e);
+			}
+		});
 	}
 }

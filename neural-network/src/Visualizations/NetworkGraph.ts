@@ -61,7 +61,10 @@ class NetworkGraph implements Visualization {
 		for (let lid = 0; lid < net.layers.length; lid++) {
 			const layer = net.layers[lid];
 			let nid = 1;
-			for (const neuron of (this.showbias&&net.biases[lid]?layer.concat(net.biases[lid]):layer)) {
+			let layerWithBias = layer;
+			if(this.showbias&&net.biases[lid])
+				layerWithBias = layer.concat(net.biases[lid]);
+			for (const neuron of layerWithBias) {
 				let type = 'Hidden Neuron '+(nid++);
 				let color = '#000';
 				if (neuron instanceof Net.InputNeuron) {
@@ -121,7 +124,7 @@ class NetworkGraph implements Visualization {
 		for(let i = 0; i < data.input.length; i++) {
 			updates[0].nodes.push({
 				id:this.net.inputs[i].id,
-				label: `${this.net.inputs[i].name} = ${data.input[i]}`
+				label: `${this.net.inputs[i].name} = ${data.input[i].toFixed(2)}`
 			});
 		}
 		const allEdgesInvisible = () => this.net.connections.map(conn => ({

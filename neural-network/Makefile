@@ -16,4 +16,6 @@ bin/libs.js: lib/bower_components/jquery/dist/jquery.min.js lib/bower_components
 	paste -d '\n' -s $^ > bin/libs.js
 
 watch:
-	tsc --watch
+	python3 -m http.server &
+	tsc --watch &
+

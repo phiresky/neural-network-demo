@@ -104,4 +104,16 @@ module Util {
 	export function expScale(n:number) {
 		return (Math.pow(10, n) - 1) / 9;
 	}
+	
+	export function binarySearch(boolFn:(n:number) => boolean, min: number, max: number, epsilon = 0): number {
+		var mid = ((max + min) / 2)|0;
+		if(Math.abs(mid - min) < epsilon) return mid;
+		if(boolFn(mid)) return binarySearch(boolFn, mid, max);
+		else return binarySearch(boolFn, min, mid);
+	}
+	
+	export function stopEvent(e:Event) {
+		e.preventDefault();
+		e.stopPropagation();
+	}
 }

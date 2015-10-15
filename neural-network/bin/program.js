@@ -204,6 +204,18 @@ var Net;
             }
             this.error = δ * NonLinearities[this.activation].df(this.weightedInputs);
         };
+        Neuron.prototype.toLinearFunction = function () {
+            var _this = this;
+            if (this.inputs.length !== 3)
+                throw Error("only works for two dimensions");
+            // w1*x + w2*y + w3 = 0.5
+            // w2*y = 0.5 - w3 - w1*x
+            // y = (0.5 - w3 - w1*x) / w2
+            var wy = this.inputs[1].weight;
+            if (wy === 0)
+                wy = 0.00001;
+            return function (x) { return (0.5 - _this.inputs[2].weight - _this.inputs[0].weight * x) / wy; };
+        };
         return Neuron;
     })();
     Net.Neuron = Neuron;
@@ -929,7 +941,7 @@ var TransformNavigation = (function () {
             _this.scalex *= 1 - delta / 10;
             _this.scaley *= 1 - delta / 10;
             transformChanged();
-            e.preventDefault();
+            Util.stopEvent(e);
         });
         canvas.addEventListener('mousedown', function (e) {
             if (!transformActive())
@@ -937,8 +949,9 @@ var TransformNavigation = (function () {
             _this.mousedown = true;
             _this.mousestart.x = e.pageX;
             _this.mousestart.y = e.pageY;
+            Util.stopEvent(e);
         });
-        canvas.addEventListener('mousemove', function (e) {
+        window.addEventListener('mousemove', function (e) {
             if (!transformActive())
                 return;
             if (!_this.mousedown)
@@ -948,8 +961,14 @@ var TransformNavigation = (function () {
             _this.mousestart.x = e.pageX;
             _this.mousestart.y = e.pageY;
             transformChanged();
+            Util.stopEvent(e);
         });
-        document.addEventListener('mouseup', function (e) { return _this.mousedown = false; });
+        window.addEventListener('mouseup', function (e) {
+            if (_this.mousedown) {
+                _this.mousedown = false;
+                Util.stopEvent(e);
+            }
+        });
     }
     return TransformNavigation;
 })();
@@ -1076,6 +1095,22 @@ var Util;
         return (Math.pow(10, n) - 1) / 9;
     }
     Util.expScale = expScale;
+    function binarySearch(boolFn, min, max, epsilon) {
+        if (epsilon === void 0) { epsilon = 0; }
+        var mid = ((max + min) / 2) | 0;
+        if (Math.abs(mid - min) < epsilon)
+            return mid;
+        if (boolFn(mid))
+            return binarySearch(boolFn, mid, max);
+        else
+            return binarySearch(boolFn, min, mid);
+    }
+    Util.binarySearch = binarySearch;
+    function stopEvent(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    Util.stopEvent = stopEvent;
 })(Util || (Util = {}));
 var BSFormGroup = (function (_super) {
     __extends(BSFormGroup, _super);
@@ -1253,8 +1288,11 @@ var NetworkGraph = (function () {
         for (var lid = 0; lid < net.layers.length; lid++) {
             var layer = net.layers[lid];
             var nid = 1;
-            for (var _i = 0, _a = (this.showbias && net.biases[lid] ? layer.concat(net.biases[lid]) : layer); _i < _a.length; _i++) {
-                var neuron = _a[_i];
+            var layerWithBias = layer;
+            if (this.showbias && net.biases[lid])
+                layerWithBias = layer.concat(net.biases[lid]);
+            for (var _i = 0; _i < layerWithBias.length; _i++) {
+                var neuron = layerWithBias[_i];
                 var type = 'Hidden Neuron ' + (nid++);
                 var color = '#000';
                 if (neuron instanceof Net.InputNeuron) {
@@ -1277,8 +1315,8 @@ var NetworkGraph = (function () {
                 });
             }
         }
-        for (var _b = 0, _c = net.connections; _b < _c.length; _b++) {
-            var conn = _c[_b];
+        for (var _a = 0, _b = net.connections; _a < _b.length; _a++) {
+            var conn = _b[_a];
             this.edges.add({
                 id: this.edgeId(conn),
                 from: conn.inp.id,
@@ -1323,7 +1361,7 @@ var NetworkGraph = (function () {
         for (var i = 0; i < data.input.length; i++) {
             updates[0].nodes.push({
                 id: this.net.inputs[i].id,
-                label: this.net.inputs[i].name + " = " + data.input[i]
+                label: this.net.inputs[i].name + " = " + data.input[i].toFixed(2)
             });
         }
         var allEdgesInvisible = function () { return _this.net.connections.map(function (conn) { return ({
@@ -1444,6 +1482,7 @@ var NetworkVisualization = (function () {
         window.addEventListener('resize', this.canvasResized.bind(this));
         this.canvas.addEventListener("click", this.canvasClicked.bind(this));
         this.canvas.addEventListener("contextmenu", this.canvasClicked.bind(this));
+        this.canvas.addEventListener("mousedown", Util.stopEvent); // prevent select text
         $(this.canvas).appendTo(this.container);
     }
     NetworkVisualization.prototype.onNetworkLoaded = function (net) {
@@ -1490,9 +1529,16 @@ var NetworkVisualization = (function () {
             this.ctx.fillText("Cannot draw this data", this.canvas.width / 2, this.canvas.height / 2);
             return;
         }
-        this.drawBackground();
+        var isSinglePerceptron = this.sim.net.layers.length === 2 && this.netType === NetType.BinaryClassify;
+        var separator = isSinglePerceptron && this.getSeparator(this.sim.net.outputs[0].toLinearFunction());
+        if (isSinglePerceptron)
+            this.drawPolyBackground(separator);
+        else
+            this.drawBackground();
         this.drawCoordinateSystem();
         this.drawDataPoints();
+        if (isSinglePerceptron)
+            this.drawLine.call(this, separator.minx, separator.miny, separator.maxx, separator.maxy, "black");
     };
     NetworkVisualization.prototype.drawDataPoints = function () {
         this.ctx.strokeStyle = "#000";
@@ -1523,6 +1569,13 @@ var NetworkVisualization = (function () {
             throw "can't draw this";
         }
     };
+    NetworkVisualization.prototype.getSeparator = function (lineFunction) {
+        var minx = this.trafo.toReal.x(0);
+        var maxx = this.trafo.toReal.x(this.canvas.width);
+        var miny = lineFunction(minx);
+        var maxy = lineFunction(maxx);
+        return { minx: minx, miny: miny, maxx: maxx, maxy: maxy };
+    };
     NetworkVisualization.prototype.drawLine = function (x, y, x2, y2, color) {
         x = this.trafo.toCanvas.x(x);
         x2 = this.trafo.toCanvas.x(x2);
@@ -1549,32 +1602,43 @@ var NetworkVisualization = (function () {
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         return;
     };
+    NetworkVisualization.prototype.drawPolyBackground = function (sep) {
+        var colors = NetworkVisualization.colors.binaryClassify.bg;
+        var ctx = this.ctx;
+        var c = this.trafo.toCanvas;
+        var tmp = function (y) {
+            ctx.beginPath();
+            ctx.moveTo(c.x(sep.minx), c.y(sep.miny));
+            ctx.lineTo(c.x(sep.minx), y);
+            ctx.lineTo(c.x(sep.maxx), y);
+            ctx.lineTo(c.x(sep.maxx), c.y(sep.maxy));
+            ctx.fill();
+        };
+        var upperIsClass1 = +(this.sim.net.getOutput([sep.minx, sep.miny - 1])[0] > 0.5);
+        ctx.fillStyle = colors[1 - upperIsClass1];
+        tmp(0);
+        ctx.fillStyle = colors[upperIsClass1];
+        tmp(this.canvas.height);
+    };
     NetworkVisualization.prototype.drawBackground = function () {
         if (this.sim.config.outputLayer.neuronCount === 2) {
             this.clear('white');
             return;
         }
-        if (this.sim.config.outputLayer.neuronCount > 2) {
-            for (var x = 0; x < this.canvas.width; x += this.backgroundResolution) {
-                for (var y = 0; y < this.canvas.height; y += this.backgroundResolution) {
-                    var vals = this.sim.net.getOutput([this.trafo.toReal.x(x + this.backgroundResolution / 2), this.trafo.toReal.y(y + this.backgroundResolution / 2)]);
-                    var maxi = Util.getMaxIndex(vals);
-                    this.ctx.fillStyle = NetworkVisualization.colors.multiClass.bg[maxi];
-                    this.ctx.fillRect(x, y, this.backgroundResolution, this.backgroundResolution);
+        for (var x = 0; x < this.canvas.width; x += this.backgroundResolution) {
+            for (var y = 0; y < this.canvas.height; y += this.backgroundResolution) {
+                var vals = this.sim.net.getOutput([this.trafo.toReal.x(x + this.backgroundResolution / 2), this.trafo.toReal.y(y + this.backgroundResolution / 2)]);
+                if (this.sim.config.outputLayer.neuronCount > 2) {
+                    this.ctx.fillStyle = NetworkVisualization.colors.multiClass.bg[Util.getMaxIndex(vals)];
                 }
-            }
-        }
-        else {
-            for (var x = 0; x < this.canvas.width; x += this.backgroundResolution) {
-                for (var y = 0; y < this.canvas.height; y += this.backgroundResolution) {
-                    var val = this.sim.net.getOutput([this.trafo.toReal.x(x + this.backgroundResolution / 2), this.trafo.toReal.y(y + this.backgroundResolution / 2)])[0];
+                else {
                     if (this.sim.config.showGradient) {
-                        this.ctx.fillStyle = NetworkVisualization.colors.binaryClassify.gradient(val);
+                        this.ctx.fillStyle = NetworkVisualization.colors.binaryClassify.gradient(vals[0]);
                     }
                     else
-                        this.ctx.fillStyle = NetworkVisualization.colors.binaryClassify.bg[+(val > 0.5)];
-                    this.ctx.fillRect(x, y, this.backgroundResolution, this.backgroundResolution);
+                        this.ctx.fillStyle = NetworkVisualization.colors.binaryClassify.bg[+(vals[0] > 0.5)];
                 }
+                this.ctx.fillRect(x, y, this.backgroundResolution, this.backgroundResolution);
             }
         }
     };
@@ -1620,7 +1684,7 @@ var NetworkVisualization = (function () {
         }
     };
     NetworkVisualization.prototype.canvasClicked = function (evt) {
-        evt.preventDefault();
+        Util.stopEvent(evt);
         var data = this.sim.config.data;
         var rect = this.canvas.getBoundingClientRect();
         var x = this.trafo.toReal.x(evt.clientX - rect.left);
