@@ -101,7 +101,7 @@ module Net {
 		}
 		
 		/** if individual is true, train individually, else train as a set */
-		trainAll(data: TrainingData[], individual) {
+		trainAll(data: TrainingData[], individual: boolean) {
 			if(!individual) for (const conn of this.connections) conn.zeroDeltaWeight();
 			for (const val of data) {
 				this.train(val.input, val.output, individual);
@@ -201,9 +201,6 @@ module Net {
 
 		calculateError() {
 			this.error = NonLinearities[this.activation].df(this.weightedInputs) * (this.targetOutput - this.output);
-		}
-	}
-}
 		}
 	}
 }

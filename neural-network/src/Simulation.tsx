@@ -18,93 +18,6 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 
 	constructor(props:{autoRun: boolean}) {
 		super(props);
-		const doSerialize = () => {
-			this.stop();
-			$("#urlExport").val(this.serializeToUrl(+$(".exportWeights").val()));
-		};
-		const ioError = (txt: string) => {
-			$("#importexporterror")
-				.clone()
-				.append(txt)
-				.appendTo("#exportModal .modal-body")
-				.show();
-		}
-		$("#exportModal").on("shown.bs.modal", doSerialize);
-		$("#exportModal .exportWeights").on("change", doSerialize);
-		const config = this.state;
-		$("#exportModal .exportJSON").click(() => {
-			Util.download(JSON.stringify(this.state, null, '\t'), this.state.name + ".json");
-		});
-		$("#exportModal .exportCSV").click(() => {
-			const csv = this.state.inputLayer.names.concat(this.state.outputLayer.names)
-				.map(Util.csvSanitize).join(",") + "\n"
-				+ this.state.data.map(data => 
-					data.input.concat(data.output).join(",")).join("\n");
-			Util.download(csv, this.state.name + ".csv");
-		});
-		$("#exportModal .importJSON").change(e => {
-			const ev = e.originalEvent;
-			const files = (ev.target as HTMLInputElement).files;
-			if (files.length !== 1) ioError("invalid selection");
-			const file = files.item(0);
-			const r = new FileReader();
-			r.onload = t => {
-				try {
-					const text = r.result;
-					const conf = JSON.parse(text);
-					this.setState(conf);
-					$("#exportModal").modal('hide');
-					$("#presetName").text(file.name);
-				} catch (e) {
-					ioError("Error while reading " + file.name + ": " + e);
-				}
-			}
-			r.readAsText(file);
-		});
-		$("#exportModal .importCSV").change(e => {
-			const ev = e.originalEvent;
-			const files = (ev.target as HTMLInputElement).files;
-			if (files.length !== 1) ioError("invalid selection");
-			const file = files.item(0);
-			const r = new FileReader();
-			r.onload = t => {
-				try {
-					const text = r.result as string;
-					const data = text.split("\n").map(l => l.split(","));
-					const lens = data.map(l => l.length);
-					const len = Math.min(...lens);
-					if (len !== Math.max(...lens))
-						throw `line lengths varying between ${len} and ${Math.max(...lens) }, must be constant`;
-					const inps = this.state.inputLayer.neuronCount;
-					const oups = this.state.outputLayer.neuronCount;
-					if (len !== inps + oups)
-						throw `invalid line length, expected (${inps} inputs + ${oups} outputs = ) ${inps+oups} columns, got ${len} columns`;
-					const newState:any = {};
-					if(!data[0][0].match(/^\d+$/)) {
-						const headers = data.shift();
-						newState.inputLayer = {names: headers.slice(0, inps), neuronCount: this.state.inputLayer.neuronCount};
-						newState.outputLayer = {names: headers.slice(inps, inps + oups), neuronCount: this.state.outputLayer.neuronCount};
-					}
-					const trainingsData:TrainingData[] = [];
-					for(let l = 0; l < data.length; l++) {
-						const ele:TrainingData = {input:[], output:[]};
-						for(let i = 0; i < len; i++) {
-							const v = parseFloat(data[l][i]);
-							if(isNaN(v)) throw `can't parse ${data[l][i]} as a number in line ${l+1}`;
-							(i < inps ? ele.input:ele.output).push(v);
-						}
-						trainingsData.push(ele);
-					}
-					newState.data= trainingsData;
-					this.setState(newState, () => this.table.loadData());
-					$("#presetName").text(file.name);
-					$("#exportModal").modal('hide');
-				} catch (e) {
-					ioError("Error while reading " + file.name + ": " + e);
-				}
-			}
-			r.readAsText(file);
-		});
 		this.netviz = new NetworkVisualization(this);
 		this.netgraph = new NetworkGraph(this);
 		this.errorGraph = new ErrorGraph(this);
@@ -338,26 +251,29 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 	
 	render() {
 		return (
-			<div className="container">
-				<div className="page-header">
-					<h1>Neural Network demo
-						<small>{this.state.custom?" Custom Network":" Preset: "+this.state.name}</small>
-					</h1>
-				</div>
-				<LRVis sim={this} ref={(e:LRVis) => this.lrVis = e} />
-				<div className="panel panel-default">
-					<div className="panel-heading">
-						<h3 className="panel-title">
-							<a data-toggle="collapse" data-target=".panel-body">Configuration</a>
-						</h3>
+			<div>
+				<div className="container">
+					<div className="page-header">
+						<h1>Neural Network demo
+							<small>{this.state.custom?" Custom Network":" Preset: "+this.state.name}</small>
+						</h1>
 					</div>
-					<div className="panel-body collapse in">
-						<ConfigurationGui {...this.state} />
+					<LRVis sim={this} ref={(e:LRVis) => this.lrVis = e} />
+					<div className="panel panel-default">
+						<div className="panel-heading">
+							<h3 className="panel-title">
+								<a data-toggle="collapse" data-target=".panel-body">Configuration</a>
+							</h3>
+						</div>
+						<div className="panel-body collapse in">
+							<ConfigurationGui {...this.state} />
+						</div>
 					</div>
+					<footer className="small">
+						<a href="https://github.com/phiresky/kogsys-demos/">Source on GitHub</a>
+					</footer>
 				</div>
-				<footer className="small">
-					<a href="https://github.com/phiresky/kogsys-demos/">Source on GitHub</a>
-				</footer>
+				<ExportModal sim={this}/>
 			</div>
 		);
 	}

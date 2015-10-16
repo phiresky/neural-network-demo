@@ -12,6 +12,7 @@
 		"./src/main.tsx",
 		"./src/Net.ts",
 		"./src/Presets.ts",
+		"./src/ExportModal.tsx",
 		"./src/Simulation.tsx",
 		"./src/TransformNavigation.ts",
 		"./src/Util.ts",

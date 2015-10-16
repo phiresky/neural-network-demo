@@ -618,10 +618,109 @@ var Presets;
     }
     Presets.loadPetersonBarney = loadPetersonBarney;
 })(Presets || (Presets = {}));
+var ExportModal = (function (_super) {
+    __extends(ExportModal, _super);
+    function ExportModal(props) {
+        _super.call(this, props);
+        this.state = {
+            exportWeights: "0",
+            errors: []
+        };
+    }
+    ExportModal.prototype.render = function () {
+        var _this = this;
+        return (React.createElement("div", {"className": "modal fade", "id": "exportModal"}, React.createElement("div", {"className": "modal-dialog"}, React.createElement("div", {"className": "modal-content"}, React.createElement("div", {"className": "modal-header"}, React.createElement("button", {"type": "button", "className": "close", "data-dismiss": "modal"}, "×"), React.createElement("h3", {"className": "modal-title"}, "Import / Export")), React.createElement("div", {"className": "modal-body"}, React.createElement("h4", {"className": "modal-title"}, "Export to URL"), React.createElement("select", {"className": "exportWeights", "onChange": function (t) { return _this.setState({ exportWeights: t.target.value }); }, "value": this.state.exportWeights}, React.createElement("option", {"value": "0"}, "Don't include weights"), React.createElement("option", {"value": "1"}, "Include current weights"), React.createElement("option", {"value": "2"}, "Include start weights")), React.createElement("p", null, "Copy this URL:", React.createElement("input", {"className": "url-export", "onClick": function (e) { return e.target.select(); }, "readOnly": true, "value": this.props.sim.serializeToUrl(+this.state.exportWeights)})), React.createElement("hr", null), React.createElement("h4", {"className": "modal-title"}, "Export to file"), React.createElement("button", {"className": "btn btn-default", "onClick": function () { return _this.exportJSON(_this.props.sim.state); }}, "Export configuration as json"), React.createElement("button", {"className": "btn btn-default", "onClick": function () { return _this.exportCSV(_this.props.sim.state); }}, "Export training data as CSV"), React.createElement("hr", null), React.createElement("h4", {"className": "modal-title"}, "Import"), React.createElement("span", {"className": "btn btn-default btn-file"}, "Import JSON file ", React.createElement("input", {"type": "file", "className": "importJSON", "onChange": this.importJSON.bind(this)})), React.createElement("span", {"className": "btn btn-default btn-file"}, "Import CSV file ", React.createElement("input", {"type": "file", "className": "importCSV", "onChange": this.importCSV.bind(this)})), this.state.errors.map(function (error, i) {
+            return React.createElement("div", {"key": i, "className": "alert alert-danger"}, error, React.createElement("button", {"type": "button", "className": "close", "data-dismiss": "alert"}, "×"));
+        }))))));
+    };
+    ExportModal.prototype.exportJSON = function (conf) {
+        Util.download(JSON.stringify(conf, null, '\t'), conf.name + ".json");
+    };
+    ExportModal.prototype.exportCSV = function (conf) {
+        var csv = conf.inputLayer.names.concat(conf.outputLayer.names)
+            .map(Util.csvSanitize).join(",") + "\n"
+            + conf.data.map(function (data) { return data.input.concat(data.output).join(","); }).join("\n");
+        Util.download(csv, conf.name + ".csv");
+    };
+    ExportModal.prototype.importJSON = function (ev) {
+        var _this = this;
+        var files = ev.target.files;
+        if (files.length !== 1)
+            this.addIOError("invalid selection");
+        var file = files.item(0);
+        var r = new FileReader();
+        r.onload = function (t) {
+            try {
+                var text = r.result;
+                _this.props.sim.setState(JSON.parse(text));
+                $("#exportModal").modal('hide');
+                $("#presetName").text(file.name);
+            }
+            catch (e) {
+                _this.addIOError("Error while reading " + file.name + ": " + e);
+            }
+        };
+        r.readAsText(file);
+    };
+    ExportModal.prototype.importCSV = function (ev) {
+        var _this = this;
+        console.log("imo");
+        var files = ev.target.files;
+        if (files.length !== 1)
+            this.addIOError("invalid selection");
+        var file = files.item(0);
+        var r = new FileReader();
+        var sim = this.props.sim;
+        r.onload = function (t) {
+            try {
+                var text = r.result;
+                var data = text.split("\n").map(function (l) { return l.split(","); });
+                var lens = data.map(function (l) { return l.length; });
+                var len = Math.min.apply(Math, lens);
+                if (len !== Math.max.apply(Math, lens))
+                    throw "line lengths varying between " + len + " and " + Math.max.apply(Math, lens) + ", must be constant";
+                var inps = sim.state.inputLayer.neuronCount;
+                var oups = sim.state.outputLayer.neuronCount;
+                if (len !== inps + oups)
+                    throw "invalid line length, expected (" + inps + " inputs + " + oups + " outputs = ) " + (inps + oups) + " columns, got " + len + " columns";
+                var newState = Util.cloneConfig(sim.state);
+                if (!data[0][0].match(/^\d+$/)) {
+                    var headers = data.shift();
+                    newState.inputLayer.names = headers.slice(0, inps);
+                    newState.outputLayer.names = headers.slice(inps, inps + oups);
+                }
+                newState.data = [];
+                for (var l = 0; l < data.length; l++) {
+                    var ele = { input: [], output: [] };
+                    for (var i = 0; i < len; i++) {
+                        var v = parseFloat(data[l][i]);
+                        if (isNaN(v))
+                            throw "can't parse " + data[l][i] + " as a number in line " + (l + 1);
+                        (i < inps ? ele.input : ele.output).push(v);
+                    }
+                    newState.data.push(ele);
+                }
+                sim.setState(newState, function () { return sim.table.loadData(); });
+                $("#presetName").text(file.name);
+                $("#exportModal").modal('hide');
+            }
+            catch (e) {
+                _this.addIOError("Error while reading " + file.name + ": " + e);
+                console.error(e);
+            }
+        };
+        r.readAsText(file);
+    };
+    ExportModal.prototype.addIOError = function (err) {
+        var errors = this.state.errors.slice();
+        errors.push(err);
+        this.setState({ errors: errors });
+    };
+    return ExportModal;
+})(React.Component);
 var Simulation = (function (_super) {
     __extends(Simulation, _super);
     function Simulation(props) {
-        var _this = this;
         _super.call(this, props);
         this.stepNum = 0;
         this.frameNum = 0;
@@ -634,99 +733,6 @@ var Simulation = (function (_super) {
         this.forwardPassState = -1;
         this.forwardPassEles = [];
         this.aniFrameCallback = this.animationStep.bind(this);
-        var doSerialize = function () {
-            _this.stop();
-            $("#urlExport").val(_this.serializeToUrl(+$(".exportWeights").val()));
-        };
-        var ioError = function (txt) {
-            $("#importexporterror")
-                .clone()
-                .append(txt)
-                .appendTo("#exportModal .modal-body")
-                .show();
-        };
-        $("#exportModal").on("shown.bs.modal", doSerialize);
-        $("#exportModal .exportWeights").on("change", doSerialize);
-        var config = this.state;
-        $("#exportModal .exportJSON").click(function () {
-            Util.download(JSON.stringify(_this.state, null, '\t'), _this.state.name + ".json");
-        });
-        $("#exportModal .exportCSV").click(function () {
-            var csv = _this.state.inputLayer.names.concat(_this.state.outputLayer.names)
-                .map(Util.csvSanitize).join(",") + "\n"
-                + _this.state.data.map(function (data) {
-                    return data.input.concat(data.output).join(",");
-                }).join("\n");
-            Util.download(csv, _this.state.name + ".csv");
-        });
-        $("#exportModal .importJSON").change(function (e) {
-            var ev = e.originalEvent;
-            var files = ev.target.files;
-            if (files.length !== 1)
-                ioError("invalid selection");
-            var file = files.item(0);
-            var r = new FileReader();
-            r.onload = function (t) {
-                try {
-                    var text = r.result;
-                    var conf = JSON.parse(text);
-                    _this.setState(conf);
-                    $("#exportModal").modal('hide');
-                    $("#presetName").text(file.name);
-                }
-                catch (e) {
-                    ioError("Error while reading " + file.name + ": " + e);
-                }
-            };
-            r.readAsText(file);
-        });
-        $("#exportModal .importCSV").change(function (e) {
-            var ev = e.originalEvent;
-            var files = ev.target.files;
-            if (files.length !== 1)
-                ioError("invalid selection");
-            var file = files.item(0);
-            var r = new FileReader();
-            r.onload = function (t) {
-                try {
-                    var text = r.result;
-                    var data = text.split("\n").map(function (l) { return l.split(","); });
-                    var lens = data.map(function (l) { return l.length; });
-                    var len = Math.min.apply(Math, lens);
-                    if (len !== Math.max.apply(Math, lens))
-                        throw "line lengths varying between " + len + " and " + Math.max.apply(Math, lens) + ", must be constant";
-                    var inps = _this.state.inputLayer.neuronCount;
-                    var oups = _this.state.outputLayer.neuronCount;
-                    if (len !== inps + oups)
-                        throw "invalid line length, expected (" + inps + " inputs + " + oups + " outputs = ) " + (inps + oups) + " columns, got " + len + " columns";
-                    var newState = {};
-                    if (!data[0][0].match(/^\d+$/)) {
-                        var headers = data.shift();
-                        newState.inputLayer = { names: headers.slice(0, inps), neuronCount: _this.state.inputLayer.neuronCount };
-                        newState.outputLayer = { names: headers.slice(inps, inps + oups), neuronCount: _this.state.outputLayer.neuronCount };
-                    }
-                    var trainingsData = [];
-                    for (var l = 0; l < data.length; l++) {
-                        var ele = { input: [], output: [] };
-                        for (var i = 0; i < len; i++) {
-                            var v = parseFloat(data[l][i]);
-                            if (isNaN(v))
-                                throw "can't parse " + data[l][i] + " as a number in line " + (l + 1);
-                            (i < inps ? ele.input : ele.output).push(v);
-                        }
-                        trainingsData.push(ele);
-                    }
-                    newState.data = trainingsData;
-                    _this.setState(newState, function () { return _this.table.loadData(); });
-                    $("#presetName").text(file.name);
-                    $("#exportModal").modal('hide');
-                }
-                catch (e) {
-                    ioError("Error while reading " + file.name + ": " + e);
-                }
-            };
-            r.readAsText(file);
-        });
         this.netviz = new NetworkVisualization(this);
         this.netgraph = new NetworkGraph(this);
         this.errorGraph = new ErrorGraph(this);
@@ -964,7 +970,7 @@ var Simulation = (function (_super) {
     };
     Simulation.prototype.render = function () {
         var _this = this;
-        return (React.createElement("div", {"className": "container"}, React.createElement("div", {"className": "page-header"}, React.createElement("h1", null, "Neural Network demo", React.createElement("small", null, this.state.custom ? " Custom Network" : " Preset: " + this.state.name))), React.createElement(LRVis, {"sim": this, "ref": function (e) { return _this.lrVis = e; }}), React.createElement("div", {"className": "panel panel-default"}, React.createElement("div", {"className": "panel-heading"}, React.createElement("h3", {"className": "panel-title"}, React.createElement("a", {"data-toggle": "collapse", "data-target": ".panel-body"}, "Configuration"))), React.createElement("div", {"className": "panel-body collapse in"}, React.createElement(ConfigurationGui, React.__spread({}, this.state)))), React.createElement("footer", {"className": "small"}, React.createElement("a", {"href": "https://github.com/phiresky/kogsys-demos/"}, "Source on GitHub"))));
+        return (React.createElement("div", null, React.createElement("div", {"className": "container"}, React.createElement("div", {"className": "page-header"}, React.createElement("h1", null, "Neural Network demo", React.createElement("small", null, this.state.custom ? " Custom Network" : " Preset: " + this.state.name))), React.createElement(LRVis, {"sim": this, "ref": function (e) { return _this.lrVis = e; }}), React.createElement("div", {"className": "panel panel-default"}, React.createElement("div", {"className": "panel-heading"}, React.createElement("h3", {"className": "panel-title"}, React.createElement("a", {"data-toggle": "collapse", "data-target": ".panel-body"}, "Configuration"))), React.createElement("div", {"className": "panel-body collapse in"}, React.createElement(ConfigurationGui, React.__spread({}, this.state)))), React.createElement("footer", {"className": "small"}, React.createElement("a", {"href": "https://github.com/phiresky/kogsys-demos/"}, "Source on GitHub"))), React.createElement(ExportModal, {"sim": this})));
     };
     return Simulation;
 })(React.Component);
