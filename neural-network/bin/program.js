@@ -883,25 +883,28 @@ var Simulation = (function (_super) {
         }
     };
     Simulation.prototype.componentDidUpdate = function (prevProps, oldConfig) {
-        if (!this.state.autoRestart)
+        var co = oldConfig, cn = this.state;
+        if (!cn.autoRestart)
             clearTimeout(this.restartTimeout);
         var layerDifferent = function (l1, l2) {
             return l1.activation !== l2.activation || l1.neuronCount !== l2.neuronCount || (l1.names && l1.names.some(function (name, i) { return l2.names[i] !== name; }));
         };
-        if (this.state.hiddenLayers.length !== oldConfig.hiddenLayers.length
-            || layerDifferent(this.state.inputLayer, oldConfig.inputLayer)
-            || layerDifferent(this.state.outputLayer, oldConfig.outputLayer)
-            || this.state.hiddenLayers.some(function (layer, i) { return layerDifferent(layer, oldConfig.hiddenLayers[i]); })
-            || this.state.weights && (!oldConfig.weights || this.state.weights.some(function (weight, i) { return oldConfig.weights[i] !== weight; }))) {
+        if (cn.hiddenLayers.length !== co.hiddenLayers.length
+            || layerDifferent(cn.inputLayer, co.inputLayer)
+            || layerDifferent(cn.outputLayer, co.outputLayer)
+            || cn.hiddenLayers.some(function (layer, i) { return layerDifferent(layer, co.hiddenLayers[i]); })
+            || cn.weights && (!co.weights || cn.weights.some(function (weight, i) { return co.weights[i] !== weight; }))) {
             this.initializeNet();
         }
-        if (!this.state.custom)
-            history.replaceState({}, "", "?" + $.param({ preset: this.state.name }));
+        if (!cn.custom)
+            history.replaceState({}, "", "?" + $.param({ preset: cn.name }));
         if (this.net) {
-            if (oldConfig.bias != this.state.bias) {
+            if (co.bias != cn.bias) {
                 this.netgraph.onNetworkLoaded(this.net);
             }
-            this.net.learnRate = this.state.learningRate;
+            this.net.learnRate = cn.learningRate;
+            if (cn.showGradient != co.showGradient)
+                this.onFrame(false);
         }
     };
     Simulation.prototype.componentDidMount = function () {
@@ -1195,7 +1198,7 @@ var ConfigurationGui = (function (_super) {
     ConfigurationGui.prototype.render = function () {
         var conf = this.props;
         var loadConfig = function () { return sim.loadConfig(); };
-        return React.createElement("div", {"className": "form-horizontal"}, React.createElement("div", {"className": "col-sm-6"}, React.createElement("h4", null, "Display"), React.createElement(BSFormGroup, {"label": "Iterations per click on 'Train'", "id": "iterationsPerClick"}, React.createElement("input", {"className": "form-control", "type": "number", "min": 0, "max": 10000, "id": "iterationsPerClick", "value": "" + conf.iterationsPerClick, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Steps per Frame", "id": "stepsPerFrame"}, React.createElement("input", {"className": "form-control", "type": "number", "min": 1, "max": 1000, "id": "stepsPerFrame", "value": "" + conf.stepsPerFrame, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "When correct, restart after 5 seconds", "id": "autoRestart", "isStatic": true}, React.createElement("input", {"type": "checkbox", "id": "autoRestart", "checked": conf.autoRestart, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Show class propabilities as gradient", "id": "showGradient", "isStatic": true}, React.createElement("input", {"type": "checkbox", "checked": conf.showGradient, "id": "showGradient", "onChange": function () { loadConfig(); sim.onFrame(false); }})), React.createElement("button", {"className": "btn btn-default", "data-toggle": "modal", "data-target": "#exportModal"}, "Import / Export")), React.createElement("div", {"className": "col-sm-6"}, React.createElement("h4", null, "Net"), React.createElement(BSFormGroup, {"id": "learningRate", "label": "Learning Rate", "isStatic": true}, React.createElement("span", {"id": "learningRateVal", "style": { marginRight: '1em' }}, conf.learningRate.toFixed(3)), React.createElement("input", {"type": "range", "min": 0.005, "max": 1, "step": 0.005, "id": "learningRate", "value": Util.logScale(conf.learningRate) + "", "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Show bias input", "id": "bias", "isStatic": true}, React.createElement("input", {"type": "checkbox", "checked": conf.bias, "id": "bias", "onChange": function () { loadConfig(); sim.netgraph.onNetworkLoaded(sim.net); }})), React.createElement(BSFormGroup, {"label": "Batch training", "id": "batchTraining", "isStatic": true}, React.createElement("input", {"type": "checkbox", "checked": conf.batchTraining, "id": "batchTraining", "onChange": loadConfig})), React.createElement(NeuronGui, React.__spread({}, this.props))));
+        return React.createElement("div", {"className": "form-horizontal"}, React.createElement("div", {"className": "col-sm-6"}, React.createElement("h4", null, "Display"), React.createElement(BSFormGroup, {"label": "Iterations per click on 'Train'", "id": "iterationsPerClick"}, React.createElement("input", {"className": "form-control", "type": "number", "min": 0, "max": 10000, "id": "iterationsPerClick", "value": "" + conf.iterationsPerClick, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Steps per Frame", "id": "stepsPerFrame"}, React.createElement("input", {"className": "form-control", "type": "number", "min": 1, "max": 1000, "id": "stepsPerFrame", "value": "" + conf.stepsPerFrame, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "When correct, restart after 5 seconds", "id": "autoRestart", "isStatic": true}, React.createElement("input", {"type": "checkbox", "id": "autoRestart", "checked": conf.autoRestart, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Show class propabilities as gradient", "id": "showGradient", "isStatic": true}, React.createElement("input", {"type": "checkbox", "checked": conf.showGradient, "id": "showGradient", "onChange": loadConfig})), React.createElement("button", {"className": "btn btn-default", "data-toggle": "modal", "data-target": "#exportModal"}, "Import / Export")), React.createElement("div", {"className": "col-sm-6"}, React.createElement("h4", null, "Net"), React.createElement(BSFormGroup, {"id": "learningRate", "label": "Learning Rate", "isStatic": true}, React.createElement("span", {"id": "learningRateVal", "style": { marginRight: '1em' }}, conf.learningRate.toFixed(3)), React.createElement("input", {"type": "range", "min": 0.005, "max": 1, "step": 0.005, "id": "learningRate", "value": Util.logScale(conf.learningRate) + "", "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Show bias input", "id": "bias", "isStatic": true}, React.createElement("input", {"type": "checkbox", "checked": conf.bias, "id": "bias", "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Batch training", "id": "batchTraining", "isStatic": true}, React.createElement("input", {"type": "checkbox", "checked": conf.batchTraining, "id": "batchTraining", "onChange": loadConfig})), React.createElement(NeuronGui, React.__spread({}, this.props))));
     };
     return ConfigurationGui;
 })(React.Component);

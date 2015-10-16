@@ -26,7 +26,7 @@ class ConfigurationGui extends React.Component<Configuration, {}> {
 						<input type="checkbox" id="autoRestart" checked={conf.autoRestart} onChange={loadConfig} />
 					</BSFormGroup>
 					<BSFormGroup label="Show class propabilities as gradient" id="showGradient" isStatic>
-						<input type="checkbox" checked={conf.showGradient} id="showGradient" onChange={() => {loadConfig();sim.onFrame(false);}} />
+						<input type="checkbox" checked={conf.showGradient} id="showGradient" onChange={loadConfig} />
 					</BSFormGroup>
 					<button className="btn btn-default" data-toggle="modal" data-target="#exportModal">Import / Export</button>
 				</div>
@@ -37,7 +37,7 @@ class ConfigurationGui extends React.Component<Configuration, {}> {
 						<input type="range" min={0.005} max={1} step={0.005} id="learningRate" value={Util.logScale(conf.learningRate)+""} onChange={loadConfig} />
 					</BSFormGroup>
 					<BSFormGroup label="Show bias input" id="bias" isStatic>
-						<input type="checkbox" checked={conf.bias} id="bias" onChange={() => {loadConfig(); sim.netgraph.onNetworkLoaded(sim.net)}} />
+						<input type="checkbox" checked={conf.bias} id="bias" onChange={loadConfig} />
 					</BSFormGroup>
 					<BSFormGroup label="Batch training" id="batchTraining" isStatic>
 						<input type="checkbox" checked={conf.batchTraining} id="batchTraining" onChange={loadConfig} />

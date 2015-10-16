@@ -173,23 +173,26 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 	}
 	
 	componentDidUpdate(prevProps: any, oldConfig: Configuration) {
-		if (!this.state.autoRestart) clearTimeout(this.restartTimeout);
+		const co = oldConfig, cn = this.state;
+		if (!cn.autoRestart) clearTimeout(this.restartTimeout);
 		const layerDifferent = (l1:any, l2:any) =>
 			l1.activation !== l2.activation || l1.neuronCount !== l2.neuronCount || (l1.names&&l1.names.some((name:string, i:number) => l2.names[i] !== name));
-		if(this.state.hiddenLayers.length !== oldConfig.hiddenLayers.length
-			|| layerDifferent(this.state.inputLayer, oldConfig.inputLayer)
-			|| layerDifferent(this.state.outputLayer, oldConfig.outputLayer)
-			|| this.state.hiddenLayers.some((layer,i) => layerDifferent(layer, oldConfig.hiddenLayers[i]))
-			|| this.state.weights && (!oldConfig.weights || this.state.weights.some((weight, i) => oldConfig.weights[i] !== weight))) {
+		if(cn.hiddenLayers.length !== co.hiddenLayers.length
+			|| layerDifferent(cn.inputLayer, co.inputLayer)
+			|| layerDifferent(cn.outputLayer, co.outputLayer)
+			|| cn.hiddenLayers.some((layer,i) => layerDifferent(layer, co.hiddenLayers[i]))
+			|| cn.weights && (!co.weights || cn.weights.some((weight, i) => co.weights[i] !== weight))) {
 			this.initializeNet();
 		}
-		if(!this.state.custom)
-			history.replaceState({}, "", "?" + $.param({ preset: this.state.name }));
+		if(!cn.custom)
+			history.replaceState({}, "", "?" + $.param({ preset: cn.name }));
 		if (this.net) {
-			if(oldConfig.bias != this.state.bias) {
+			if(co.bias != cn.bias) {
 				this.netgraph.onNetworkLoaded(this.net);
 			}
-			this.net.learnRate = this.state.learningRate;
+			this.net.learnRate = cn.learningRate;
+			if(cn.showGradient != co.showGradient)
+				this.onFrame(false);
 		}
 	}
 	componentDidMount() {
