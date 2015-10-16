@@ -45,6 +45,9 @@ module Util {
 			return (v1 * multiplier * standardDeviation) + mean;
 		}
 	};
+	export function cloneConfig(config: Configuration): Configuration {
+		return $.extend(true, {}, config);
+	}
 	export function benchmark(fun: () => void) {
 		const bef = Date.now();
 		const r = fun();

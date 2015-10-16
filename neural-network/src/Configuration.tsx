@@ -37,7 +37,10 @@ class ConfigurationGui extends React.Component<Configuration, {}> {
 						<input type="range" min={0.005} max={1} step={0.005} id="learningRate" value={Util.logScale(conf.learningRate)+""} onChange={loadConfig} />
 					</BSFormGroup>
 					<BSFormGroup label="Show bias input" id="bias" isStatic>
-						<input type="checkbox" checked={conf.bias} id="bias" onChange={() => {sim.loadConfig(); sim.netgraph.onNetworkLoaded(sim.net)}} />
+						<input type="checkbox" checked={conf.bias} id="bias" onChange={() => {loadConfig(); sim.netgraph.onNetworkLoaded(sim.net)}} />
+					</BSFormGroup>
+					<BSFormGroup label="Batch training" id="batchTraining" isStatic>
+						<input type="checkbox" checked={conf.batchTraining} id="batchTraining" onChange={loadConfig} />
 					</BSFormGroup>
 					<NeuronGui {...this.props} />
 				</div>
@@ -69,42 +72,40 @@ class NeuronLayer extends React.Component<{
 }
 
 class NeuronGui extends React.Component<Configuration, {}> {
-		addLayer() {
-		sim.config.hiddenLayers.unshift({ activation: 'sigmoid', neuronCount: 2 });
-		sim.setIsCustom();
-		sim.initializeNet();
-		sim.renderConfigGui();
+	addLayer() {
+		const hiddenLayers = this.props.hiddenLayers.slice();
+		hiddenLayers.unshift({ activation: 'sigmoid', neuronCount: 2 });
+		sim.setState({hiddenLayers, custom:true});
 	}
 	removeLayer() {
-		if (sim.config.hiddenLayers.length == 0) return;
-		sim.config.hiddenLayers.shift();
-		sim.setIsCustom();
-		sim.initializeNet();
-		sim.renderConfigGui();
+		if (this.props.hiddenLayers.length == 0) return;
+		const hiddenLayers = this.props.hiddenLayers.slice();
+		hiddenLayers.shift();
+		sim.setState({hiddenLayers, custom:true});
 	}
 	activationChanged(i:number, a:string) {
+		const newConf = Util.cloneConfig(this.props);
 		if(i == this.props.hiddenLayers.length)
-			sim.config.outputLayer.activation = a;
-		else sim.config.hiddenLayers[i].activation = a;
-		sim.setIsCustom();
-		sim.initializeNet();
-		sim.renderConfigGui();
+			newConf.outputLayer.activation = a;
+		else newConf.hiddenLayers[i].activation = a;
+		newConf.custom = true;
+		sim.setState(newConf);
 	}
 	countChanged(i:number, inc:number) {
-		let targetLayer:(LayerConfig|InputLayerConfig) = sim.config.inputLayer;
+		const newState = Util.cloneConfig(this.props);
+		let targetLayer:(LayerConfig|InputLayerConfig) = newState.inputLayer;
 		if(i === this.props.hiddenLayers.length) {
-			targetLayer = sim.config.outputLayer;
+			targetLayer = newState.outputLayer;
 			if(targetLayer.neuronCount >= 10) return;
 		} else if (i >= 0) {
-			targetLayer = sim.config.hiddenLayers[i];
+			targetLayer = newState.hiddenLayers[i];
 		}
 		const newval = targetLayer.neuronCount + inc;
 		if (newval < 1) return;
 		targetLayer.neuronCount = newval;
-		sim.config.data = [];
-		sim.setIsCustom(true);
-		sim.initializeNet();
-		sim.renderConfigGui();
+		newState.data = [];
+		newState.custom = true;
+		sim.setState(newState);
 	}
 	render() {
 		const conf = this.props;

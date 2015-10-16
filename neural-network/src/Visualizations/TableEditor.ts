@@ -16,12 +16,11 @@ class TableEditor implements Visualization {
 		if (this.hot) this.hot.destroy();
 		const oldContainer = this.container;
 		this.container = $("<div class='fullsize' style='overflow:hidden'>");
-		console.log("new cont");
 		if (oldContainer) oldContainer.replaceWith(this.container);
 		$("<div>").addClass("btn btn-default")
 			.css({ position: "absolute", right: "2em", bottom: "2em" })
 			.text("Remove all")
-			.click(e => { sim.config.data = []; this.loadData() })
+			.click(e => sim.setState({data: []}, () => this.loadData()))
 			.appendTo(this.container);
 		const headerRenderer = function firstRowRenderer(instance: any, td: HTMLTableCellElement) {
 			Handsontable.renderers.TextRenderer.apply(this, arguments);
@@ -72,22 +71,24 @@ class TableEditor implements Visualization {
 		const sim = this.sim;
 		const data: number[][] = this.hot.getData();
 		const headers = <string[]><any>data[1];
-		const ic = sim.config.inputLayer.neuronCount, oc = sim.config.outputLayer.neuronCount
-		sim.config.inputLayer.names = headers.slice(0, ic);
-		sim.config.outputLayer.names = headers.slice(ic, ic + oc);
-		sim.config.data = data.slice(2).map(row => row.slice(0, ic + oc))
+		const newConfig = Util.cloneConfig(sim.state);
+		const ic = newConfig.inputLayer.neuronCount, oc = newConfig.outputLayer.neuronCount
+		newConfig.inputLayer.names = headers.slice(0, ic);
+		newConfig.outputLayer.names = headers.slice(ic, ic + oc);
+		newConfig.data = data.slice(2).map(row => row.slice(0, ic + oc))
 			.filter(row => row.every(cell => typeof cell === 'number'))
 			.map(row => <TrainingData>{ input: row.slice(0, ic), output: row.slice(ic) });
-		sim.setIsCustom();
+		newConfig.custom = true;
+		sim.setState(newConfig);
 	}
 	onFrame() {
 		const sim = this.sim;
 		if ((Date.now() - this.lastUpdate) < 500) return;
 		this.lastUpdate = Date.now();
-		const xOffset = sim.config.inputLayer.neuronCount + sim.config.outputLayer.neuronCount;
+		const xOffset = sim.state.inputLayer.neuronCount + sim.state.outputLayer.neuronCount;
 		const vals: [number, number, number][] = [];
-		for (let y = 0; y < sim.config.data.length; y++) {
-			const p = sim.config.data[y];
+		for (let y = 0; y < sim.state.data.length; y++) {
+			const p = sim.state.data[y];
 			const op = sim.net.getOutput(p.input);
 			for (let x = 0; x < op.length; x++) {
 				vals.push([y + this.headerCount, xOffset + x, op[x]]);
@@ -97,8 +98,8 @@ class TableEditor implements Visualization {
 	}
 	loadData() {
 		const sim = this.sim;
-		const data: (number|string)[][] = [[], sim.config.inputLayer.names.concat(sim.config.outputLayer.names).concat(sim.config.outputLayer.names)];
-		const ic = sim.config.inputLayer.neuronCount, oc = sim.config.outputLayer.neuronCount;
+		const data: (number|string)[][] = [[], sim.state.inputLayer.names.concat(sim.state.outputLayer.names).concat(sim.state.outputLayer.names)];
+		const ic = sim.state.inputLayer.neuronCount, oc = sim.state.outputLayer.neuronCount;
 		data[0][0] = 'Inputs';
 		data[0][ic] = 'Expected Output';
 		data[0][ic + oc + oc - 1] = ' ';
@@ -111,7 +112,7 @@ class TableEditor implements Visualization {
 		}
 		if (mergeCells.length > 0) this.hot.updateSettings({ mergeCells: mergeCells });
 
-		sim.config.data.forEach(t => data.push(t.input.concat(t.output)));
+		sim.state.data.forEach(t => data.push(t.input.concat(t.output)));
 		this.hot.loadData(data);
 		/*this.hot.updateSettings({customBorders: [
 				

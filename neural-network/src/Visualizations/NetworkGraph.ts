@@ -48,16 +48,20 @@ class NetworkGraph implements Visualization {
 		if(!forceRedraw && this.net
 			&& this.net.layers.length == net.layers.length 
 			&& this.net.layers.every((layer,index) => layer.length == net.layers[index].length)
-			&& this.showbias === this.sim.config.bias) {
+			&& this.showbias === this.sim.state.bias) {
 			// same net layout, only update
 			this.net = net;
 			this.onFrame(0);
 			return;
 		}
-		this.showbias = this.sim.config.bias;
+		this.showbias = this.sim.state.bias;
+		this.net = net;
+		this.drawGraph();
+	}
+	drawGraph() {
 		this.nodes.clear();
 		this.edges.clear();
-		this.net = net;
+		const net = this.net;
 		for (let lid = 0; lid < net.layers.length; lid++) {
 			const layer = net.layers[lid];
 			let nid = 1;
@@ -101,10 +105,10 @@ class NetworkGraph implements Visualization {
 	}
 	forwardPass(data:TrainingData): NetGraphUpdate[] {
 		if(this.currentlyDisplayingForwardPass) this.onFrame(0);
-		this.biasBeforeForwardPass = this.sim.config.bias;
-		this.sim.config.bias = true;
+		this.biasBeforeForwardPass = this.showbias;
+		this.showbias = true;
 		this.currentlyDisplayingForwardPass = true;
-		this.onNetworkLoaded(this.net);
+		this.drawGraph();
 		this.net.setInputsAndCalculate(data.input);
 		const updates:NetGraphUpdate[] = [{nodes:[], edges:[]}];
 		// reset all names
@@ -179,7 +183,7 @@ class NetworkGraph implements Visualization {
 	onFrame(framenum:int) {
 		if(this.currentlyDisplayingForwardPass) {
 			// abort forward pass
-			this.sim.config.bias = this.biasBeforeForwardPass;
+			this.showbias = this.biasBeforeForwardPass;
 			this.onNetworkLoaded(this.net, true);
 			this.currentlyDisplayingForwardPass = false;
 		}

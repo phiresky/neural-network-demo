@@ -1,4 +1,4 @@
-class Simulation {
+class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 	netviz: NetworkVisualization;
 	netgraph: NetworkGraph;
 	table: TableEditor;
@@ -9,20 +9,18 @@ class Simulation {
 	frameNum = 0;
 	running = false; runningId = -1;
 	restartTimeout = -1;
-	isCustom = false;
 	averageError = 1;
 
 	net: Net.NeuralNet;
-	config: Configuration;
 	lrVis: LRVis;
 
-	constructed = false;
 	errorHistory: [number, number][];
 
-	constructor(autoRun: boolean) {
+	constructor(props:{autoRun: boolean}) {
+		super(props);
 		const doSerialize = () => {
 			this.stop();
-			$("#urlExport").val(this.serializeToUrl(+$("#exportWeights").val()));
+			$("#urlExport").val(this.serializeToUrl(+$(".exportWeights").val()));
 		};
 		const ioError = (txt: string) => {
 			$("#importexporterror")
@@ -33,15 +31,16 @@ class Simulation {
 		}
 		$("#exportModal").on("shown.bs.modal", doSerialize);
 		$("#exportModal .exportWeights").on("change", doSerialize);
+		const config = this.state;
 		$("#exportModal .exportJSON").click(() => {
-			Util.download(JSON.stringify(this.config, null, '\t'), this.config.name + ".json");
+			Util.download(JSON.stringify(this.state, null, '\t'), this.state.name + ".json");
 		});
 		$("#exportModal .exportCSV").click(() => {
-			const csv = this.config.inputLayer.names.concat(this.config.outputLayer.names)
+			const csv = this.state.inputLayer.names.concat(this.state.outputLayer.names)
 				.map(Util.csvSanitize).join(",") + "\n"
-				+ this.config.data.map(data => 
+				+ this.state.data.map(data => 
 					data.input.concat(data.output).join(",")).join("\n");
-			Util.download(csv, this.config.name + ".csv");
+			Util.download(csv, this.state.name + ".csv");
 		});
 		$("#exportModal .importJSON").change(e => {
 			const ev = e.originalEvent;
@@ -53,11 +52,9 @@ class Simulation {
 				try {
 					const text = r.result;
 					const conf = JSON.parse(text);
-					this.config = conf;
+					this.setState(conf);
 					$("#exportModal").modal('hide');
 					$("#presetName").text(file.name);
-					this.renderConfigGui();
-					this.initializeNet();
 				} catch (e) {
 					ioError("Error while reading " + file.name + ": " + e);
 				}
@@ -78,14 +75,15 @@ class Simulation {
 					const len = Math.min(...lens);
 					if (len !== Math.max(...lens))
 						throw `line lengths varying between ${len} and ${Math.max(...lens) }, must be constant`;
-					const inps = this.config.inputLayer.neuronCount;
-					const oups = this.config.outputLayer.neuronCount;
+					const inps = this.state.inputLayer.neuronCount;
+					const oups = this.state.outputLayer.neuronCount;
 					if (len !== inps + oups)
 						throw `invalid line length, expected (${inps} inputs + ${oups} outputs = ) ${inps+oups} columns, got ${len} columns`;
+					const newState:any = {};
 					if(!data[0][0].match(/^\d+$/)) {
 						const headers = data.shift();
-						this.config.inputLayer.names = headers.slice(0, inps);
-						this.config.outputLayer.names = headers.slice(inps, inps + oups);
+						newState.inputLayer = {names: headers.slice(0, inps), neuronCount: this.state.inputLayer.neuronCount};
+						newState.outputLayer = {names: headers.slice(inps, inps + oups), neuronCount: this.state.outputLayer.neuronCount};
 					}
 					const trainingsData:TrainingData[] = [];
 					for(let l = 0; l < data.length; l++) {
@@ -97,8 +95,8 @@ class Simulation {
 						}
 						trainingsData.push(ele);
 					}
-					this.config.data = trainingsData;
-					this.table.loadData();
+					newState.data= trainingsData;
+					this.setState(newState, () => this.table.loadData());
 					$("#presetName").text(file.name);
 					$("#exportModal").modal('hide');
 				} catch (e) {
@@ -112,29 +110,24 @@ class Simulation {
 		this.errorGraph = new ErrorGraph(this);
 		this.table = new TableEditor(this);
 		this.weightsGraph = new WeightsGraph(this);
-		this.lrVis = React.render(<LRVis sim={this}/>, document.getElementById("lrVisTarget")) as LRVis;
-		this.deserializeFromUrl();
-		this.renderConfigGui();
-		this.constructed = true;
-		this.onFrame(true);
-		if (autoRun) this.run();
+		this.state = this.deserializeFromUrl();
 	}
 
-	initializeNet(weights?: double[]) {
-		console.log(`initializeNet(${weights})`);
+	initializeNet() {
 		if (this.net) this.stop();
-		this.net = new Net.NeuralNet(this.config.inputLayer, this.config.hiddenLayers, this.config.outputLayer, this.config.learningRate, undefined, weights);
+		console.log("initializeNet()"+this.state.weights);
+		this.net = new Net.NeuralNet(this.state.inputLayer, this.state.hiddenLayers, this.state.outputLayer, this.state.learningRate, undefined, this.state.weights);
 		this.stepNum = 0;
 		this.errorHistory = [];
 		this.lrVis.leftVis.onNetworkLoaded(this.net);
 		this.lrVis.rightVis.onNetworkLoaded(this.net);
-		if (this.constructed) this.onFrame(true);
+		this.onFrame(true);
 	}
 	statusIterEle = document.getElementById('statusIteration');
 	statusCorrectEle = document.getElementById('statusCorrect');
 	step() {
 		this.stepNum++;
-		this.net.trainAll(this.config.data);
+		this.net.trainAll(this.state.data, !this.state.batchTraining);
 	}
 	
 	forwardPassState = -1;
@@ -148,11 +141,11 @@ class Simulation {
 		if(this.forwardPassEles.length > 0) {
 			this.netgraph.applyUpdate(this.forwardPassEles.shift());
 		} else {
-			if(this.forwardPassState < this.config.data.length - 1) {
+			if(this.forwardPassState < this.state.data.length - 1) {
 				// start next
 				this.lrVis.leftVis.setMode(0);
 				this.forwardPassState++;
-				this.forwardPassEles = this.netgraph.forwardPass(this.config.data[this.forwardPassState]);
+				this.forwardPassEles = this.netgraph.forwardPass(this.state.data[this.forwardPassState]);
 				this.netgraph.applyUpdate(this.forwardPassEles.shift());
 			} else {
 				// end
@@ -203,34 +196,34 @@ class Simulation {
 			this.averageError += Math.sqrt(sum1);
 		}
 		this.averageError /= this.config.data.length;*/
-		for (const val of this.config.data) {
+		for (const val of this.state.data) {
 			this.net.setInputsAndCalculate(val.input);
 			this.averageError += this.net.getLoss(val.output);
 		}
-		this.averageError /= this.config.data.length;
+		this.averageError /= this.state.data.length;
 		this.errorHistory.push([this.stepNum, this.averageError]);
 	}
 
 	updateStatusLine() {
 		let correct = 0;
-		if (this.config.outputLayer.neuronCount === 1) {
-			for (var val of this.config.data) {
+		if (this.state.outputLayer.neuronCount === 1) {
+			for (var val of this.state.data) {
 				const res = this.net.getOutput(val.input);
 				if (+(res[0] > 0.5) == val.output[0]) correct++;
 			}
-			this.lrVis.setState({correct:`Correct: ${correct}/${this.config.data.length}`});
+			this.lrVis.setState({correct:`Correct: ${correct}/${this.state.data.length}`});
 		} else {
 			this.lrVis.setState({correct:`Error: ${(this.averageError).toFixed(2) }`});
 		}
 		this.lrVis.setState({stepNum: this.stepNum});
 
-		if (correct == this.config.data.length) {
-			if (this.config.autoRestart && this.running && this.restartTimeout == -1) {
+		if (correct == this.state.data.length) {
+			if (this.state.autoRestart && this.running && this.restartTimeout == -1) {
 				this.restartTimeout = setTimeout(() => {
 					this.stop();
 					this.restartTimeout = -1;
 					setTimeout(() => { this.reset(); this.run(); }, 100);
-				}, this.config.autoRestartTime);
+				}, this.state.autoRestartTime);
 			}
 		} else {
 			if (this.restartTimeout != -1) {
@@ -242,32 +235,58 @@ class Simulation {
 
 	aniFrameCallback = this.animationStep.bind(this);
 	animationStep() {
-		for (let i = 0; i < this.config.stepsPerFrame; i++) this.step();
+		for (let i = 0; i < this.state.stepsPerFrame; i++) this.step();
 		this.onFrame(false);
 		if (this.running) this.runningId = requestAnimationFrame(this.aniFrameCallback);
 	}
 
 	iterations() {
 		this.stop();
-		for (var i = 0; i < this.config.iterationsPerClick; i++)
+		for (var i = 0; i < this.state.iterationsPerClick; i++)
 			this.step();
 		this.onFrame(true);
 	}
-
-	setIsCustom(forceNeuronRename = false) {
-		if (this.isCustom && !forceNeuronRename) return;
-		this.isCustom = true;
-		$("#presetName").text("Custom Network");
-		this.config.name = "Custom Network";
-		let layer = this.config.inputLayer;
-		layer.names = Net.Util.makeArray(layer.neuronCount, i => `in${i + 1}`);
-		layer = this.config.outputLayer;
-		layer.names = Net.Util.makeArray(layer.neuronCount, i => `out${i + 1}`);
+	
+	componentWillUpdate(nextProps: any, newConfig: Configuration) {
+		if(this.state.hiddenLayers.length !== newConfig.hiddenLayers.length && newConfig.custom) {
+			if (this.state.custom/* && !forceNeuronRename*/) return;
+			$("#presetName").text("Custom Network");
+			const inN = newConfig.inputLayer.neuronCount;
+			const outN = newConfig.outputLayer.neuronCount;
+			newConfig.name = "Custom Network";
+			newConfig.inputLayer = {names: Net.Util.makeArray(inN, i => `in${i + 1}`), neuronCount: inN};
+			newConfig.outputLayer = {names: Net.Util.makeArray(outN, i => `out${i + 1}`), activation: newConfig.outputLayer.activation, neuronCount: outN};
+		}
+	}
+	
+	componentDidUpdate(prevProps: any, oldConfig: Configuration) {
+		if (!this.state.autoRestart) clearTimeout(this.restartTimeout);
+		const layerDifferent = (l1:any, l2:any) =>
+			l1.activation !== l2.activation || l1.neuronCount !== l2.neuronCount || (l1.names&&l1.names.some((name:string, i:number) => l2.names[i] !== name));
+		if(this.state.hiddenLayers.length !== oldConfig.hiddenLayers.length
+			|| layerDifferent(this.state.inputLayer, oldConfig.inputLayer)
+			|| layerDifferent(this.state.outputLayer, oldConfig.outputLayer)
+			|| this.state.hiddenLayers.some((layer,i) => layerDifferent(layer, oldConfig.hiddenLayers[i]))
+			|| this.state.weights && (!oldConfig.weights || this.state.weights.some((weight, i) => oldConfig.weights[i] !== weight))) {
+			this.initializeNet();
+		}
+		if(!this.state.custom)
+			history.replaceState({}, "", "?" + $.param({ preset: this.state.name }));
+		if (this.net) {
+			if(oldConfig.bias != this.state.bias) {
+				this.netgraph.onNetworkLoaded(this.net);
+			}
+			this.net.learnRate = this.state.learningRate;
+		}
+	}
+	componentDidMount() {
+		this.initializeNet();
+		this.onFrame(true);
+		if (this.props.autoRun) this.run();
 	}
 
 	loadConfig() { // from gui
-		const config = this.config as any;
-		const oldConfig = $.extend({}, config);
+		const config = $.extend(true, {}, this.state);
 		for (const conf in config) {
 			const ele = document.getElementById(conf) as HTMLInputElement;
 			if (!ele) continue;
@@ -276,30 +295,8 @@ class Simulation {
 				config[conf] = +ele.value;
 			else config[conf] = ele.value;
 		}
-		this.config.learningRate = Util.expScale(this.config.learningRate);
-		if (oldConfig.simType != config.simType) config.data = [];
-		if (this.net) {
-			if(oldConfig.bias != config.bias) {
-				//this.net.
-				this.netgraph.onNetworkLoaded(this.net);
-			}
-			this.net.learnRate = this.config.learningRate;
-		}
-		if (!this.config.autoRestart) clearTimeout(this.restartTimeout);
-		this.renderConfigGui();
-	}
-	
-	renderConfigGui() {
-		React.render(<ConfigurationGui {...this.config}/>, document.getElementById("configurationTarget"));
-	}
-
-	loadPreset(name: string, weights?: double[]) {
-		this.isCustom = false;
-		$("#presetName").text(`Preset: ${name}`);
-		this.config = Presets.get(name);
-		this.renderConfigGui();
-		history.replaceState({}, "", "?" + $.param({ preset: name }));
-		this.initializeNet(weights);
+		config.learningRate = Util.expScale(config.learningRate);
+		this.setState(config);
 	}
 
 	runtoggle() {
@@ -311,30 +308,57 @@ class Simulation {
 	serializeToUrl(exportWeights = 0) {
 		const url = location.protocol + '//' + location.host + location.pathname + "?";
 		const params: any = {};
-		if (exportWeights === 1) params.weights = LZString.compressToEncodedURIComponent(JSON.stringify(this.net.connections.map(c => c.weight)));
-		if (exportWeights === 2) params.weights = LZString.compressToEncodedURIComponent(JSON.stringify(this.net.startWeights));
-		if (this.isCustom) {
-			params.config = LZString.compressToEncodedURIComponent(JSON.stringify(this.config));
+		console.log("cust"+exportWeights);
+		if (this.state.custom || exportWeights > 0) {
+			params.config = Util.cloneConfig(this.state);
 		} else {
-			params.preset = this.config.name;
+			params.preset = this.state.name;
 		}
-
+		console.log(exportWeights);
+		if (exportWeights === 1) params.config.weights = this.net.connections.map(c => c.weight);
+		if (exportWeights === 2) params.config.weights = this.net.startWeights;
+		
+		if(params.config) params.config = LZString.compressToEncodedURIComponent(JSON.stringify(params.config));
 		return url + $.param(params);
 	}
-	deserializeFromUrl() {
+	deserializeFromUrl(): Configuration {
 		const urlParams = Util.parseUrlParameters();
 		const preset = urlParams["preset"], config = urlParams["config"];
-		const weightString = urlParams["weights"];
-		let weights: double[];
-		if (weightString)
-			weights = JSON.parse(LZString.decompressFromEncodedURIComponent(weightString));
 		if (preset && Presets.exists(preset))
-			this.loadPreset(preset, weights);
+			return Presets.get(preset);
 		else if (config) {
-			this.config = JSON.parse(LZString.decompressFromEncodedURIComponent(config));
-			this.setIsCustom();
-			this.initializeNet();
+			console.log(JSON.parse(LZString.decompressFromEncodedURIComponent(config)));
+			return JSON.parse(LZString.decompressFromEncodedURIComponent(config));
 		} else
-			this.loadPreset("Binary Classifier for XOR");
+			return Presets.get("Binary Classifier for XOR");
+	}
+	shouldComponentUpdate() {
+		return true;
+	}
+	
+	render() {
+		return (
+			<div className="container">
+				<div className="page-header">
+					<h1>Neural Network demo
+						<small>{this.state.custom?" Custom Network":" Preset: "+this.state.name}</small>
+					</h1>
+				</div>
+				<LRVis sim={this} ref={(e:LRVis) => this.lrVis = e} />
+				<div className="panel panel-default">
+					<div className="panel-heading">
+						<h3 className="panel-title">
+							<a data-toggle="collapse" data-target=".panel-body">Configuration</a>
+						</h3>
+					</div>
+					<div className="panel-body collapse in">
+						<ConfigurationGui {...this.state} />
+					</div>
+				</div>
+				<footer className="small">
+					<a href="https://github.com/phiresky/kogsys-demos/">Source on GitHub</a>
+				</footer>
+			</div>
+		);
 	}
 }

@@ -66,7 +66,7 @@ class NetworkVisualization implements Visualization {
 			case NetType.MultiClass:
 				this.actions = [];
 				let i = 0;
-				for(const name of this.sim.config.outputLayer.names)
+				for(const name of this.sim.state.outputLayer.names)
 					this.actions.push({name:name, color:NetworkVisualization.colors.multiClass.bg[i++]});
 				this.actions.push("Remove");
 				this.actions.push("Move View");
@@ -101,11 +101,11 @@ class NetworkVisualization implements Visualization {
 	drawDataPoints() {
 		this.ctx.strokeStyle = "#000";
 		if (this.netType === NetType.BinaryClassify) {
-			for (const val of this.sim.config.data) {
+			for (const val of this.sim.state.data) {
 				this.drawPoint(val.input[0], val.input[1], NetworkVisualization.colors.binaryClassify.fg[val.output[0] | 0]);
 			}
 		} else if (this.netType === NetType.AutoEncode) {
-			for (const val of this.sim.config.data) {
+			for (const val of this.sim.state.data) {
 				const ix = val.input[0], iy = val.input[1];
 				const out = this.sim.net.getOutput(val.input);
 				const ox = out[0], oy = out[1];
@@ -114,7 +114,7 @@ class NetworkVisualization implements Visualization {
 				this.drawPoint(ox, oy, NetworkVisualization.colors.autoencoder.output);
 			}
 		} else if(this.netType === NetType.MultiClass) {
-			for (const val of this.sim.config.data) {
+			for (const val of this.sim.state.data) {
 				this.drawPoint(val.input[0], val.input[1], NetworkVisualization.colors.multiClass.fg[Util.getMaxIndex(val.output)]);
 			}
 		} else {
@@ -175,17 +175,17 @@ class NetworkVisualization implements Visualization {
 		tmp(this.canvas.height);
 	}
 	drawBackground() {
-		if (this.sim.config.outputLayer.neuronCount === 2) {
+		if (this.sim.state.outputLayer.neuronCount === 2) {
 			this.clear('white');
 			return;
 		}
 		for (let x = 0; x < this.canvas.width; x += this.backgroundResolution) {
 			for (let y = 0; y < this.canvas.height; y += this.backgroundResolution) {
 					const vals = this.sim.net.getOutput([this.trafo.toReal.x(x + this.backgroundResolution / 2), this.trafo.toReal.y(y + this.backgroundResolution / 2)]);
-				if(this.sim.config.outputLayer.neuronCount > 2) {
+				if(this.sim.state.outputLayer.neuronCount > 2) {
 					this.ctx.fillStyle = NetworkVisualization.colors.multiClass.bg[Util.getMaxIndex(vals)];
 				} else {	
-					if (this.sim.config.showGradient) {
+					if (this.sim.state.showGradient) {
 						this.ctx.fillStyle = NetworkVisualization.colors.binaryClassify.gradient(vals[0]);
 					} else this.ctx.fillStyle = NetworkVisualization.colors.binaryClassify.bg[+(vals[0] > 0.5)];
 				}
@@ -226,11 +226,11 @@ class NetworkVisualization implements Visualization {
 		this.onFrame();
 	}
 	refitData() {
-		if(this.sim.config.data.length < 3) return;
+		if(this.sim.state.data.length < 3) return;
 		// update transform
-		if(this.sim.config.inputLayer.neuronCount == 2) {
+		if(this.sim.state.inputLayer.neuronCount == 2) {
 			const fillamount = 0.6;
-			const bounds = Util.bounds2dTrainingsInput(this.sim.config.data);
+			const bounds = Util.bounds2dTrainingsInput(this.sim.state.data);
 			const w = bounds.maxx - bounds.minx, h = bounds.maxy - bounds.miny;
 			this.trafo.scalex = this.canvas.width / w * fillamount;
 			this.trafo.scaley = - this.canvas.height / h * fillamount;
@@ -240,7 +240,7 @@ class NetworkVisualization implements Visualization {
 	}
 	canvasClicked(evt: MouseEvent) {
 		Util.stopEvent(evt);
-		const data = this.sim.config.data;
+		const data = this.sim.state.data.slice();
 		const rect = this.canvas.getBoundingClientRect();
 		const x = this.trafo.toReal.x(evt.clientX - rect.left);
 		const y = this.trafo.toReal.y(evt.clientY - rect.top);
@@ -265,12 +265,12 @@ class NetworkVisualization implements Visualization {
 				if (evt.ctrlKey || evt.metaKey || evt.altKey) label = inv(label);
 				let output = [label];
 				if(this.netType === NetType.MultiClass) {
-					output = Util.arrayWithOneAt(this.sim.config.outputLayer.neuronCount, label);
+					output = Util.arrayWithOneAt(this.sim.state.outputLayer.neuronCount, label);
 				}
 				data.push({ input: [x, y], output: output });
 			}
 		} else return;
-		this.sim.setIsCustom();
+		this.sim.setState({data, custom: true});
 		this.onFrame();
 	}
 	onView(previouslyHidden: boolean, mode: int) {

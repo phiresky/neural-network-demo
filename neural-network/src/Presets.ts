@@ -14,6 +14,7 @@ interface Configuration {
 	name: string;
 	parent?: string; // inherit from
 	data?: TrainingData[];
+	custom?: boolean;
 	inputLayer?: InputLayerConfig;
 	outputLayer?: OutputLayerConfig;
 	hiddenLayers?: LayerConfig[];
@@ -25,6 +26,8 @@ interface Configuration {
 	iterationsPerClick?: int;
 	showGradient?: boolean;
 	originalBounds?: Util.Bounds;
+	weights?: double[];
+	batchTraining?: boolean;
 }
 module Presets {
 	export const presets: Configuration[] = [
@@ -33,6 +36,8 @@ module Presets {
 			stepsPerFrame: 50,
 			learningRate: 0.05,
 			showGradient: false,
+			batchTraining: false,
+			custom: false,
 			bias: false,
 			autoRestartTime: 5000,
 			autoRestart: false,
@@ -250,6 +255,7 @@ module Presets {
 			"bias": false,
 			"autoRestartTime": 5000,
 			"autoRestart": false,
+			batchTraining: true,
 			"iterationsPerClick": 1,
 			"data": [{"input":[0.39,1.12],"output":[0]},{"input":[0.48,0.31],"output":[0]},{"input":[0.51,0.73],"output":[0]},{"input":[0.27,1],"output":[0]},{"input":[1.21,0.62],"output":[1]},{"input":[1.05,-0.01],"output":[1]},{"input":[0.93,-0.09],"output":[1]},{"input":[0.86,0.55],"output":[1]},{"input":[0.73,2.62],"output":[1]},{"input":[0.8,1.82],"output":[1]}],
 			"inputLayer": {
@@ -292,8 +298,8 @@ module Presets {
 	export function printPreset(sim: Simulation, parentName = "Default") {
 		const parent = get(parentName);
 		const outconf: any = {};
-		for (const prop in sim.config) {
-			if (sim.config[prop] !== parent[prop]) outconf[prop] = sim.config[prop];
+		for (const prop in sim.state) {
+			if (sim.state[prop] !== parent[prop]) outconf[prop] = sim.state[prop];
 		}
 		/*outconf.data = config.data.map(
 			e => '{input:[' + e.input.map(x=> x.toFixed(2))

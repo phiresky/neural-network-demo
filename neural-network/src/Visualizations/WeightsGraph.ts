@@ -69,7 +69,7 @@ class WeightsGraph implements Visualization {
 				for (let inputNeuron = 0; inputNeuron < outN.inputs.length; inputNeuron++) {
 					const conn = outN.inputs[inputNeuron];
 					const inN = conn.inp;
-					if (!this.sim.config.bias && inN instanceof Net.InputNeuron && inN.constant) {
+					if (!this.sim.state.bias && inN instanceof Net.InputNeuron && inN.constant) {
 						continue;
 					}
 					const p = { x: layerX + inputNeuron, y: outputNeuron, z: conn.weight };

@@ -9,7 +9,7 @@
 	},
 	"files": [
 		"./lib/typings/tsd.d.ts",
-		"./src/main.ts",
+		"./src/main.tsx",
 		"./src/Net.ts",
 		"./src/Presets.ts",
 		"./src/Simulation.tsx",

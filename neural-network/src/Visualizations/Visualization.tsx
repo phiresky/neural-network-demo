@@ -15,15 +15,15 @@ interface LRVisState {
 	correct: string,
 	stepNum: number
 }
-class LRVis extends React.Component<{sim:Simulation}, LRVisState> {
+class LRVis extends React.Component<{sim:Simulation, ref:any}, LRVisState> {
 	leftVis: TabSwitcher;
 	rightVis: TabSwitcher;
-	constructor() {
-		super();
+	constructor(props:{sim:Simulation, ref:any}) {
+		super(props);
 		this.state = {
 			running: false,
-			leftVisBody: null,
-			rightVisBody: null,
+			leftVisBody: props.sim.netgraph,
+			rightVisBody: props.sim.netviz,
 			correct: "",
 			stepNum: 0
 		};
@@ -58,7 +58,7 @@ class LRVis extends React.Component<{sim:Simulation}, LRVisState> {
 									<span className="caret" /></button>
 								<ul className="dropdown-menu">
 									{Presets.getNames().map(name =>
-										<li key={name}><a onClick={e => sim.loadPreset((e.target as Element).textContent)}>{name}</a></li>)
+										<li key={name}><a onClick={e => sim.setState(Presets.get((e.target as Element).textContent))}>{name}</a></li>)
 									}
 								</ul>
 							</div>
@@ -76,6 +76,10 @@ class LRVis extends React.Component<{sim:Simulation}, LRVisState> {
 					</div>
 				</div>
 			</div>
+	}
+	componentDidMount() {
+		$("#leftVisBody").append(this.props.sim.netgraph.container);
+		$("#rightVisBody").append(this.props.sim.netviz.container);
 	}
 	componentDidUpdate(prevProps:any, prevState:LRVisState) {
 		if(prevState.leftVisBody !== this.state.leftVisBody) {
@@ -97,7 +101,6 @@ class TabSwitcher extends React.Component<TSProps, {modes: _Mode[], currentMode:
 			modes:this.createButtonsAndActions(),
 			currentMode: 0
 		};
-		this.props.onChangeVisualization(this.props.things[this.state.modes[this.state.currentMode].thing], () => {});
 	}
 	render() {
 		const isDark = (color: string) => Util.parseColor(color).reduce((a,b)=>a+b)/3 < 127;
@@ -152,7 +155,6 @@ class TabSwitcher extends React.Component<TSProps, {modes: _Mode[], currentMode:
 			this.setState({
 				modes:this.createButtonsAndActions(),
 				currentMode:0
-			});
-			this.setMode(this.state.currentMode, true);
+			}, () => this.setMode(0, true));
 	}
 }

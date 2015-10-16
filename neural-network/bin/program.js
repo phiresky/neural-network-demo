@@ -1,19 +1,19 @@
 var sim;
 $(document).ready(function () {
     Presets.loadPetersonBarney();
-    sim = new Simulation(false);
+    sim = React.render(React.createElement(Simulation, {"autoRun": false}), document.getElementById("mainContainer"));
 });
 function checkSanity() {
     // test if network still works like ages ago
-    sim.loadPreset("Binary Classifier for XOR");
+    sim.setState(Presets.get("Binary Classifier for XOR"));
     var out = [-0.3180095069079748, -0.2749093166215802, -0.038532753589859546, 0.09576201205465842, -0.3460678329225116,
         0.23218797637289554, -0.33191669283980774, 0.5140297481331861, -0.1518989898989732];
     var inp = [-0.3094657452311367, -0.2758470894768834, 0.005968799814581871, 0.13201188389211893, -0.33257930004037917,
         0.24626848078332841, -0.35734778200276196, 0.489376779878512, -0.2165879353415221];
     sim.stop();
-    sim.config.inputLayer = { neuronCount: 2, names: ['', ''] };
-    sim.config.hiddenLayers = [{ neuronCount: 2, activation: "sigmoid" }];
-    sim.config.outputLayer = { neuronCount: 1, activation: "sigmoid", names: [''] };
+    sim.state.inputLayer = { neuronCount: 2, names: ['', ''] };
+    sim.state.hiddenLayers = [{ neuronCount: 2, activation: "sigmoid" }];
+    sim.state.outputLayer = { neuronCount: 1, activation: "sigmoid", names: [''] };
     sim.net.connections.forEach(function (e, i) { return e.weight = inp[i]; });
     for (var i = 0; i < 1000; i++)
         sim.step();
@@ -144,9 +144,8 @@ var Net;
             }
             return Math.sqrt(sum / this.outputs.length);
         };
-        /** if individual is true, train individually, else train as a set (usually better)*/
+        /** if individual is true, train individually, else train as a set */
         NeuralNet.prototype.trainAll = function (data, individual) {
-            if (individual === void 0) { individual = false; }
             if (!individual)
                 for (var _i = 0, _a = this.connections; _i < _a.length; _i++) {
                     var conn = _a[_i];
@@ -293,6 +292,8 @@ var Presets;
             stepsPerFrame: 50,
             learningRate: 0.05,
             showGradient: false,
+            batchTraining: false,
+            custom: false,
             bias: false,
             autoRestartTime: 5000,
             autoRestart: false,
@@ -508,6 +509,7 @@ var Presets;
             "bias": false,
             "autoRestartTime": 5000,
             "autoRestart": false,
+            batchTraining: true,
             "iterationsPerClick": 1,
             "data": [{ "input": [0.39, 1.12], "output": [0] }, { "input": [0.48, 0.31], "output": [0] }, { "input": [0.51, 0.73], "output": [0] }, { "input": [0.27, 1], "output": [0] }, { "input": [1.21, 0.62], "output": [1] }, { "input": [1.05, -0.01], "output": [1] }, { "input": [0.93, -0.09], "output": [1] }, { "input": [0.86, 0.55], "output": [1] }, { "input": [0.73, 2.62], "output": [1] }, { "input": [0.8, 1.82], "output": [1] }],
             "inputLayer": {
@@ -555,9 +557,9 @@ var Presets;
         if (parentName === void 0) { parentName = "Default"; }
         var parent = get(parentName);
         var outconf = {};
-        for (var prop in sim.config) {
-            if (sim.config[prop] !== parent[prop])
-                outconf[prop] = sim.config[prop];
+        for (var prop in sim.state) {
+            if (sim.state[prop] !== parent[prop])
+                outconf[prop] = sim.state[prop];
         }
         /*outconf.data = config.data.map(
             e => '{input:[' + e.input.map(x=> x.toFixed(2))
@@ -616,17 +618,17 @@ var Presets;
     }
     Presets.loadPetersonBarney = loadPetersonBarney;
 })(Presets || (Presets = {}));
-var Simulation = (function () {
-    function Simulation(autoRun) {
+var Simulation = (function (_super) {
+    __extends(Simulation, _super);
+    function Simulation(props) {
         var _this = this;
+        _super.call(this, props);
         this.stepNum = 0;
         this.frameNum = 0;
         this.running = false;
         this.runningId = -1;
         this.restartTimeout = -1;
-        this.isCustom = false;
         this.averageError = 1;
-        this.constructed = false;
         this.statusIterEle = document.getElementById('statusIteration');
         this.statusCorrectEle = document.getElementById('statusCorrect');
         this.forwardPassState = -1;
@@ -634,7 +636,7 @@ var Simulation = (function () {
         this.aniFrameCallback = this.animationStep.bind(this);
         var doSerialize = function () {
             _this.stop();
-            $("#urlExport").val(_this.serializeToUrl(+$("#exportWeights").val()));
+            $("#urlExport").val(_this.serializeToUrl(+$(".exportWeights").val()));
         };
         var ioError = function (txt) {
             $("#importexporterror")
@@ -645,16 +647,17 @@ var Simulation = (function () {
         };
         $("#exportModal").on("shown.bs.modal", doSerialize);
         $("#exportModal .exportWeights").on("change", doSerialize);
+        var config = this.state;
         $("#exportModal .exportJSON").click(function () {
-            Util.download(JSON.stringify(_this.config, null, '\t'), _this.config.name + ".json");
+            Util.download(JSON.stringify(_this.state, null, '\t'), _this.state.name + ".json");
         });
         $("#exportModal .exportCSV").click(function () {
-            var csv = _this.config.inputLayer.names.concat(_this.config.outputLayer.names)
+            var csv = _this.state.inputLayer.names.concat(_this.state.outputLayer.names)
                 .map(Util.csvSanitize).join(",") + "\n"
-                + _this.config.data.map(function (data) {
+                + _this.state.data.map(function (data) {
                     return data.input.concat(data.output).join(",");
                 }).join("\n");
-            Util.download(csv, _this.config.name + ".csv");
+            Util.download(csv, _this.state.name + ".csv");
         });
         $("#exportModal .importJSON").change(function (e) {
             var ev = e.originalEvent;
@@ -667,11 +670,9 @@ var Simulation = (function () {
                 try {
                     var text = r.result;
                     var conf = JSON.parse(text);
-                    _this.config = conf;
+                    _this.setState(conf);
                     $("#exportModal").modal('hide');
                     $("#presetName").text(file.name);
-                    _this.renderConfigGui();
-                    _this.initializeNet();
                 }
                 catch (e) {
                     ioError("Error while reading " + file.name + ": " + e);
@@ -694,14 +695,15 @@ var Simulation = (function () {
                     var len = Math.min.apply(Math, lens);
                     if (len !== Math.max.apply(Math, lens))
                         throw "line lengths varying between " + len + " and " + Math.max.apply(Math, lens) + ", must be constant";
-                    var inps = _this.config.inputLayer.neuronCount;
-                    var oups = _this.config.outputLayer.neuronCount;
+                    var inps = _this.state.inputLayer.neuronCount;
+                    var oups = _this.state.outputLayer.neuronCount;
                     if (len !== inps + oups)
                         throw "invalid line length, expected (" + inps + " inputs + " + oups + " outputs = ) " + (inps + oups) + " columns, got " + len + " columns";
+                    var newState = {};
                     if (!data[0][0].match(/^\d+$/)) {
                         var headers = data.shift();
-                        _this.config.inputLayer.names = headers.slice(0, inps);
-                        _this.config.outputLayer.names = headers.slice(inps, inps + oups);
+                        newState.inputLayer = { names: headers.slice(0, inps), neuronCount: _this.state.inputLayer.neuronCount };
+                        newState.outputLayer = { names: headers.slice(inps, inps + oups), neuronCount: _this.state.outputLayer.neuronCount };
                     }
                     var trainingsData = [];
                     for (var l = 0; l < data.length; l++) {
@@ -714,8 +716,8 @@ var Simulation = (function () {
                         }
                         trainingsData.push(ele);
                     }
-                    _this.config.data = trainingsData;
-                    _this.table.loadData();
+                    newState.data = trainingsData;
+                    _this.setState(newState, function () { return _this.table.loadData(); });
                     $("#presetName").text(file.name);
                     $("#exportModal").modal('hide');
                 }
@@ -730,29 +732,22 @@ var Simulation = (function () {
         this.errorGraph = new ErrorGraph(this);
         this.table = new TableEditor(this);
         this.weightsGraph = new WeightsGraph(this);
-        this.lrVis = React.render(React.createElement(LRVis, {"sim": this}), document.getElementById("lrVisTarget"));
-        this.deserializeFromUrl();
-        this.renderConfigGui();
-        this.constructed = true;
-        this.onFrame(true);
-        if (autoRun)
-            this.run();
+        this.state = this.deserializeFromUrl();
     }
-    Simulation.prototype.initializeNet = function (weights) {
-        console.log("initializeNet(" + weights + ")");
+    Simulation.prototype.initializeNet = function () {
         if (this.net)
             this.stop();
-        this.net = new Net.NeuralNet(this.config.inputLayer, this.config.hiddenLayers, this.config.outputLayer, this.config.learningRate, undefined, weights);
+        console.log("initializeNet()" + this.state.weights);
+        this.net = new Net.NeuralNet(this.state.inputLayer, this.state.hiddenLayers, this.state.outputLayer, this.state.learningRate, undefined, this.state.weights);
         this.stepNum = 0;
         this.errorHistory = [];
         this.lrVis.leftVis.onNetworkLoaded(this.net);
         this.lrVis.rightVis.onNetworkLoaded(this.net);
-        if (this.constructed)
-            this.onFrame(true);
+        this.onFrame(true);
     };
     Simulation.prototype.step = function () {
         this.stepNum++;
-        this.net.trainAll(this.config.data);
+        this.net.trainAll(this.state.data, !this.state.batchTraining);
     };
     Simulation.prototype.forwardPassStep = function () {
         if (!this.netgraph.currentlyDisplayingForwardPass) {
@@ -764,11 +759,11 @@ var Simulation = (function () {
             this.netgraph.applyUpdate(this.forwardPassEles.shift());
         }
         else {
-            if (this.forwardPassState < this.config.data.length - 1) {
+            if (this.forwardPassState < this.state.data.length - 1) {
                 // start next
                 this.lrVis.leftVis.setMode(0);
                 this.forwardPassState++;
-                this.forwardPassEles = this.netgraph.forwardPass(this.config.data[this.forwardPassState]);
+                this.forwardPassEles = this.netgraph.forwardPass(this.state.data[this.forwardPassState]);
                 this.netgraph.applyUpdate(this.forwardPassEles.shift());
             }
             else {
@@ -816,37 +811,37 @@ var Simulation = (function () {
             this.averageError += Math.sqrt(sum1);
         }
         this.averageError /= this.config.data.length;*/
-        for (var _i = 0, _a = this.config.data; _i < _a.length; _i++) {
+        for (var _i = 0, _a = this.state.data; _i < _a.length; _i++) {
             var val = _a[_i];
             this.net.setInputsAndCalculate(val.input);
             this.averageError += this.net.getLoss(val.output);
         }
-        this.averageError /= this.config.data.length;
+        this.averageError /= this.state.data.length;
         this.errorHistory.push([this.stepNum, this.averageError]);
     };
     Simulation.prototype.updateStatusLine = function () {
         var _this = this;
         var correct = 0;
-        if (this.config.outputLayer.neuronCount === 1) {
-            for (var _i = 0, _a = this.config.data; _i < _a.length; _i++) {
+        if (this.state.outputLayer.neuronCount === 1) {
+            for (var _i = 0, _a = this.state.data; _i < _a.length; _i++) {
                 var val = _a[_i];
                 var res = this.net.getOutput(val.input);
                 if (+(res[0] > 0.5) == val.output[0])
                     correct++;
             }
-            this.lrVis.setState({ correct: "Correct: " + correct + "/" + this.config.data.length });
+            this.lrVis.setState({ correct: "Correct: " + correct + "/" + this.state.data.length });
         }
         else {
             this.lrVis.setState({ correct: "Error: " + (this.averageError).toFixed(2) });
         }
         this.lrVis.setState({ stepNum: this.stepNum });
-        if (correct == this.config.data.length) {
-            if (this.config.autoRestart && this.running && this.restartTimeout == -1) {
+        if (correct == this.state.data.length) {
+            if (this.state.autoRestart && this.running && this.restartTimeout == -1) {
                 this.restartTimeout = setTimeout(function () {
                     _this.stop();
                     _this.restartTimeout = -1;
                     setTimeout(function () { _this.reset(); _this.run(); }, 100);
-                }, this.config.autoRestartTime);
+                }, this.state.autoRestartTime);
             }
         }
         else {
@@ -857,7 +852,7 @@ var Simulation = (function () {
         }
     };
     Simulation.prototype.animationStep = function () {
-        for (var i = 0; i < this.config.stepsPerFrame; i++)
+        for (var i = 0; i < this.state.stepsPerFrame; i++)
             this.step();
         this.onFrame(false);
         if (this.running)
@@ -865,25 +860,52 @@ var Simulation = (function () {
     };
     Simulation.prototype.iterations = function () {
         this.stop();
-        for (var i = 0; i < this.config.iterationsPerClick; i++)
+        for (var i = 0; i < this.state.iterationsPerClick; i++)
             this.step();
         this.onFrame(true);
     };
-    Simulation.prototype.setIsCustom = function (forceNeuronRename) {
-        if (forceNeuronRename === void 0) { forceNeuronRename = false; }
-        if (this.isCustom && !forceNeuronRename)
-            return;
-        this.isCustom = true;
-        $("#presetName").text("Custom Network");
-        this.config.name = "Custom Network";
-        var layer = this.config.inputLayer;
-        layer.names = Net.Util.makeArray(layer.neuronCount, function (i) { return ("in" + (i + 1)); });
-        layer = this.config.outputLayer;
-        layer.names = Net.Util.makeArray(layer.neuronCount, function (i) { return ("out" + (i + 1)); });
+    Simulation.prototype.componentWillUpdate = function (nextProps, newConfig) {
+        if (this.state.hiddenLayers.length !== newConfig.hiddenLayers.length && newConfig.custom) {
+            if (this.state.custom /* && !forceNeuronRename*/)
+                return;
+            $("#presetName").text("Custom Network");
+            var inN = newConfig.inputLayer.neuronCount;
+            var outN = newConfig.outputLayer.neuronCount;
+            newConfig.name = "Custom Network";
+            newConfig.inputLayer = { names: Net.Util.makeArray(inN, function (i) { return ("in" + (i + 1)); }), neuronCount: inN };
+            newConfig.outputLayer = { names: Net.Util.makeArray(outN, function (i) { return ("out" + (i + 1)); }), activation: newConfig.outputLayer.activation, neuronCount: outN };
+        }
+    };
+    Simulation.prototype.componentDidUpdate = function (prevProps, oldConfig) {
+        if (!this.state.autoRestart)
+            clearTimeout(this.restartTimeout);
+        var layerDifferent = function (l1, l2) {
+            return l1.activation !== l2.activation || l1.neuronCount !== l2.neuronCount || (l1.names && l1.names.some(function (name, i) { return l2.names[i] !== name; }));
+        };
+        if (this.state.hiddenLayers.length !== oldConfig.hiddenLayers.length
+            || layerDifferent(this.state.inputLayer, oldConfig.inputLayer)
+            || layerDifferent(this.state.outputLayer, oldConfig.outputLayer)
+            || this.state.hiddenLayers.some(function (layer, i) { return layerDifferent(layer, oldConfig.hiddenLayers[i]); })
+            || this.state.weights && (!oldConfig.weights || this.state.weights.some(function (weight, i) { return oldConfig.weights[i] !== weight; }))) {
+            this.initializeNet();
+        }
+        if (!this.state.custom)
+            history.replaceState({}, "", "?" + $.param({ preset: this.state.name }));
+        if (this.net) {
+            if (oldConfig.bias != this.state.bias) {
+                this.netgraph.onNetworkLoaded(this.net);
+            }
+            this.net.learnRate = this.state.learningRate;
+        }
+    };
+    Simulation.prototype.componentDidMount = function () {
+        this.initializeNet();
+        this.onFrame(true);
+        if (this.props.autoRun)
+            this.run();
     };
     Simulation.prototype.loadConfig = function () {
-        var config = this.config;
-        var oldConfig = $.extend({}, config);
+        var config = $.extend(true, {}, this.state);
         for (var conf in config) {
             var ele = document.getElementById(conf);
             if (!ele)
@@ -895,30 +917,8 @@ var Simulation = (function () {
             else
                 config[conf] = ele.value;
         }
-        this.config.learningRate = Util.expScale(this.config.learningRate);
-        if (oldConfig.simType != config.simType)
-            config.data = [];
-        if (this.net) {
-            if (oldConfig.bias != config.bias) {
-                //this.net.
-                this.netgraph.onNetworkLoaded(this.net);
-            }
-            this.net.learnRate = this.config.learningRate;
-        }
-        if (!this.config.autoRestart)
-            clearTimeout(this.restartTimeout);
-        this.renderConfigGui();
-    };
-    Simulation.prototype.renderConfigGui = function () {
-        React.render(React.createElement(ConfigurationGui, React.__spread({}, this.config)), document.getElementById("configurationTarget"));
-    };
-    Simulation.prototype.loadPreset = function (name, weights) {
-        this.isCustom = false;
-        $("#presetName").text("Preset: " + name);
-        this.config = Presets.get(name);
-        this.renderConfigGui();
-        history.replaceState({}, "", "?" + $.param({ preset: name }));
-        this.initializeNet(weights);
+        config.learningRate = Util.expScale(config.learningRate);
+        this.setState(config);
     };
     Simulation.prototype.runtoggle = function () {
         if (this.running)
@@ -931,37 +931,43 @@ var Simulation = (function () {
         if (exportWeights === void 0) { exportWeights = 0; }
         var url = location.protocol + '//' + location.host + location.pathname + "?";
         var params = {};
-        if (exportWeights === 1)
-            params.weights = LZString.compressToEncodedURIComponent(JSON.stringify(this.net.connections.map(function (c) { return c.weight; })));
-        if (exportWeights === 2)
-            params.weights = LZString.compressToEncodedURIComponent(JSON.stringify(this.net.startWeights));
-        if (this.isCustom) {
-            params.config = LZString.compressToEncodedURIComponent(JSON.stringify(this.config));
+        console.log("cust" + exportWeights);
+        if (this.state.custom || exportWeights > 0) {
+            params.config = Util.cloneConfig(this.state);
         }
         else {
-            params.preset = this.config.name;
+            params.preset = this.state.name;
         }
+        console.log(exportWeights);
+        if (exportWeights === 1)
+            params.config.weights = this.net.connections.map(function (c) { return c.weight; });
+        if (exportWeights === 2)
+            params.config.weights = this.net.startWeights;
+        if (params.config)
+            params.config = LZString.compressToEncodedURIComponent(JSON.stringify(params.config));
         return url + $.param(params);
     };
     Simulation.prototype.deserializeFromUrl = function () {
         var urlParams = Util.parseUrlParameters();
         var preset = urlParams["preset"], config = urlParams["config"];
-        var weightString = urlParams["weights"];
-        var weights;
-        if (weightString)
-            weights = JSON.parse(LZString.decompressFromEncodedURIComponent(weightString));
         if (preset && Presets.exists(preset))
-            this.loadPreset(preset, weights);
+            return Presets.get(preset);
         else if (config) {
-            this.config = JSON.parse(LZString.decompressFromEncodedURIComponent(config));
-            this.setIsCustom();
-            this.initializeNet();
+            console.log(JSON.parse(LZString.decompressFromEncodedURIComponent(config)));
+            return JSON.parse(LZString.decompressFromEncodedURIComponent(config));
         }
         else
-            this.loadPreset("Binary Classifier for XOR");
+            return Presets.get("Binary Classifier for XOR");
+    };
+    Simulation.prototype.shouldComponentUpdate = function () {
+        return true;
+    };
+    Simulation.prototype.render = function () {
+        var _this = this;
+        return (React.createElement("div", {"className": "container"}, React.createElement("div", {"className": "page-header"}, React.createElement("h1", null, "Neural Network demo", React.createElement("small", null, this.state.custom ? " Custom Network" : " Preset: " + this.state.name))), React.createElement(LRVis, {"sim": this, "ref": function (e) { return _this.lrVis = e; }}), React.createElement("div", {"className": "panel panel-default"}, React.createElement("div", {"className": "panel-heading"}, React.createElement("h3", {"className": "panel-title"}, React.createElement("a", {"data-toggle": "collapse", "data-target": ".panel-body"}, "Configuration"))), React.createElement("div", {"className": "panel-body collapse in"}, React.createElement(ConfigurationGui, React.__spread({}, this.state)))), React.createElement("footer", {"className": "small"}, React.createElement("a", {"href": "https://github.com/phiresky/kogsys-demos/"}, "Source on GitHub"))));
     };
     return Simulation;
-})();
+})(React.Component);
 var TransformNavigation = (function () {
     function TransformNavigation(canvas, transformActive, transformChanged) {
         var _this = this;
@@ -1074,6 +1080,10 @@ var Util;
     }
     Util.randomGaussian = randomGaussian;
     ;
+    function cloneConfig(config) {
+        return $.extend(true, {}, config);
+    }
+    Util.cloneConfig = cloneConfig;
     function benchmark(fun) {
         var bef = Date.now();
         var r = fun();
@@ -1179,7 +1189,7 @@ var ConfigurationGui = (function (_super) {
     ConfigurationGui.prototype.render = function () {
         var conf = this.props;
         var loadConfig = function () { return sim.loadConfig(); };
-        return React.createElement("div", {"className": "form-horizontal"}, React.createElement("div", {"className": "col-sm-6"}, React.createElement("h4", null, "Display"), React.createElement(BSFormGroup, {"label": "Iterations per click on 'Train'", "id": "iterationsPerClick"}, React.createElement("input", {"className": "form-control", "type": "number", "min": 0, "max": 10000, "id": "iterationsPerClick", "value": "" + conf.iterationsPerClick, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Steps per Frame", "id": "stepsPerFrame"}, React.createElement("input", {"className": "form-control", "type": "number", "min": 1, "max": 1000, "id": "stepsPerFrame", "value": "" + conf.stepsPerFrame, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "When correct, restart after 5 seconds", "id": "autoRestart", "isStatic": true}, React.createElement("input", {"type": "checkbox", "id": "autoRestart", "checked": conf.autoRestart, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Show class propabilities as gradient", "id": "showGradient", "isStatic": true}, React.createElement("input", {"type": "checkbox", "checked": conf.showGradient, "id": "showGradient", "onChange": function () { loadConfig(); sim.onFrame(false); }})), React.createElement("button", {"className": "btn btn-default", "data-toggle": "modal", "data-target": "#exportModal"}, "Import / Export")), React.createElement("div", {"className": "col-sm-6"}, React.createElement("h4", null, "Net"), React.createElement(BSFormGroup, {"id": "learningRate", "label": "Learning Rate", "isStatic": true}, React.createElement("span", {"id": "learningRateVal", "style": { marginRight: '1em' }}, conf.learningRate.toFixed(3)), React.createElement("input", {"type": "range", "min": 0.005, "max": 1, "step": 0.005, "id": "learningRate", "value": Util.logScale(conf.learningRate) + "", "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Show bias input", "id": "bias", "isStatic": true}, React.createElement("input", {"type": "checkbox", "checked": conf.bias, "id": "bias", "onChange": function () { sim.loadConfig(); sim.netgraph.onNetworkLoaded(sim.net); }})), React.createElement(NeuronGui, React.__spread({}, this.props))));
+        return React.createElement("div", {"className": "form-horizontal"}, React.createElement("div", {"className": "col-sm-6"}, React.createElement("h4", null, "Display"), React.createElement(BSFormGroup, {"label": "Iterations per click on 'Train'", "id": "iterationsPerClick"}, React.createElement("input", {"className": "form-control", "type": "number", "min": 0, "max": 10000, "id": "iterationsPerClick", "value": "" + conf.iterationsPerClick, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Steps per Frame", "id": "stepsPerFrame"}, React.createElement("input", {"className": "form-control", "type": "number", "min": 1, "max": 1000, "id": "stepsPerFrame", "value": "" + conf.stepsPerFrame, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "When correct, restart after 5 seconds", "id": "autoRestart", "isStatic": true}, React.createElement("input", {"type": "checkbox", "id": "autoRestart", "checked": conf.autoRestart, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Show class propabilities as gradient", "id": "showGradient", "isStatic": true}, React.createElement("input", {"type": "checkbox", "checked": conf.showGradient, "id": "showGradient", "onChange": function () { loadConfig(); sim.onFrame(false); }})), React.createElement("button", {"className": "btn btn-default", "data-toggle": "modal", "data-target": "#exportModal"}, "Import / Export")), React.createElement("div", {"className": "col-sm-6"}, React.createElement("h4", null, "Net"), React.createElement(BSFormGroup, {"id": "learningRate", "label": "Learning Rate", "isStatic": true}, React.createElement("span", {"id": "learningRateVal", "style": { marginRight: '1em' }}, conf.learningRate.toFixed(3)), React.createElement("input", {"type": "range", "min": 0.005, "max": 1, "step": 0.005, "id": "learningRate", "value": Util.logScale(conf.learningRate) + "", "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Show bias input", "id": "bias", "isStatic": true}, React.createElement("input", {"type": "checkbox", "checked": conf.bias, "id": "bias", "onChange": function () { loadConfig(); sim.netgraph.onNetworkLoaded(sim.net); }})), React.createElement(BSFormGroup, {"label": "Batch training", "id": "batchTraining", "isStatic": true}, React.createElement("input", {"type": "checkbox", "checked": conf.batchTraining, "id": "batchTraining", "onChange": loadConfig})), React.createElement(NeuronGui, React.__spread({}, this.props))));
     };
     return ConfigurationGui;
 })(React.Component);
@@ -1202,46 +1212,44 @@ var NeuronGui = (function (_super) {
         _super.apply(this, arguments);
     }
     NeuronGui.prototype.addLayer = function () {
-        sim.config.hiddenLayers.unshift({ activation: 'sigmoid', neuronCount: 2 });
-        sim.setIsCustom();
-        sim.initializeNet();
-        sim.renderConfigGui();
+        var hiddenLayers = this.props.hiddenLayers.slice();
+        hiddenLayers.unshift({ activation: 'sigmoid', neuronCount: 2 });
+        sim.setState({ hiddenLayers: hiddenLayers, custom: true });
     };
     NeuronGui.prototype.removeLayer = function () {
-        if (sim.config.hiddenLayers.length == 0)
+        if (this.props.hiddenLayers.length == 0)
             return;
-        sim.config.hiddenLayers.shift();
-        sim.setIsCustom();
-        sim.initializeNet();
-        sim.renderConfigGui();
+        var hiddenLayers = this.props.hiddenLayers.slice();
+        hiddenLayers.shift();
+        sim.setState({ hiddenLayers: hiddenLayers, custom: true });
     };
     NeuronGui.prototype.activationChanged = function (i, a) {
+        var newConf = Util.cloneConfig(this.props);
         if (i == this.props.hiddenLayers.length)
-            sim.config.outputLayer.activation = a;
+            newConf.outputLayer.activation = a;
         else
-            sim.config.hiddenLayers[i].activation = a;
-        sim.setIsCustom();
-        sim.initializeNet();
-        sim.renderConfigGui();
+            newConf.hiddenLayers[i].activation = a;
+        newConf.custom = true;
+        sim.setState(newConf);
     };
     NeuronGui.prototype.countChanged = function (i, inc) {
-        var targetLayer = sim.config.inputLayer;
+        var newState = Util.cloneConfig(this.props);
+        var targetLayer = newState.inputLayer;
         if (i === this.props.hiddenLayers.length) {
-            targetLayer = sim.config.outputLayer;
+            targetLayer = newState.outputLayer;
             if (targetLayer.neuronCount >= 10)
                 return;
         }
         else if (i >= 0) {
-            targetLayer = sim.config.hiddenLayers[i];
+            targetLayer = newState.hiddenLayers[i];
         }
         var newval = targetLayer.neuronCount + inc;
         if (newval < 1)
             return;
         targetLayer.neuronCount = newval;
-        sim.config.data = [];
-        sim.setIsCustom(true);
-        sim.initializeNet();
-        sim.renderConfigGui();
+        newState.data = [];
+        newState.custom = true;
+        sim.setState(newState);
     };
     NeuronGui.prototype.render = function () {
         var _this = this;
@@ -1324,16 +1332,20 @@ var NetworkGraph = (function () {
         if (!forceRedraw && this.net
             && this.net.layers.length == net.layers.length
             && this.net.layers.every(function (layer, index) { return layer.length == net.layers[index].length; })
-            && this.showbias === this.sim.config.bias) {
+            && this.showbias === this.sim.state.bias) {
             // same net layout, only update
             this.net = net;
             this.onFrame(0);
             return;
         }
-        this.showbias = this.sim.config.bias;
+        this.showbias = this.sim.state.bias;
+        this.net = net;
+        this.drawGraph();
+    };
+    NetworkGraph.prototype.drawGraph = function () {
         this.nodes.clear();
         this.edges.clear();
-        this.net = net;
+        var net = this.net;
         for (var lid = 0; lid < net.layers.length; lid++) {
             var layer = net.layers[lid];
             var nid = 1;
@@ -1383,10 +1395,10 @@ var NetworkGraph = (function () {
         var _this = this;
         if (this.currentlyDisplayingForwardPass)
             this.onFrame(0);
-        this.biasBeforeForwardPass = this.sim.config.bias;
-        this.sim.config.bias = true;
+        this.biasBeforeForwardPass = this.showbias;
+        this.showbias = true;
         this.currentlyDisplayingForwardPass = true;
-        this.onNetworkLoaded(this.net);
+        this.drawGraph();
         this.net.setInputsAndCalculate(data.input);
         var updates = [{ nodes: [], edges: [] }];
         // reset all names
@@ -1471,7 +1483,7 @@ var NetworkGraph = (function () {
     NetworkGraph.prototype.onFrame = function (framenum) {
         if (this.currentlyDisplayingForwardPass) {
             // abort forward pass
-            this.sim.config.bias = this.biasBeforeForwardPass;
+            this.showbias = this.biasBeforeForwardPass;
             this.onNetworkLoaded(this.net, true);
             this.currentlyDisplayingForwardPass = false;
         }
@@ -1555,7 +1567,7 @@ var NetworkVisualization = (function () {
             case NetType.MultiClass:
                 this.actions = [];
                 var i = 0;
-                for (var _i = 0, _a = this.sim.config.outputLayer.names; _i < _a.length; _i++) {
+                for (var _i = 0, _a = this.sim.state.outputLayer.names; _i < _a.length; _i++) {
                     var name_1 = _a[_i];
                     this.actions.push({ name: name_1, color: NetworkVisualization.colors.multiClass.bg[i++] });
                 }
@@ -1592,13 +1604,13 @@ var NetworkVisualization = (function () {
     NetworkVisualization.prototype.drawDataPoints = function () {
         this.ctx.strokeStyle = "#000";
         if (this.netType === NetType.BinaryClassify) {
-            for (var _i = 0, _a = this.sim.config.data; _i < _a.length; _i++) {
+            for (var _i = 0, _a = this.sim.state.data; _i < _a.length; _i++) {
                 var val = _a[_i];
                 this.drawPoint(val.input[0], val.input[1], NetworkVisualization.colors.binaryClassify.fg[val.output[0] | 0]);
             }
         }
         else if (this.netType === NetType.AutoEncode) {
-            for (var _b = 0, _c = this.sim.config.data; _b < _c.length; _b++) {
+            for (var _b = 0, _c = this.sim.state.data; _b < _c.length; _b++) {
                 var val = _c[_b];
                 var ix = val.input[0], iy = val.input[1];
                 var out = this.sim.net.getOutput(val.input);
@@ -1609,7 +1621,7 @@ var NetworkVisualization = (function () {
             }
         }
         else if (this.netType === NetType.MultiClass) {
-            for (var _d = 0, _e = this.sim.config.data; _d < _e.length; _d++) {
+            for (var _d = 0, _e = this.sim.state.data; _d < _e.length; _d++) {
                 var val = _e[_d];
                 this.drawPoint(val.input[0], val.input[1], NetworkVisualization.colors.multiClass.fg[Util.getMaxIndex(val.output)]);
             }
@@ -1672,18 +1684,18 @@ var NetworkVisualization = (function () {
         tmp(this.canvas.height);
     };
     NetworkVisualization.prototype.drawBackground = function () {
-        if (this.sim.config.outputLayer.neuronCount === 2) {
+        if (this.sim.state.outputLayer.neuronCount === 2) {
             this.clear('white');
             return;
         }
         for (var x = 0; x < this.canvas.width; x += this.backgroundResolution) {
             for (var y = 0; y < this.canvas.height; y += this.backgroundResolution) {
                 var vals = this.sim.net.getOutput([this.trafo.toReal.x(x + this.backgroundResolution / 2), this.trafo.toReal.y(y + this.backgroundResolution / 2)]);
-                if (this.sim.config.outputLayer.neuronCount > 2) {
+                if (this.sim.state.outputLayer.neuronCount > 2) {
                     this.ctx.fillStyle = NetworkVisualization.colors.multiClass.bg[Util.getMaxIndex(vals)];
                 }
                 else {
-                    if (this.sim.config.showGradient) {
+                    if (this.sim.state.showGradient) {
                         this.ctx.fillStyle = NetworkVisualization.colors.binaryClassify.gradient(vals[0]);
                     }
                     else
@@ -1722,12 +1734,12 @@ var NetworkVisualization = (function () {
         this.onFrame();
     };
     NetworkVisualization.prototype.refitData = function () {
-        if (this.sim.config.data.length < 3)
+        if (this.sim.state.data.length < 3)
             return;
         // update transform
-        if (this.sim.config.inputLayer.neuronCount == 2) {
+        if (this.sim.state.inputLayer.neuronCount == 2) {
             var fillamount = 0.6;
-            var bounds = Util.bounds2dTrainingsInput(this.sim.config.data);
+            var bounds = Util.bounds2dTrainingsInput(this.sim.state.data);
             var w = bounds.maxx - bounds.minx, h = bounds.maxy - bounds.miny;
             this.trafo.scalex = this.canvas.width / w * fillamount;
             this.trafo.scaley = -this.canvas.height / h * fillamount;
@@ -1737,7 +1749,7 @@ var NetworkVisualization = (function () {
     };
     NetworkVisualization.prototype.canvasClicked = function (evt) {
         Util.stopEvent(evt);
-        var data = this.sim.config.data;
+        var data = this.sim.state.data.slice();
         var rect = this.canvas.getBoundingClientRect();
         var x = this.trafo.toReal.x(evt.clientX - rect.left);
         var y = this.trafo.toReal.y(evt.clientY - rect.top);
@@ -1768,14 +1780,14 @@ var NetworkVisualization = (function () {
                     label = inv(label);
                 var output = [label];
                 if (this.netType === NetType.MultiClass) {
-                    output = Util.arrayWithOneAt(this.sim.config.outputLayer.neuronCount, label);
+                    output = Util.arrayWithOneAt(this.sim.state.outputLayer.neuronCount, label);
                 }
                 data.push({ input: [x, y], output: output });
             }
         }
         else
             return;
-        this.sim.setIsCustom();
+        this.sim.setState({ data: data, custom: true });
         this.onFrame();
     };
     NetworkVisualization.prototype.onView = function (previouslyHidden, mode) {
@@ -1825,13 +1837,12 @@ var TableEditor = (function () {
             this.hot.destroy();
         var oldContainer = this.container;
         this.container = $("<div class='fullsize' style='overflow:hidden'>");
-        console.log("new cont");
         if (oldContainer)
             oldContainer.replaceWith(this.container);
         $("<div>").addClass("btn btn-default")
             .css({ position: "absolute", right: "2em", bottom: "2em" })
             .text("Remove all")
-            .click(function (e) { sim.config.data = []; _this.loadData(); })
+            .click(function (e) { return sim.setState({ data: [] }, function () { return _this.loadData(); }); })
             .appendTo(this.container);
         var headerRenderer = function firstRowRenderer(instance, td) {
             Handsontable.renderers.TextRenderer.apply(this, arguments);
@@ -1885,23 +1896,25 @@ var TableEditor = (function () {
         var sim = this.sim;
         var data = this.hot.getData();
         var headers = data[1];
-        var ic = sim.config.inputLayer.neuronCount, oc = sim.config.outputLayer.neuronCount;
-        sim.config.inputLayer.names = headers.slice(0, ic);
-        sim.config.outputLayer.names = headers.slice(ic, ic + oc);
-        sim.config.data = data.slice(2).map(function (row) { return row.slice(0, ic + oc); })
+        var newConfig = Util.cloneConfig(sim.state);
+        var ic = newConfig.inputLayer.neuronCount, oc = newConfig.outputLayer.neuronCount;
+        newConfig.inputLayer.names = headers.slice(0, ic);
+        newConfig.outputLayer.names = headers.slice(ic, ic + oc);
+        newConfig.data = data.slice(2).map(function (row) { return row.slice(0, ic + oc); })
             .filter(function (row) { return row.every(function (cell) { return typeof cell === 'number'; }); })
             .map(function (row) { return { input: row.slice(0, ic), output: row.slice(ic) }; });
-        sim.setIsCustom();
+        newConfig.custom = true;
+        sim.setState(newConfig);
     };
     TableEditor.prototype.onFrame = function () {
         var sim = this.sim;
         if ((Date.now() - this.lastUpdate) < 500)
             return;
         this.lastUpdate = Date.now();
-        var xOffset = sim.config.inputLayer.neuronCount + sim.config.outputLayer.neuronCount;
+        var xOffset = sim.state.inputLayer.neuronCount + sim.state.outputLayer.neuronCount;
         var vals = [];
-        for (var y = 0; y < sim.config.data.length; y++) {
-            var p = sim.config.data[y];
+        for (var y = 0; y < sim.state.data.length; y++) {
+            var p = sim.state.data[y];
             var op = sim.net.getOutput(p.input);
             for (var x = 0; x < op.length; x++) {
                 vals.push([y + this.headerCount, xOffset + x, op[x]]);
@@ -1911,8 +1924,8 @@ var TableEditor = (function () {
     };
     TableEditor.prototype.loadData = function () {
         var sim = this.sim;
-        var data = [[], sim.config.inputLayer.names.concat(sim.config.outputLayer.names).concat(sim.config.outputLayer.names)];
-        var ic = sim.config.inputLayer.neuronCount, oc = sim.config.outputLayer.neuronCount;
+        var data = [[], sim.state.inputLayer.names.concat(sim.state.outputLayer.names).concat(sim.state.outputLayer.names)];
+        var ic = sim.state.inputLayer.neuronCount, oc = sim.state.outputLayer.neuronCount;
         data[0][0] = 'Inputs';
         data[0][ic] = 'Expected Output';
         data[0][ic + oc + oc - 1] = ' ';
@@ -1926,7 +1939,7 @@ var TableEditor = (function () {
         }
         if (mergeCells.length > 0)
             this.hot.updateSettings({ mergeCells: mergeCells });
-        sim.config.data.forEach(function (t) { return data.push(t.input.concat(t.output)); });
+        sim.state.data.forEach(function (t) { return data.push(t.input.concat(t.output)); });
         this.hot.loadData(data);
         /*this.hot.updateSettings({customBorders: [
                 
@@ -1944,12 +1957,12 @@ var TableEditor = (function () {
 })();
 var LRVis = (function (_super) {
     __extends(LRVis, _super);
-    function LRVis() {
-        _super.call(this);
+    function LRVis(props) {
+        _super.call(this, props);
         this.state = {
             running: false,
-            leftVisBody: null,
-            rightVisBody: null,
+            leftVisBody: props.sim.netgraph,
+            rightVisBody: props.sim.netviz,
             correct: "",
             stepNum: 0
         };
@@ -1958,8 +1971,12 @@ var LRVis = (function (_super) {
         var _this = this;
         var sim = this.props.sim;
         return React.createElement("div", null, React.createElement("div", {"className": "row"}, React.createElement("div", {"className": "col-sm-6"}, React.createElement(TabSwitcher, {"ref": function (c) { return _this.leftVis = c; }, "things": [sim.netgraph, sim.errorGraph, sim.weightsGraph], "onChangeVisualization": function (vis, aft) { return _this.setState({ leftVisBody: vis }, aft); }})), React.createElement("div", {"className": "col-sm-6"}, React.createElement(TabSwitcher, {"ref": function (c) { return _this.rightVis = c; }, "things": [sim.netviz, sim.table], "onChangeVisualization": function (vis, aft) { return _this.setState({ rightVisBody: vis }, aft); }}))), React.createElement("div", {"className": "row"}, React.createElement("div", {"className": "col-sm-6"}, React.createElement("div", {"id": "leftVisBody", "className": "visbody"}), React.createElement("div", {"className": "h3"}, React.createElement("button", {"className": this.state.running ? "btn btn-danger" : "btn btn-primary", "onClick": sim.runtoggle.bind(sim)}, this.state.running ? "Stop" : "Animate"), " ", React.createElement("button", {"className": "btn btn-warning", "onClick": sim.reset.bind(sim)}, "Reset"), " ", React.createElement("button", {"className": "btn btn-default", "onClick": sim.iterations.bind(sim)}, "Train"), " ", React.createElement("button", {"className": "btn btn-default", "onClick": sim.forwardPassStep.bind(sim)}, "Forward Pass Step"), React.createElement("div", {"className": "btn-group pull-right"}, React.createElement("button", {"className": "btn btn-default dropdown-toggle", "data-toggle": "dropdown"}, "Load ", React.createElement("span", {"className": "caret"})), React.createElement("ul", {"className": "dropdown-menu"}, Presets.getNames().map(function (name) {
-            return React.createElement("li", {"key": name}, React.createElement("a", {"onClick": function (e) { return sim.loadPreset(e.target.textContent); }}, name));
+            return React.createElement("li", {"key": name}, React.createElement("a", {"onClick": function (e) { return sim.setState(Presets.get(e.target.textContent)); }}, name));
         })))), React.createElement("hr", null)), React.createElement("div", {"className": "col-sm-6"}, React.createElement("div", {"id": "rightVisBody", "className": "visbody"}), React.createElement("div", {"id": "status"}, React.createElement("h2", null, this.state.correct, " — Iteration: ", this.state.stepNum)), React.createElement("hr", null))));
+    };
+    LRVis.prototype.componentDidMount = function () {
+        $("#leftVisBody").append(this.props.sim.netgraph.container);
+        $("#rightVisBody").append(this.props.sim.netviz.container);
     };
     LRVis.prototype.componentDidUpdate = function (prevProps, prevState) {
         if (prevState.leftVisBody !== this.state.leftVisBody) {
@@ -1981,7 +1998,6 @@ var TabSwitcher = (function (_super) {
             modes: this.createButtonsAndActions(),
             currentMode: 0
         };
-        this.props.onChangeVisualization(this.props.things[this.state.modes[this.state.currentMode].thing], function () { });
     }
     TabSwitcher.prototype.render = function () {
         var _this = this;
@@ -2027,6 +2043,7 @@ var TabSwitcher = (function (_super) {
         }
     };
     TabSwitcher.prototype.onNetworkLoaded = function (net) {
+        var _this = this;
         //todo: ugly hack
         var beforeActions = JSON.stringify(this.props.things.map(function (t) { return t.actions; }));
         this.props.things.forEach(function (thing) { return thing.onNetworkLoaded(net); });
@@ -2035,8 +2052,7 @@ var TabSwitcher = (function (_super) {
             this.setState({
                 modes: this.createButtonsAndActions(),
                 currentMode: 0
-            });
-        this.setMode(this.state.currentMode, true);
+            }, function () { return _this.setMode(0, true); });
     };
     return TabSwitcher;
 })(React.Component);
@@ -2111,7 +2127,7 @@ var WeightsGraph = (function () {
                 for (var inputNeuron = 0; inputNeuron < outN.inputs.length; inputNeuron++) {
                     var conn = outN.inputs[inputNeuron];
                     var inN = conn.inp;
-                    if (!this.sim.config.bias && inN instanceof Net.InputNeuron && inN.constant) {
+                    if (!this.sim.state.bias && inN instanceof Net.InputNeuron && inN.constant) {
                         continue;
                     }
                     var p = { x: layerX + inputNeuron, y: outputNeuron, z: conn.weight };
