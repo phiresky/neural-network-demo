@@ -5,7 +5,7 @@
   "path": "typings",
   "bundle": "typings/tsd.d.ts",
   "installed": {
-    "react/react.d.ts": {
+    "react/react-global.d.ts": {
       "commit": "6436105ed9e3f9de49ca7e2e010ffe298e884e40"
     },
     "highcharts/highcharts.d.ts": {
