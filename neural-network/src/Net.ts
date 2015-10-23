@@ -100,7 +100,7 @@ module Net {
 			this.setInputsAndCalculate(inputVals);
 			return this.outputs.map(output => output.output);
 		}
-		// get root-mean-square error
+		/** get root-mean-square error */
 		getLoss(expectedOutput: double[]) {
 			let sum = 0;
 			for (let i = 0; i < this.outputs.length; i++) {

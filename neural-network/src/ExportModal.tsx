@@ -1,12 +1,16 @@
-class ExportModal extends React.Component<{sim:Simulation},{exportWeights:string, errors:string[]}> {
-	constructor(props:{sim:Simulation}) {
+class ExportModal extends React.Component<{sim:Simulation, ref:any},{exportWeights:string, errors:string[]}> {
+	constructor(props:{sim:Simulation,ref:any}) {
 		super(props);
 		this.state = {
 			exportWeights: "0",
 			errors: []
 		}
+		$("body").on("shown.bs.modal", "#exportModal", () => sim.exportModal.forceUpdate());
 	}
 	render() {
+		const ele = $("#exportModal")[0];
+		let visible = true;
+		if(ele && getComputedStyle(ele).display == "none") visible = false;
 		return (
 			<div className="modal fade" id="exportModal">
 				<div className="modal-dialog">
@@ -15,7 +19,7 @@ class ExportModal extends React.Component<{sim:Simulation},{exportWeights:string
 							<button type="button" className="close" data-dismiss="modal">×</button>
 							<h3 className="modal-title">Import / Export</h3>
 						</div>
-						<div className="modal-body">
+						{visible?<div className="modal-body">
 							<h4 className="modal-title">Export to URL</h4>
 							<select className="exportWeights"
 									onChange={t => this.setState({exportWeights: (t.target as HTMLSelectElement).value})} value={this.state.exportWeights}>
@@ -49,7 +53,7 @@ class ExportModal extends React.Component<{sim:Simulation},{exportWeights:string
 									<button type="button" className="close" data-dismiss="alert">×</button>
 								</div>
 							)}
-						</div>
+						</div>:"Loading..."}
 					</div>
 				</div>
 			</div>

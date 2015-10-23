@@ -16,6 +16,7 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 
 	net: Net.NeuralNet;
 	lrVis: LRVis;
+	exportModal: ExportModal;
 
 	errorHistory: [number, number][];
 	
@@ -281,6 +282,7 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 	// 0 = no weights, 1 = current weights, 2 = start weights
 	serializeToUrl(exportWeights = 0) {
 		const url = location.protocol + '//' + location.host + location.pathname + "?";
+		console.log("serializing to url");
 		const params: any = {};
 		if (this.state.custom || exportWeights > 0) {
 			params.config = Util.cloneConfig(this.state);
@@ -352,7 +354,7 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 						<a href="https://github.com/phiresky/kogsys-demos/">Source on GitHub</a>
 					</footer>
 				</div>
-				<ExportModal sim={this}/>
+				<ExportModal sim={this} ref={(e:ExportModal) => this.exportModal = e}/>
 			</div>
 		);
 	}
