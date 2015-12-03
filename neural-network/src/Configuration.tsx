@@ -93,17 +93,24 @@ class NeuronGui extends React.Component<Configuration, {}> {
 	}
 	countChanged(i:number, inc:number) {
 		const newState = Util.cloneConfig(this.props);
-		let targetLayer:(LayerConfig|InputLayerConfig) = newState.inputLayer;
+		let targetLayer:(LayerConfig|InputLayerConfig);
+		let ioDimensionChanged = true;
 		if(i === this.props.hiddenLayers.length) {
+			// is output layer
 			targetLayer = newState.outputLayer;
 			if(targetLayer.neuronCount >= 10) return;
 		} else if (i >= 0) {
+			// is hidden layer
 			targetLayer = newState.hiddenLayers[i];
+			ioDimensionChanged = false;
+		} else {
+			// < 0: is input layer
+			targetLayer = newState.inputLayer;
 		}
 		const newval = targetLayer.neuronCount + inc;
 		if (newval < 1) return;
 		targetLayer.neuronCount = newval;
-		newState.data = [];
+		if(ioDimensionChanged) newState.data = [];
 		newState.custom = true;
 		sim.setState(newState);
 	}
