@@ -92,8 +92,8 @@ var Net;
             var nid = 0;
             this.inputs = Util.makeArray(input.neuronCount, function (i) { return new InputNeuron(nid++, i, input.names[i]); });
             this.layers.push(this.inputs.slice());
-            for (var _i = 0; _i < hidden.length; _i++) {
-                var layer = hidden[_i];
+            for (var _i = 0, hidden_1 = hidden; _i < hidden_1.length; _i++) {
+                var layer = hidden_1[_i];
                 this.layers.push(Util.makeArray(layer.neuronCount, function (i) { return new Neuron(layer.activation, nid++, i); }));
             }
             this.outputs = Util.makeArray(output.neuronCount, function (i) { return new OutputNeuron(output.activation, nid++, i, output.names[i]); });
@@ -102,10 +102,10 @@ var Net;
                 var inLayer = this.layers[i];
                 var outLayer = this.layers[i + 1];
                 inLayer.push(new InputNeuron(nid++, -1, "Bias", 1));
-                for (var _a = 0; _a < inLayer.length; _a++) {
-                    var input_1 = inLayer[_a];
-                    for (var _b = 0; _b < outLayer.length; _b++) {
-                        var output_1 = outLayer[_b];
+                for (var _a = 0, inLayer_1 = inLayer; _a < inLayer_1.length; _a++) {
+                    var input_1 = inLayer_1[_a];
+                    for (var _b = 0, outLayer_1 = outLayer; _b < outLayer_1.length; _b++) {
+                        var output_1 = outLayer_1[_b];
                         var conn = new Net.NeuronConnection(input_1, output_1);
                         input_1.outputs.push(conn);
                         output_1.inputs.push(conn);
@@ -125,8 +125,8 @@ var Net;
                 this.inputs[i].output = inputVals[i];
             for (var _i = 0, _a = this.layers.slice(1); _i < _a.length; _i++) {
                 var layer = _a[_i];
-                for (var _b = 0; _b < layer.length; _b++) {
-                    var neuron = layer[_b];
+                for (var _b = 0, layer_1 = layer; _b < layer_1.length; _b++) {
+                    var neuron = layer_1[_b];
                     neuron.calculateOutput();
                 }
             }
@@ -151,8 +151,8 @@ var Net;
                     var conn = _a[_i];
                     conn.zeroDeltaWeight();
                 }
-            for (var _b = 0; _b < data.length; _b++) {
-                var val = data[_b];
+            for (var _b = 0, data_1 = data; _b < data_1.length; _b++) {
+                var val = data_1[_b];
                 this.train(val.input, val.output, individual);
             }
             if (!individual)
@@ -1243,20 +1243,29 @@ var NeuronGui = (function (_super) {
     };
     NeuronGui.prototype.countChanged = function (i, inc) {
         var newState = Util.cloneConfig(this.props);
-        var targetLayer = newState.inputLayer;
+        var targetLayer;
+        var ioDimensionChanged = true;
         if (i === this.props.hiddenLayers.length) {
+            // is output layer
             targetLayer = newState.outputLayer;
             if (targetLayer.neuronCount >= 10)
                 return;
         }
         else if (i >= 0) {
+            // is hidden layer
             targetLayer = newState.hiddenLayers[i];
+            ioDimensionChanged = false;
+        }
+        else {
+            // < 0: is input layer
+            targetLayer = newState.inputLayer;
         }
         var newval = targetLayer.neuronCount + inc;
         if (newval < 1)
             return;
         targetLayer.neuronCount = newval;
-        newState.data = [];
+        if (ioDimensionChanged)
+            newState.data = [];
         newState.custom = true;
         sim.setState(newState);
     };
@@ -1361,8 +1370,8 @@ var NetworkGraph = (function () {
             var layerWithBias = layer;
             if (this.showbias && net.biases[lid])
                 layerWithBias = layer.concat(net.biases[lid]);
-            for (var _i = 0; _i < layerWithBias.length; _i++) {
-                var neuron = layerWithBias[_i];
+            for (var _i = 0, layerWithBias_1 = layerWithBias; _i < layerWithBias_1.length; _i++) {
+                var neuron = layerWithBias_1[_i];
                 var type = 'Hidden Neuron ' + (nid++);
                 var color = '#000';
                 if (neuron instanceof Net.InputNeuron) {
@@ -1413,8 +1422,8 @@ var NetworkGraph = (function () {
         // reset all names
         for (var _i = 0, _a = this.net.layers; _i < _a.length; _i++) {
             var layer = _a[_i];
-            for (var _b = 0; _b < layer.length; _b++) {
-                var neuron = layer[_b];
+            for (var _b = 0, layer_2 = layer; _b < layer_2.length; _b++) {
+                var neuron = layer_2[_b];
                 updates[0].nodes.push({
                     id: neuron.id,
                     label: "0"
@@ -1444,8 +1453,8 @@ var NetworkGraph = (function () {
         var lastNeuron;
         for (var _e = 0, _f = this.net.layers.slice(1); _e < _f.length; _e++) {
             var layer = _f[_e];
-            for (var _g = 0; _g < layer.length; _g++) {
-                var neuron = layer[_g];
+            for (var _g = 0, layer_3 = layer; _g < layer_3.length; _g++) {
+                var neuron = layer_3[_g];
                 if (neuron instanceof Net.InputNeuron)
                     continue; // bias neuron
                 updates.push({
