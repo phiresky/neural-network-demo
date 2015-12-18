@@ -15,6 +15,8 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 	lrVis: LRVis;
 
 	errorHistory: [number, number][];
+	
+	lastWeights: number[];
 
 	constructor(props:{autoRun: boolean}) {
 		super(props);
@@ -28,7 +30,7 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 
 	initializeNet() {
 		if (this.net) this.stop();
-		console.log("initializeNet()"+this.state.weights);
+		console.log("initializeNet()");
 		this.net = new Net.NeuralNet(this.state.inputLayer, this.state.hiddenLayers, this.state.outputLayer, this.state.learningRate, undefined, this.state.weights);
 		this.stepNum = 0;
 		this.errorHistory = [];
@@ -40,6 +42,8 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 	statusCorrectEle = document.getElementById('statusCorrect');
 	step() {
 		this.stepNum++;
+		if(this.state.saveLastWeights)
+			this.lastWeights = this.net.connections.map(c => c.weight);
 		this.net.trainAll(this.state.data, !this.state.batchTraining);
 	}
 	

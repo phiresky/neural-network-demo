@@ -28,6 +28,8 @@ interface Configuration {
 	originalBounds?: Util.Bounds;
 	weights?: double[];
 	batchTraining?: boolean;
+	saveLastWeights?: boolean;
+	drawArrows?: boolean;
 }
 module Presets {
 	export const presets: Configuration[] = [
@@ -52,7 +54,11 @@ module Presets {
 			outputLayer: { neuronCount: 1, activation: "sigmoid", names: ["x XOR y"] },
 			hiddenLayers: [
 				{ neuronCount: 2, activation: "sigmoid" },
-			]
+			],
+			saveLastWeights: false,
+			drawArrows: false,
+			originalBounds: null,
+			weights: null
 		},
 		{
 			name: "Binary Classifier for XOR"
@@ -256,6 +262,8 @@ module Presets {
 			"autoRestartTime": 5000,
 			"autoRestart": false,
 			batchTraining: true,
+			saveLastWeights: true,
+			drawArrows: true,
 			"iterationsPerClick": 1,
 			"data": [{"input":[0.39,1.12],"output":[0]},{"input":[0.48,0.31],"output":[0]},{"input":[0.51,0.73],"output":[0]},{"input":[0.27,1],"output":[0]},{"input":[1.21,0.62],"output":[1]},{"input":[1.05,-0.01],"output":[1]},{"input":[0.93,-0.09],"output":[1]},{"input":[0.86,0.55],"output":[1]},{"input":[0.73,2.62],"output":[1]},{"input":[0.8,1.82],"output":[1]}],
 			"inputLayer": {

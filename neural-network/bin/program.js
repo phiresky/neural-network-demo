@@ -308,7 +308,11 @@ var Presets;
             outputLayer: { neuronCount: 1, activation: "sigmoid", names: ["x XOR y"] },
             hiddenLayers: [
                 { neuronCount: 2, activation: "sigmoid" },
-            ]
+            ],
+            saveLastWeights: false,
+            drawArrows: false,
+            originalBounds: null,
+            weights: null
         },
         {
             name: "Binary Classifier for XOR"
@@ -510,6 +514,8 @@ var Presets;
             "autoRestartTime": 5000,
             "autoRestart": false,
             batchTraining: true,
+            saveLastWeights: true,
+            drawArrows: true,
             "iterationsPerClick": 1,
             "data": [{ "input": [0.39, 1.12], "output": [0] }, { "input": [0.48, 0.31], "output": [0] }, { "input": [0.51, 0.73], "output": [0] }, { "input": [0.27, 1], "output": [0] }, { "input": [1.21, 0.62], "output": [1] }, { "input": [1.05, -0.01], "output": [1] }, { "input": [0.93, -0.09], "output": [1] }, { "input": [0.86, 0.55], "output": [1] }, { "input": [0.73, 2.62], "output": [1] }, { "input": [0.8, 1.82], "output": [1] }],
             "inputLayer": {
@@ -745,7 +751,7 @@ var Simulation = (function (_super) {
     Simulation.prototype.initializeNet = function () {
         if (this.net)
             this.stop();
-        console.log("initializeNet()" + this.state.weights);
+        console.log("initializeNet()");
         this.net = new Net.NeuralNet(this.state.inputLayer, this.state.hiddenLayers, this.state.outputLayer, this.state.learningRate, undefined, this.state.weights);
         this.stepNum = 0;
         this.errorHistory = [];
@@ -755,6 +761,8 @@ var Simulation = (function (_super) {
     };
     Simulation.prototype.step = function () {
         this.stepNum++;
+        if (this.state.saveLastWeights)
+            this.lastWeights = this.net.connections.map(function (c) { return c.weight; });
         this.net.trainAll(this.state.data, !this.state.batchTraining);
     };
     Simulation.prototype.forwardPassStep = function () {
@@ -1180,6 +1188,33 @@ var Util;
         e.stopPropagation();
     }
     Util.stopEvent = stopEvent;
+    /** Draws a line with an arrow head at its end.
+     *
+     * start.x/start.y - Starting point end.x/end.y - End point al - Arrowhead length aw -
+     * Arrowhead width
+     *
+     * FOUND ON USENET
+     */
+    function drawArrow(g, start, end, al, aw) {
+        // Compute length of line
+        var length = Math.sqrt(Math.pow((end.x - start.x), 2) + Math.pow((end.y - start.y), 2));
+        // Compute normalized line vector
+        var x = (end.x - start.x) / length;
+        var y = (end.y - start.y) / length;
+        // Compute points for arrow head
+        var base = { x: end.x - x * al, y: end.y - y * al };
+        var back_top = { x: base.x - aw * y, y: base.y + aw * x };
+        var back_bottom = { x: base.x + aw * y, y: base.y - aw * x };
+        // Draw lines
+        g.beginPath();
+        g.moveTo(start.x, start.y);
+        g.lineTo(end.x, end.y);
+        g.lineTo(back_bottom.x, back_bottom.y);
+        g.moveTo(end.x, end.y);
+        g.lineTo(back_top.x, back_top.y);
+        g.stroke();
+    }
+    Util.drawArrow = drawArrow;
 })(Util || (Util = {}));
 var BSFormGroup = (function (_super) {
     __extends(BSFormGroup, _super);
@@ -1616,6 +1651,8 @@ var NetworkVisualization = (function () {
         else
             this.drawBackground();
         this.drawCoordinateSystem();
+        if (this.sim.state.drawArrows)
+            this.drawArrows();
         this.drawDataPoints();
         if (isSinglePerceptron)
             this.drawLine.call(this, separator.minx, separator.miny, separator.maxx, separator.maxy, "black");
@@ -1647,6 +1684,72 @@ var NetworkVisualization = (function () {
         }
         else {
             throw "can't draw this";
+        }
+    };
+    NetworkVisualization.prototype.drawArrows = function () {
+        var ww = this.sim.net.connections.map(function (c) { return c.weight; });
+        var oldww = this.sim.lastWeights;
+        if (oldww === undefined)
+            return;
+        var scale = this.trafo.toCanvas;
+        if (ww.length !== 3)
+            throw Error("arrows only work with 2d data");
+        if (this.sim.state.inputLayer.neuronCount !== 2
+            || this.sim.state.outputLayer.neuronCount !== 1
+            || this.sim.state.hiddenLayers.length !== 0)
+            throw Error("conf not valid for arrows");
+        if (ww.length !== oldww.length)
+            throw Error("size changed");
+        var wasPointWrong = function (p) { return +(ww.map(function (w, i) { return w * p.input[i]; }).reduce(function (x, sum) { return sum + x; }) >= 0) == p.output[0]; };
+        var wasVectorWrong = function (dp) { return dp.some(function (p) { return wasPointWrong(p); }); };
+        if (ww[0] != oldww[0]
+            || ww[1] != oldww[1]
+            || ww[2] != oldww[2]) {
+            var oldX = 0, oldY = 0, newX = 0, newY = 0;
+            if (wasVectorWrong(this.sim.state.data)) {
+                newX = oldww[1];
+                newY = oldww[2];
+                this.ctx.strokeStyle = "#808080";
+                Util.drawArrow(this.ctx, { x: scale.x(oldX), y: scale.y(oldY) }, { x: scale.x(newX), y: scale.y(newY) }, 5, 5);
+                console.log("A gray " + oldX + "," + oldY + " --> "
+                    + newX + "," + newY);
+                for (var _i = 0, _a = this.sim.state.data; _i < _a.length; _i++) {
+                    var p = _a[_i];
+                    if (wasPointWrong(p)) {
+                        oldX = newX;
+                        oldY = newY;
+                        if (p.output[0] == 1) {
+                            newX += p.input[0]
+                                * this.sim.net.learnRate;
+                            newY += p.input[1]
+                                * this.sim.net.learnRate;
+                            this.ctx.strokeStyle = "#ff0000";
+                        }
+                        else {
+                            newX -= p.input[0]
+                                * this.sim.net.learnRate;
+                            newY -= p.input[1]
+                                * this.sim.net.learnRate;
+                            this.ctx.strokeStyle = "#0000ff";
+                        }
+                        Util.drawArrow(this.ctx, { x: scale.x(oldX),
+                            y: scale.y(oldY) }, { x: scale.x(newX), y: scale.y(newY) }, 5, 5);
+                        // g.drawLine(scale.x(oldX),scale.y(oldY),scale.x(newX),scale.y(newY));
+                        console.log("A point " + oldX + "," + oldY
+                            + " --> " + newX + "," + newY);
+                        this.ctx.strokeStyle = "#808080";
+                        this.ctx.arc(scale.x(p.input[0]), scale.y(p.input[1]), 8, 0, 2 * Math.PI);
+                    }
+                }
+            }
+            oldX = 0;
+            oldY = 0;
+            newX = ww[1];
+            newY = ww[2];
+            this.ctx.strokeStyle = "#000000";
+            Util.drawArrow(this.ctx, { x: scale.x(oldX), y: scale.y(oldY) }, { x: scale.x(newX), y: scale.y(newY) }, 5, 5);
+            console.log("A black " + oldX + "," + oldY + " --> "
+                + newX + "," + newY);
         }
     };
     NetworkVisualization.prototype.getSeparator = function (lineFunction) {

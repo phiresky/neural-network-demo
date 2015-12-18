@@ -93,6 +93,7 @@ class NetworkVisualization implements Visualization {
 			this.drawPolyBackground(separator);
 		else this.drawBackground();
 		this.drawCoordinateSystem();
+		if(this.sim.state.drawArrows) this.drawArrows();
 		this.drawDataPoints();
 		if(isSinglePerceptron)
 			this.drawLine.call(this, separator.minx, separator.miny, separator.maxx, separator.maxy, "black");
@@ -119,6 +120,79 @@ class NetworkVisualization implements Visualization {
 			}
 		} else {
 			throw "can't draw this"
+		}
+	}
+	
+	drawArrows() {
+		const ww = this.sim.net.connections.map(c => c.weight);
+		const oldww = this.sim.lastWeights;
+		if (oldww === undefined) return;
+		const scale = this.trafo.toCanvas;
+		if(ww.length !== 3) throw Error("arrows only work with 2d data");
+		if(this.sim.state.inputLayer.neuronCount !== 2
+			|| this.sim.state.outputLayer.neuronCount !== 1
+			|| this.sim.state.hiddenLayers.length !== 0)
+			throw Error("conf not valid for arrows");
+		if(ww.length !== oldww.length) throw Error("size changed");
+		const wasPointWrong = (p:TrainingData) => +(ww.map((w,i) => w*p.input[i]).reduce((x, sum) => sum + x) >= 0) == p.output[0];
+		const wasVectorWrong = (dp:TrainingData[]) => dp.some(p => wasPointWrong(p));
+		if (ww[0] != oldww[0]
+				|| ww[1] != oldww[1]
+				|| ww[2] != oldww[2]) {
+			let oldX = 0, oldY = 0, newX = 0, newY = 0;
+			if(wasVectorWrong(this.sim.state.data)) {
+	
+				newX = oldww[1];
+				newY = oldww[2];
+	
+				this.ctx.strokeStyle = "#808080";
+				Util.drawArrow(this.ctx, {x:scale.x(oldX), y:scale.y(oldY)},
+						{x:scale.x(newX), y:scale.y(newY)}, 5, 5);
+				console.log("A gray " + oldX + "," + oldY + " --> "
+						+ newX + "," + newY);
+	
+				for (const p of this.sim.state.data) {
+					if (wasPointWrong(p)) {
+						oldX = newX;
+						oldY = newY;
+	
+						if (p.output[0] == 1) {
+							newX += p.input[0]
+									* this.sim.net.learnRate;
+							newY += p.input[1]
+									* this.sim.net.learnRate;
+							this.ctx.strokeStyle = "#ff0000";
+						} else {
+							newX -= p.input[0]
+									* this.sim.net.learnRate;
+							newY -= p.input[1]
+									* this.sim.net.learnRate;
+							this.ctx.strokeStyle = "#0000ff";
+	
+						}
+						Util.drawArrow(this.ctx, {x:scale.x(oldX),
+								y:scale.y(oldY)}, {x:scale.x(newX), y:scale.y(newY)},
+								5, 5);
+						// g.drawLine(scale.x(oldX),scale.y(oldY),scale.x(newX),scale.y(newY));
+						console.log("A point " + oldX + "," + oldY
+								+ " --> " + newX + "," + newY);
+	
+						this.ctx.strokeStyle = "#808080";
+						this.ctx.arc(scale.x(p.input[0]), scale.y(p.input[1]), 8, 0, 2*Math.PI);
+	
+					}
+				}
+			}
+			oldX = 0;
+			oldY = 0;
+			newX = ww[1];
+			newY = ww[2];
+
+			this.ctx.strokeStyle = "#000000";
+			Util.drawArrow(this.ctx, {x:scale.x(oldX), y:scale.y(oldY)},
+					{x:scale.x(newX), y:scale.y(newY)}, 5, 5);
+			console.log("A black " + oldX + "," + oldY + " --> "
+					+ newX + "," + newY);
 		}
 	}
 	

@@ -119,4 +119,33 @@ module Util {
 		e.preventDefault();
 		e.stopPropagation();
 	}
+	
+	interface Point { x: double, y: double}
+	/** Draws a line with an arrow head at its end.
+	 *
+	 * start.x/start.y - Starting point end.x/end.y - End point al - Arrowhead length aw -
+	 * Arrowhead width
+	 *
+	 * FOUND ON USENET
+	 */
+	export function drawArrow(g:CanvasRenderingContext2D, start:Point, end: Point,
+			al:double, aw:double) {
+		// Compute length of line
+		const length = Math.sqrt((end.x - start.x) ** 2 + (end.y-start.y) ** 2);
+		// Compute normalized line vector
+		const x = (end.x - start.x) / length;
+		const y = (end.y - start.y) / length;
+		// Compute points for arrow head
+		const base = {x:end.x - x * al, y:end.y - y * al};
+		const back_top = {x:base.x - aw * y, y:base.y + aw * x};
+		const back_bottom = {x:base.x + aw * y, y:base.y - aw * x};
+		// Draw lines
+		g.beginPath();
+		g.moveTo(start.x, start.y);
+		g.lineTo(end.x, end.y);
+		g.lineTo(back_bottom.x, back_bottom.y);
+		g.moveTo(end.x, end.y);
+		g.lineTo(back_top.x, back_top.y);
+		g.stroke();
+	}
 }
