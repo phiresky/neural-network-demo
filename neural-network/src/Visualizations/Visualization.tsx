@@ -11,22 +11,49 @@ interface VisualizationConstructor {
 	new (sim:Simulation): Visualization;
 }
 interface LRVisState {
-	running: boolean, leftVisBody: Visualization, rightVisBody: Visualization,
+	running: boolean, bodies: Visualization[],
 	correct: string,
 	stepNum: number
 }
-class LRVis extends React.Component<{sim:Simulation, ref:any}, LRVisState> {
-	leftVis: TabSwitcher;
-	rightVis: TabSwitcher;
-	constructor(props:{sim:Simulation, ref:any}) {
+abstract class MultiVisDisplayer<T> extends React.Component<{sim:Simulation}&T, LRVisState> {
+	bodyDivs: HTMLDivElement[] = [];
+	
+	constructor(props:{sim:Simulation}&T) {
 		super(props);
 		this.state = {
 			running: false,
-			leftVisBody: props.sim.netgraph,
-			rightVisBody: props.sim.netviz,
+			bodies: [props.sim.netgraph, props.sim.netviz],
 			correct: "",
 			stepNum: 0
 		};
+	}
+	onFrame(framenum:int) {
+		for(const body of this.state.bodies) body.onFrame(framenum);
+	}
+	changeBody(i: int, vis: Visualization, aft: () => void) {
+		const bodies = this.state.bodies.slice();
+		bodies[i] = vis;
+		this.setState({bodies}, aft);
+	}
+	componentDidMount() {
+		for(let i = 0; i < this.state.bodies.length; i++) {
+			$(this.bodyDivs[i]).append(this.state.bodies[i].container);
+		}
+	}
+	componentDidUpdate(prevProps:any, prevState:LRVisState) {
+		for(let i = 0; i < prevState.bodies.length; i++) {
+			if(prevState.bodies[i] !== this.state.bodies[i]) {
+				$(this.bodyDivs[i]).children().detach();
+				$(this.bodyDivs[i]).append(this.state.bodies[i].container);
+			}
+		}
+	}
+}
+class LRVis extends MultiVisDisplayer<{leftVis: Visualization[], rightVis: Visualization[]}> {
+	leftVis: TabSwitcher;
+	rightVis: TabSwitcher;
+	constructor(props:{sim:Simulation, leftVis: Visualization[], rightVis: Visualization[]}) {
+		super(props);
 	}
 	render() {
 		const sim = this.props.sim;
@@ -34,20 +61,20 @@ class LRVis extends React.Component<{sim:Simulation, ref:any}, LRVisState> {
 				<div className="row">
 					<div className="col-sm-6">
 						<TabSwitcher ref={(c:TabSwitcher) => this.leftVis = c}
-							things={[sim.netgraph, sim.errorGraph, sim.weightsGraph]}
-							onChangeVisualization={(vis,aft) => this.setState({leftVisBody: vis}, aft)}
+							things={this.props.leftVis}
+							onChangeVisualization={(vis,aft) => this.changeBody(0, vis, aft)}
 						/>
 					</div>
 					<div className="col-sm-6">
 						<TabSwitcher ref={(c:TabSwitcher) => this.rightVis = c}
-							things={[sim.netviz, sim.table]}
-							onChangeVisualization={(vis,aft) => this.setState({rightVisBody: vis}, aft)}
+							things={this.props.rightVis}
+							onChangeVisualization={(vis,aft) => this.changeBody(1, vis, aft)}
 						/>
 					</div>
 				</div>
 				<div className="row">
 					<div className="col-sm-6">
-						<div id="leftVisBody" className="visbody" />
+						<div className="visbody" ref={b => this.bodyDivs[0] = b } />
 						<div className="h3">
 							<button className={this.state.running?"btn btn-danger":"btn btn-primary"} onClick={sim.runtoggle.bind(sim)}>{this.state.running?"Stop":"Animate"}</button>&nbsp;
 							<button className="btn btn-warning" onClick={sim.reset.bind(sim)}>Reset</button>&nbsp;
@@ -66,7 +93,7 @@ class LRVis extends React.Component<{sim:Simulation, ref:any}, LRVisState> {
 						<hr />
 					</div>
 					<div className="col-sm-6">
-						<div id="rightVisBody" className="visbody" />
+						<div className="visbody" ref={b => this.bodyDivs[1] = b } />
 						<div id="status">
 							<h2>
 								{this.state.correct} — Iteration:&nbsp;{this.state.stepNum}
@@ -77,21 +104,8 @@ class LRVis extends React.Component<{sim:Simulation, ref:any}, LRVisState> {
 				</div>
 			</div>
 	}
-	componentDidMount() {
-		$("#leftVisBody").append(this.props.sim.netgraph.container);
-		$("#rightVisBody").append(this.props.sim.netviz.container);
-	}
-	componentDidUpdate(prevProps:any, prevState:LRVisState) {
-		if(prevState.leftVisBody !== this.state.leftVisBody) {
-			$("#leftVisBody").children().detach();
-			$("#leftVisBody").append(this.state.leftVisBody.container);
-		}
-		if(prevState.rightVisBody !== this.state.rightVisBody) {
-			$("#rightVisBody").children().detach();
-			$("#rightVisBody").append(this.state.rightVisBody.container);
-		}
-	}
 }
+
 interface _Mode { thing: int, action: int, text: string, color: string }
 interface TSProps {things: Visualization[], onChangeVisualization: (v:Visualization, aft:()=>void) => void, ref?:any}
 class TabSwitcher extends React.Component<TSProps, {modes: _Mode[], currentMode: number}> {

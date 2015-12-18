@@ -1,7 +1,7 @@
 var sim;
 $(document).ready(function () {
     Presets.loadPetersonBarney();
-    sim = React.render(React.createElement(Simulation, {"autoRun": false}), document.getElementById("mainContainer"));
+    sim = ReactDOM.render(React.createElement(Simulation, {autoRun: false}), document.getElementById("mainContainer"));
 });
 function checkSanity() {
     // test if network still works like ages ago
@@ -186,7 +186,7 @@ var Net;
                 }
         };
         return NeuralNet;
-    })();
+    }());
     Net.NeuralNet = NeuralNet;
     var NeuronConnection = (function () {
         function NeuronConnection(inp, out) {
@@ -206,7 +206,7 @@ var Net;
             this.deltaWeight = NaN;
         };
         return NeuronConnection;
-    })();
+    }());
     Net.NeuronConnection = NeuronConnection;
     var Neuron = (function () {
         function Neuron(activation, id, layerIndex) {
@@ -251,7 +251,7 @@ var Net;
             return function (x) { return (threshold - _this.inputs[2].weight - _this.inputs[0].weight * x) / wy; };
         };
         return Neuron;
-    })();
+    }());
     Net.Neuron = Neuron;
     var InputNeuron = (function (_super) {
         __extends(InputNeuron, _super);
@@ -268,7 +268,7 @@ var Net;
         InputNeuron.prototype.calculateWeightedInputs = function () { };
         InputNeuron.prototype.calculateError = function () { };
         return InputNeuron;
-    })(Neuron);
+    }(Neuron));
     Net.InputNeuron = InputNeuron;
     var OutputNeuron = (function (_super) {
         __extends(OutputNeuron, _super);
@@ -281,7 +281,7 @@ var Net;
             this.error = Net.NonLinearities[this.activation].df(this.weightedInputs) * (this.targetOutput - this.output);
         };
         return OutputNeuron;
-    })(Neuron);
+    }(Neuron));
     Net.OutputNeuron = OutputNeuron;
 })(Net || (Net = {}));
 var Presets;
@@ -571,29 +571,32 @@ var Presets;
         return outconf;
     }
     Presets.printPreset = printPreset;
+    function parseBarney(data) {
+        // _cache = LZString.compressToBase64(JSON.stringify(data));
+        var relevantData = data.filter(function (row) { return row[3] == 1; }).map(function (row) { return ({
+            input: row.slice(0, 2),
+            output: Util.arrayWithOneAt(10, row[2] - 1)
+        }); });
+        var preset = Presets.presets.filter(function (p) { return p.name === "Peterson and Barney (male)"; })[0];
+        preset.data = relevantData;
+        Util.normalizeInputs(preset);
+        var relevantData2 = data.map(function (row) { return ({
+            input: row.slice(0, 2),
+            output: Util.arrayWithOneAt(10, row[2] - 1)
+        }); });
+        preset = Presets.presets.filter(function (p) { return p.name === "Peterson and Barney (all)"; })[0];
+        preset.data = relevantData2;
+        Util.normalizeInputs(preset);
+        //presets.forEach(preset => preset.data && normalizeInputs(preset.data));
+    }
     function loadPetersonBarney() {
-        function parseBarney(data) {
-            // _cache = LZString.compressToBase64(JSON.stringify(data));
-            var relevantData = data.filter(function (row) { return row[3] == 1; }).map(function (row) { return ({
-                input: row.slice(0, 2),
-                output: Util.arrayWithOneAt(10, row[2] - 1)
-            }); });
-            var preset = Presets.presets.filter(function (p) { return p.name === "Peterson and Barney (male)"; })[0];
-            preset.data = relevantData;
-            Util.normalizeInputs(preset);
-            var relevantData2 = data.map(function (row) { return ({
-                input: row.slice(0, 2),
-                output: Util.arrayWithOneAt(10, row[2] - 1)
-            }); });
-            preset = Presets.presets.filter(function (p) { return p.name === "Peterson and Barney (all)"; })[0];
-            preset.data = relevantData2;
-            Util.normalizeInputs(preset);
-            //presets.forEach(preset => preset.data && normalizeInputs(preset.data));
-        }
         // include peterson_barney_data for faster page load
         var dataStr = "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";
         parseBarney(JSON.parse(LZString.decompressFromBase64(dataStr)));
         return;
+    }
+    Presets.loadPetersonBarney = loadPetersonBarney;
+    function loadPetersonBarneyAsync() {
         $.get("lib/peterson_barney_data").then(function (strData) {
             var cols = {
                 gender: 0,
@@ -616,7 +619,6 @@ var Presets;
             parseBarney(relevantData);
         });
     }
-    Presets.loadPetersonBarney = loadPetersonBarney;
 })(Presets || (Presets = {}));
 var ExportModal = (function (_super) {
     __extends(ExportModal, _super);
@@ -629,8 +631,8 @@ var ExportModal = (function (_super) {
     }
     ExportModal.prototype.render = function () {
         var _this = this;
-        return (React.createElement("div", {"className": "modal fade", "id": "exportModal"}, React.createElement("div", {"className": "modal-dialog"}, React.createElement("div", {"className": "modal-content"}, React.createElement("div", {"className": "modal-header"}, React.createElement("button", {"type": "button", "className": "close", "data-dismiss": "modal"}, "×"), React.createElement("h3", {"className": "modal-title"}, "Import / Export")), React.createElement("div", {"className": "modal-body"}, React.createElement("h4", {"className": "modal-title"}, "Export to URL"), React.createElement("select", {"className": "exportWeights", "onChange": function (t) { return _this.setState({ exportWeights: t.target.value }); }, "value": this.state.exportWeights}, React.createElement("option", {"value": "0"}, "Don't include weights"), React.createElement("option", {"value": "1"}, "Include current weights"), React.createElement("option", {"value": "2"}, "Include start weights")), React.createElement("p", null, "Copy this URL:", React.createElement("input", {"className": "url-export", "onClick": function (e) { return e.target.select(); }, "readOnly": true, "value": this.props.sim.serializeToUrl(+this.state.exportWeights)})), React.createElement("hr", null), React.createElement("h4", {"className": "modal-title"}, "Export to file"), React.createElement("button", {"className": "btn btn-default", "onClick": function () { return _this.exportJSON(_this.props.sim.state); }}, "Export configuration as json"), React.createElement("button", {"className": "btn btn-default", "onClick": function () { return _this.exportCSV(_this.props.sim.state); }}, "Export training data as CSV"), React.createElement("hr", null), React.createElement("h4", {"className": "modal-title"}, "Import"), React.createElement("span", {"className": "btn btn-default btn-file"}, "Import JSON file ", React.createElement("input", {"type": "file", "className": "importJSON", "onChange": this.importJSON.bind(this)})), React.createElement("span", {"className": "btn btn-default btn-file"}, "Import CSV file ", React.createElement("input", {"type": "file", "className": "importCSV", "onChange": this.importCSV.bind(this)})), this.state.errors.map(function (error, i) {
-            return React.createElement("div", {"key": i, "className": "alert alert-danger"}, error, React.createElement("button", {"type": "button", "className": "close", "data-dismiss": "alert"}, "×"));
+        return (React.createElement("div", {className: "modal fade", id: "exportModal"}, React.createElement("div", {className: "modal-dialog"}, React.createElement("div", {className: "modal-content"}, React.createElement("div", {className: "modal-header"}, React.createElement("button", {type: "button", className: "close", "data-dismiss": "modal"}, "×"), React.createElement("h3", {className: "modal-title"}, "Import / Export")), React.createElement("div", {className: "modal-body"}, React.createElement("h4", {className: "modal-title"}, "Export to URL"), React.createElement("select", {className: "exportWeights", onChange: function (t) { return _this.setState({ exportWeights: t.target.value }); }, value: this.state.exportWeights}, React.createElement("option", {value: "0"}, "Don't include weights"), React.createElement("option", {value: "1"}, "Include current weights"), React.createElement("option", {value: "2"}, "Include start weights")), React.createElement("p", null, "Copy this URL:", React.createElement("input", {className: "url-export", onClick: function (e) { return e.target.select(); }, readOnly: true, value: this.props.sim.serializeToUrl(+this.state.exportWeights)})), React.createElement("hr", null), React.createElement("h4", {className: "modal-title"}, "Export to file"), React.createElement("button", {className: "btn btn-default", onClick: function () { return _this.exportJSON(_this.props.sim.state); }}, "Export configuration as json"), React.createElement("button", {className: "btn btn-default", onClick: function () { return _this.exportCSV(_this.props.sim.state); }}, "Export training data as CSV"), React.createElement("hr", null), React.createElement("h4", {className: "modal-title"}, "Import"), React.createElement("span", {className: "btn btn-default btn-file"}, "Import JSON file ", React.createElement("input", {type: "file", className: "importJSON", onChange: this.importJSON.bind(this)})), React.createElement("span", {className: "btn btn-default btn-file"}, "Import CSV file ", React.createElement("input", {type: "file", className: "importCSV", onChange: this.importCSV.bind(this)})), this.state.errors.map(function (error, i) {
+            return React.createElement("div", {key: i, className: "alert alert-danger"}, error, React.createElement("button", {type: "button", className: "close", "data-dismiss": "alert"}, "×"));
         }))))));
     };
     ExportModal.prototype.exportJSON = function (conf) {
@@ -717,7 +719,7 @@ var ExportModal = (function (_super) {
         this.setState({ errors: errors });
     };
     return ExportModal;
-})(React.Component);
+}(React.Component));
 var Simulation = (function (_super) {
     __extends(Simulation, _super);
     function Simulation(props) {
@@ -782,8 +784,7 @@ var Simulation = (function (_super) {
     Simulation.prototype.onFrame = function (forceDraw) {
         this.frameNum++;
         this.calculateAverageError();
-        this.lrVis.state.leftVisBody.onFrame(forceDraw ? 0 : this.frameNum);
-        this.lrVis.state.rightVisBody.onFrame(forceDraw ? 0 : this.frameNum);
+        this.lrVis.onFrame(forceDraw ? 0 : this.frameNum);
         this.updateStatusLine();
     };
     Simulation.prototype.run = function () {
@@ -973,10 +974,10 @@ var Simulation = (function (_super) {
     };
     Simulation.prototype.render = function () {
         var _this = this;
-        return (React.createElement("div", null, React.createElement("div", {"className": "container"}, React.createElement("div", {"className": "page-header"}, React.createElement("h1", null, "Neural Network demo", React.createElement("small", null, this.state.custom ? " Custom Network" : " Preset: " + this.state.name))), React.createElement(LRVis, {"sim": this, "ref": function (e) { return _this.lrVis = e; }}), React.createElement("div", {"className": "panel panel-default"}, React.createElement("div", {"className": "panel-heading"}, React.createElement("h3", {"className": "panel-title"}, React.createElement("a", {"data-toggle": "collapse", "data-target": ".panel-body"}, "Configuration"))), React.createElement("div", {"className": "panel-body collapse in"}, React.createElement(ConfigurationGui, React.__spread({}, this.state)))), React.createElement("footer", {"className": "small"}, React.createElement("a", {"href": "https://github.com/phiresky/kogsys-demos/"}, "Source on GitHub"))), React.createElement(ExportModal, {"sim": this})));
+        return (React.createElement("div", null, React.createElement("div", {className: "container"}, React.createElement("div", {className: "page-header"}, React.createElement("h1", null, "Neural Network demo", React.createElement("small", null, this.state.custom ? " Custom Network" : " Preset: " + this.state.name))), React.createElement(LRVis, {sim: this, ref: function (e) { return _this.lrVis = e; }, leftVis: [this.netgraph, this.errorGraph, this.weightsGraph], rightVis: [this.netviz, this.table]}), React.createElement("div", {className: "panel panel-default"}, React.createElement("div", {className: "panel-heading"}, React.createElement("h3", {className: "panel-title"}, React.createElement("a", {"data-toggle": "collapse", "data-target": ".panel-body"}, "Configuration"))), React.createElement("div", {className: "panel-body collapse in"}, React.createElement(ConfigurationGui, React.__spread({}, this.state)))), React.createElement("footer", {className: "small"}, React.createElement("a", {href: "https://github.com/phiresky/kogsys-demos/"}, "Source on GitHub"))), React.createElement(ExportModal, {sim: this})));
     };
     return Simulation;
-})(React.Component);
+}(React.Component));
 var TransformNavigation = (function () {
     function TransformNavigation(canvas, transformActive, transformChanged) {
         var _this = this;
@@ -1035,7 +1036,7 @@ var TransformNavigation = (function () {
         });
     }
     return TransformNavigation;
-})();
+}());
 var Util;
 (function (Util) {
     function getMaxIndex(vals) {
@@ -1186,10 +1187,10 @@ var BSFormGroup = (function (_super) {
         _super.apply(this, arguments);
     }
     BSFormGroup.prototype.render = function () {
-        return React.createElement("div", {"className": "form-group"}, React.createElement("label", {"htmlFor": this.props.id, "className": "col-sm-6 control-label"}, this.props.label), React.createElement("div", {"className": "col-sm-6 " + (this.props.isStatic ? "form-control-static" : "")}, this.props.children));
+        return React.createElement("div", {className: "form-group"}, React.createElement("label", {htmlFor: this.props.id, className: "col-sm-6 control-label"}, this.props.label), React.createElement("div", {className: "col-sm-6 " + (this.props.isStatic ? "form-control-static" : "")}, this.props.children));
     };
     return BSFormGroup;
-})(React.Component);
+}(React.Component));
 var ConfigurationGui = (function (_super) {
     __extends(ConfigurationGui, _super);
     function ConfigurationGui() {
@@ -1198,10 +1199,10 @@ var ConfigurationGui = (function (_super) {
     ConfigurationGui.prototype.render = function () {
         var conf = this.props;
         var loadConfig = function () { return sim.loadConfig(); };
-        return React.createElement("div", {"className": "form-horizontal"}, React.createElement("div", {"className": "col-sm-6"}, React.createElement("h4", null, "Display"), React.createElement(BSFormGroup, {"label": "Iterations per click on 'Train'", "id": "iterationsPerClick"}, React.createElement("input", {"className": "form-control", "type": "number", "min": 0, "max": 10000, "id": "iterationsPerClick", "value": "" + conf.iterationsPerClick, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Steps per Frame", "id": "stepsPerFrame"}, React.createElement("input", {"className": "form-control", "type": "number", "min": 1, "max": 1000, "id": "stepsPerFrame", "value": "" + conf.stepsPerFrame, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "When correct, restart after 5 seconds", "id": "autoRestart", "isStatic": true}, React.createElement("input", {"type": "checkbox", "id": "autoRestart", "checked": conf.autoRestart, "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Show class propabilities as gradient", "id": "showGradient", "isStatic": true}, React.createElement("input", {"type": "checkbox", "checked": conf.showGradient, "id": "showGradient", "onChange": loadConfig})), React.createElement("button", {"className": "btn btn-default", "data-toggle": "modal", "data-target": "#exportModal"}, "Import / Export")), React.createElement("div", {"className": "col-sm-6"}, React.createElement("h4", null, "Net"), React.createElement(BSFormGroup, {"id": "learningRate", "label": "Learning Rate", "isStatic": true}, React.createElement("span", {"id": "learningRateVal", "style": { marginRight: '1em' }}, conf.learningRate.toFixed(3)), React.createElement("input", {"type": "range", "min": 0.005, "max": 1, "step": 0.005, "id": "learningRate", "value": Util.logScale(conf.learningRate) + "", "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Show bias input", "id": "bias", "isStatic": true}, React.createElement("input", {"type": "checkbox", "checked": conf.bias, "id": "bias", "onChange": loadConfig})), React.createElement(BSFormGroup, {"label": "Batch training", "id": "batchTraining", "isStatic": true}, React.createElement("input", {"type": "checkbox", "checked": conf.batchTraining, "id": "batchTraining", "onChange": loadConfig})), React.createElement(NeuronGui, React.__spread({}, this.props))));
+        return React.createElement("div", {className: "form-horizontal"}, React.createElement("div", {className: "col-sm-6"}, React.createElement("h4", null, "Display"), React.createElement(BSFormGroup, {label: "Iterations per click on 'Train'", id: "iterationsPerClick"}, React.createElement("input", {className: "form-control", type: "number", min: 0, max: 10000, id: "iterationsPerClick", value: "" + conf.iterationsPerClick, onChange: loadConfig})), React.createElement(BSFormGroup, {label: "Steps per Frame", id: "stepsPerFrame"}, React.createElement("input", {className: "form-control", type: "number", min: 1, max: 1000, id: "stepsPerFrame", value: "" + conf.stepsPerFrame, onChange: loadConfig})), React.createElement(BSFormGroup, {label: "When correct, restart after 5 seconds", id: "autoRestart", isStatic: true}, React.createElement("input", {type: "checkbox", id: "autoRestart", checked: conf.autoRestart, onChange: loadConfig})), React.createElement(BSFormGroup, {label: "Show class propabilities as gradient", id: "showGradient", isStatic: true}, React.createElement("input", {type: "checkbox", checked: conf.showGradient, id: "showGradient", onChange: loadConfig})), React.createElement("button", {className: "btn btn-default", "data-toggle": "modal", "data-target": "#exportModal"}, "Import / Export")), React.createElement("div", {className: "col-sm-6"}, React.createElement("h4", null, "Net"), React.createElement(BSFormGroup, {id: "learningRate", label: "Learning Rate", isStatic: true}, React.createElement("span", {id: "learningRateVal", style: { marginRight: '1em' }}, conf.learningRate.toFixed(3)), React.createElement("input", {type: "range", min: 0.005, max: 1, step: 0.005, id: "learningRate", value: Util.logScale(conf.learningRate) + "", onChange: loadConfig})), React.createElement(BSFormGroup, {label: "Show bias input", id: "bias", isStatic: true}, React.createElement("input", {type: "checkbox", checked: conf.bias, id: "bias", onChange: loadConfig})), React.createElement(BSFormGroup, {label: "Batch training", id: "batchTraining", isStatic: true}, React.createElement("input", {type: "checkbox", checked: conf.batchTraining, id: "batchTraining", onChange: loadConfig})), React.createElement(NeuronGui, React.__spread({}, this.props))));
     };
     return ConfigurationGui;
-})(React.Component);
+}(React.Component));
 var NeuronLayer = (function (_super) {
     __extends(NeuronLayer, _super);
     function NeuronLayer() {
@@ -1209,12 +1210,12 @@ var NeuronLayer = (function (_super) {
     }
     NeuronLayer.prototype.render = function () {
         var p = this.props;
-        return React.createElement("div", null, p.name, " layer: ", p.layer.neuronCount, " neurons ", React.createElement("button", {"className": "btn btn-xs btn-default", "onClick": function () { return p.countChanged(1); }}, "+"), React.createElement("button", {"className": "btn btn-xs btn-default", "onClick": function () { return p.countChanged(-1); }}, "-"), p.layer.activation ?
-            React.createElement("select", {"className": "btn btn-xs btn-default activation", "onChange": function (e) { return p.activationChanged(e.target.value); }, "value": p.layer.activation}, Object.keys(Net.NonLinearities).map(function (name) { return React.createElement("option", {"key": name}, name); }))
+        return React.createElement("div", null, p.name, " layer: ", p.layer.neuronCount, " neurons ", React.createElement("button", {className: "btn btn-xs btn-default", onClick: function () { return p.countChanged(1); }}, "+"), React.createElement("button", {className: "btn btn-xs btn-default", onClick: function () { return p.countChanged(-1); }}, "-"), p.layer.activation ?
+            React.createElement("select", {className: "btn btn-xs btn-default activation", onChange: function (e) { return p.activationChanged(e.target.value); }, value: p.layer.activation}, Object.keys(Net.NonLinearities).map(function (name) { return React.createElement("option", {key: name}, name); }))
             : "");
     };
     return NeuronLayer;
-})(React.Component);
+}(React.Component));
 var NeuronGui = (function (_super) {
     __extends(NeuronGui, _super);
     function NeuronGui() {
@@ -1276,12 +1277,12 @@ var NeuronGui = (function (_super) {
             activationChanged: function (a) { return _this.activationChanged(i, a); },
             countChanged: function (c) { return _this.countChanged(i, c); }
         }); };
-        return React.createElement("div", null, (conf.hiddenLayers.length + 2) + " layers ", React.createElement("button", {"className": "btn btn-xs btn-default", "onClick": function () { return _this.addLayer(); }}, "+"), React.createElement("button", {"className": "btn btn-xs btn-default", "onClick": function () { return _this.removeLayer(); }}, "-"), React.createElement(NeuronLayer, React.__spread({"layer": conf.inputLayer, "name": "Input"}, neuronListeners(-1))), conf.hiddenLayers.map(function (layer, i) {
-            return React.createElement(NeuronLayer, React.__spread({"key": i, "layer": layer, "name": "Hidden"}, neuronListeners(i)));
-        }), React.createElement(NeuronLayer, React.__spread({"layer": conf.outputLayer, "name": "Output"}, neuronListeners(conf.hiddenLayers.length))));
+        return React.createElement("div", null, (conf.hiddenLayers.length + 2) + " layers ", React.createElement("button", {className: "btn btn-xs btn-default", onClick: function () { return _this.addLayer(); }}, "+"), React.createElement("button", {className: "btn btn-xs btn-default", onClick: function () { return _this.removeLayer(); }}, "-"), React.createElement(NeuronLayer, React.__spread({key: -1, layer: conf.inputLayer, name: "Input"}, neuronListeners(-1))), conf.hiddenLayers.map(function (layer, i) {
+            return React.createElement(NeuronLayer, React.__spread({key: i, layer: layer, name: "Hidden"}, neuronListeners(i)));
+        }), React.createElement(NeuronLayer, React.__spread({key: -2, layer: conf.outputLayer, name: "Output"}, neuronListeners(conf.hiddenLayers.length))));
     };
     return NeuronGui;
-})(React.Component);
+}(React.Component));
 var ErrorGraph = (function () {
     function ErrorGraph(sim) {
         this.sim = sim;
@@ -1313,7 +1314,7 @@ var ErrorGraph = (function () {
     ErrorGraph.prototype.onHide = function () {
     };
     return ErrorGraph;
-})();
+}());
 var NetworkGraph = (function () {
     function NetworkGraph(sim) {
         this.sim = sim;
@@ -1526,7 +1527,7 @@ var NetworkGraph = (function () {
     NetworkGraph.prototype.onHide = function () {
     };
     return NetworkGraph;
-})();
+}());
 var InputMode;
 (function (InputMode) {
     InputMode[InputMode["InputPrimary"] = 0] = "InputPrimary";
@@ -1834,7 +1835,7 @@ var NetworkVisualization = (function () {
         }
     };
     return NetworkVisualization;
-})();
+}());
 var TableEditor = (function () {
     function TableEditor(sim) {
         this.sim = sim;
@@ -1972,42 +1973,59 @@ var TableEditor = (function () {
         //this.reparseData();
     };
     return TableEditor;
-})();
-var LRVis = (function (_super) {
-    __extends(LRVis, _super);
-    function LRVis(props) {
+}());
+var MultiVisDisplayer = (function (_super) {
+    __extends(MultiVisDisplayer, _super);
+    function MultiVisDisplayer(props) {
         _super.call(this, props);
+        this.bodyDivs = [];
         this.state = {
             running: false,
-            leftVisBody: props.sim.netgraph,
-            rightVisBody: props.sim.netviz,
+            bodies: [props.sim.netgraph, props.sim.netviz],
             correct: "",
             stepNum: 0
         };
     }
+    MultiVisDisplayer.prototype.onFrame = function (framenum) {
+        for (var _i = 0, _a = this.state.bodies; _i < _a.length; _i++) {
+            var body = _a[_i];
+            body.onFrame(framenum);
+        }
+    };
+    MultiVisDisplayer.prototype.changeBody = function (i, vis, aft) {
+        var bodies = this.state.bodies.slice();
+        bodies[i] = vis;
+        this.setState({ bodies: bodies }, aft);
+    };
+    MultiVisDisplayer.prototype.componentDidMount = function () {
+        for (var i = 0; i < this.state.bodies.length; i++) {
+            $(this.bodyDivs[i]).append(this.state.bodies[i].container);
+        }
+    };
+    MultiVisDisplayer.prototype.componentDidUpdate = function (prevProps, prevState) {
+        for (var i = 0; i < prevState.bodies.length; i++) {
+            if (prevState.bodies[i] !== this.state.bodies[i]) {
+                $(this.bodyDivs[i]).children().detach();
+                $(this.bodyDivs[i]).append(this.state.bodies[i].container);
+            }
+        }
+    };
+    return MultiVisDisplayer;
+}(React.Component));
+var LRVis = (function (_super) {
+    __extends(LRVis, _super);
+    function LRVis(props) {
+        _super.call(this, props);
+    }
     LRVis.prototype.render = function () {
         var _this = this;
         var sim = this.props.sim;
-        return React.createElement("div", null, React.createElement("div", {"className": "row"}, React.createElement("div", {"className": "col-sm-6"}, React.createElement(TabSwitcher, {"ref": function (c) { return _this.leftVis = c; }, "things": [sim.netgraph, sim.errorGraph, sim.weightsGraph], "onChangeVisualization": function (vis, aft) { return _this.setState({ leftVisBody: vis }, aft); }})), React.createElement("div", {"className": "col-sm-6"}, React.createElement(TabSwitcher, {"ref": function (c) { return _this.rightVis = c; }, "things": [sim.netviz, sim.table], "onChangeVisualization": function (vis, aft) { return _this.setState({ rightVisBody: vis }, aft); }}))), React.createElement("div", {"className": "row"}, React.createElement("div", {"className": "col-sm-6"}, React.createElement("div", {"id": "leftVisBody", "className": "visbody"}), React.createElement("div", {"className": "h3"}, React.createElement("button", {"className": this.state.running ? "btn btn-danger" : "btn btn-primary", "onClick": sim.runtoggle.bind(sim)}, this.state.running ? "Stop" : "Animate"), " ", React.createElement("button", {"className": "btn btn-warning", "onClick": sim.reset.bind(sim)}, "Reset"), " ", React.createElement("button", {"className": "btn btn-default", "onClick": sim.iterations.bind(sim)}, "Train"), " ", React.createElement("button", {"className": "btn btn-default", "onClick": sim.forwardPassStep.bind(sim)}, "Forward Pass Step"), React.createElement("div", {"className": "btn-group pull-right"}, React.createElement("button", {"className": "btn btn-default dropdown-toggle", "data-toggle": "dropdown"}, "Load ", React.createElement("span", {"className": "caret"})), React.createElement("ul", {"className": "dropdown-menu"}, Presets.getNames().map(function (name) {
-            return React.createElement("li", {"key": name}, React.createElement("a", {"onClick": function (e) { return sim.setState(Presets.get(e.target.textContent)); }}, name));
-        })))), React.createElement("hr", null)), React.createElement("div", {"className": "col-sm-6"}, React.createElement("div", {"id": "rightVisBody", "className": "visbody"}), React.createElement("div", {"id": "status"}, React.createElement("h2", null, this.state.correct, " — Iteration: ", this.state.stepNum)), React.createElement("hr", null))));
-    };
-    LRVis.prototype.componentDidMount = function () {
-        $("#leftVisBody").append(this.props.sim.netgraph.container);
-        $("#rightVisBody").append(this.props.sim.netviz.container);
-    };
-    LRVis.prototype.componentDidUpdate = function (prevProps, prevState) {
-        if (prevState.leftVisBody !== this.state.leftVisBody) {
-            $("#leftVisBody").children().detach();
-            $("#leftVisBody").append(this.state.leftVisBody.container);
-        }
-        if (prevState.rightVisBody !== this.state.rightVisBody) {
-            $("#rightVisBody").children().detach();
-            $("#rightVisBody").append(this.state.rightVisBody.container);
-        }
+        return React.createElement("div", null, React.createElement("div", {className: "row"}, React.createElement("div", {className: "col-sm-6"}, React.createElement(TabSwitcher, {ref: function (c) { return _this.leftVis = c; }, things: this.props.leftVis, onChangeVisualization: function (vis, aft) { return _this.changeBody(0, vis, aft); }})), React.createElement("div", {className: "col-sm-6"}, React.createElement(TabSwitcher, {ref: function (c) { return _this.rightVis = c; }, things: this.props.rightVis, onChangeVisualization: function (vis, aft) { return _this.changeBody(1, vis, aft); }}))), React.createElement("div", {className: "row"}, React.createElement("div", {className: "col-sm-6"}, React.createElement("div", {className: "visbody", ref: function (b) { return _this.bodyDivs[0] = b; }}), React.createElement("div", {className: "h3"}, React.createElement("button", {className: this.state.running ? "btn btn-danger" : "btn btn-primary", onClick: sim.runtoggle.bind(sim)}, this.state.running ? "Stop" : "Animate"), " ", React.createElement("button", {className: "btn btn-warning", onClick: sim.reset.bind(sim)}, "Reset"), " ", React.createElement("button", {className: "btn btn-default", onClick: sim.iterations.bind(sim)}, "Train"), " ", React.createElement("button", {className: "btn btn-default", onClick: sim.forwardPassStep.bind(sim)}, "Forward Pass Step"), React.createElement("div", {className: "btn-group pull-right"}, React.createElement("button", {className: "btn btn-default dropdown-toggle", "data-toggle": "dropdown"}, "Load ", React.createElement("span", {className: "caret"})), React.createElement("ul", {className: "dropdown-menu"}, Presets.getNames().map(function (name) {
+            return React.createElement("li", {key: name}, React.createElement("a", {onClick: function (e) { return sim.setState(Presets.get(e.target.textContent)); }}, name));
+        })))), React.createElement("hr", null)), React.createElement("div", {className: "col-sm-6"}, React.createElement("div", {className: "visbody", ref: function (b) { return _this.bodyDivs[1] = b; }}), React.createElement("div", {id: "status"}, React.createElement("h2", null, this.state.correct, " — Iteration: ", this.state.stepNum)), React.createElement("hr", null))));
     };
     return LRVis;
-})(React.Component);
+}(MultiVisDisplayer));
 var TabSwitcher = (function (_super) {
     __extends(TabSwitcher, _super);
     function TabSwitcher(props) {
@@ -2020,8 +2038,8 @@ var TabSwitcher = (function (_super) {
     TabSwitcher.prototype.render = function () {
         var _this = this;
         var isDark = function (color) { return Util.parseColor(color).reduce(function (a, b) { return a + b; }) / 3 < 127; };
-        return React.createElement("div", null, React.createElement("ul", {"className": "nav nav-pills"}, this.state.modes.map(function (mode, i) {
-            return React.createElement("li", {"key": i, "className": _this.state.currentMode === i ? "custom-active" : ""}, React.createElement("a", {"style": mode.color ? { backgroundColor: mode.color, color: isDark(mode.color) ? "white" : "black" } : {}, "onClick": function (e) { return _this.setMode(i); }}, mode.text));
+        return React.createElement("div", null, React.createElement("ul", {className: "nav nav-pills"}, this.state.modes.map(function (mode, i) {
+            return React.createElement("li", {key: i, className: _this.state.currentMode === i ? "custom-active" : ""}, React.createElement("a", {style: mode.color ? { backgroundColor: mode.color, color: isDark(mode.color) ? "white" : "black" } : {}, onClick: function (e) { return _this.setMode(i); }}, mode.text));
         })));
     };
     TabSwitcher.prototype.createButtonsAndActions = function () {
@@ -2073,7 +2091,7 @@ var TabSwitcher = (function (_super) {
             }, function () { return _this.setMode(0, true); });
     };
     return TabSwitcher;
-})(React.Component);
+}(React.Component));
 var WeightsGraph = (function () {
     function WeightsGraph(sim) {
         var _this = this;
@@ -2165,5 +2183,5 @@ var WeightsGraph = (function () {
         this.graph.setData(this.parseData(this.sim.net));
     };
     return WeightsGraph;
-})();
+}());
 //# sourceMappingURL=program.js.map

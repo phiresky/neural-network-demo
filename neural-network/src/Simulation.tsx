@@ -71,8 +71,7 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 	onFrame(forceDraw: boolean) {
 		this.frameNum++;
 		this.calculateAverageError();
-		this.lrVis.state.leftVisBody.onFrame(forceDraw ? 0 : this.frameNum);
-		this.lrVis.state.rightVisBody.onFrame(forceDraw ? 0 : this.frameNum);
+		this.lrVis.onFrame(forceDraw ? 0 : this.frameNum);
 		this.updateStatusLine();
 	}
 
@@ -261,7 +260,10 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 							<small>{this.state.custom?" Custom Network":" Preset: "+this.state.name}</small>
 						</h1>
 					</div>
-					<LRVis sim={this} ref={(e:LRVis) => this.lrVis = e} />
+					<LRVis sim={this} ref={(e:LRVis) => this.lrVis = e}
+						leftVis={[this.netgraph, this.errorGraph, this.weightsGraph]}
+						rightVis={[this.netviz, this.table]}
+					/>
 					<div className="panel panel-default">
 						<div className="panel-heading">
 							<h3 className="panel-title">

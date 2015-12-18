@@ -124,11 +124,11 @@ class NeuronGui extends React.Component<Configuration, {}> {
 			{(conf.hiddenLayers.length + 2) + " layers "}
 			<button className="btn btn-xs btn-default" onClick={()=>this.addLayer()}>+</button>
 			<button className="btn btn-xs btn-default" onClick={()=>this.removeLayer()}>-</button>
-			<NeuronLayer layer={conf.inputLayer} name="Input" {...neuronListeners(-1)} />
+			<NeuronLayer key={-1} layer={conf.inputLayer} name="Input" {...neuronListeners(-1)} />
 			{conf.hiddenLayers.map((layer,i) => 
 				<NeuronLayer key={i} layer={layer} name="Hidden" {...neuronListeners(i)} />
 			)}
-			<NeuronLayer layer={conf.outputLayer} name="Output" {...neuronListeners(conf.hiddenLayers.length)} />
+			<NeuronLayer key={-2} layer={conf.outputLayer} name="Output" {...neuronListeners(conf.hiddenLayers.length)} />
 		</div>;
 	}
 }

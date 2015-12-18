@@ -5,7 +5,7 @@ let sim: Simulation;
 
 $(document).ready(() => {
 	Presets.loadPetersonBarney();
-	sim = React.render(<Simulation autoRun={false} />, document.getElementById("mainContainer")) as Simulation;
+	sim = ReactDOM.render(<Simulation autoRun={false} />, document.getElementById("mainContainer")) as Simulation;
 });
 
 function checkSanity() {

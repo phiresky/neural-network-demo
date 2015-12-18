@@ -12,7 +12,8 @@ bin/libs.js: lib/bower_components/jquery/dist/jquery.min.js lib/bower_components
 		lib/bower_components/vis/dist/vis.min.js \
 		lib/bower_components/handsontable/dist/handsontable.full.min.js \
 		lib/bower_components/lz-string/libs/lz-string.min.js lib/bower_components/highstock/highstock.js \
-		lib/bower_components/react/react.min.js
+		lib/bower_components/react/react.min.js \
+		lib/bower_components/react/react-dom.min.js
 	paste -d '\n' -s $^ > bin/libs.js
 
 watch:
