@@ -148,4 +148,12 @@ module Util {
 		g.lineTo(back_top.x, back_top.y);
 		g.stroke();
 	}
+	
+	export function toLinearFunction([wx, wy, wbias]: [number, number, number], threshold = 0): (x:number) => number {
+		// w1*x + w2*y + w3 = thres
+		// w2*y = thres - w3 - w1*x
+		// y = (thres - w3 - w1*x) / w2
+		if(wy === 0) wy = 0.00001;
+		return x => (threshold - wbias - wx * x) / wy;
+	}
 }

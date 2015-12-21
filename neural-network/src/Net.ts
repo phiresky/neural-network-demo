@@ -169,16 +169,6 @@ module Net {
 			}
 			this.error = δ * NonLinearities[this.activation].df(this.weightedInputs);
 		}
-		
-		toLinearFunction(threshold: number): (x:number) => number {
-			if(this.inputs.length !== 3) throw Error("only works for two dimensions");
-			// w1*x + w2*y + w3 = 0.5
-			// w2*y = 0.5 - w3 - w1*x
-			// y = (0.5 - w3 - w1*x) / w2
-			let wy = this.inputs[1].weight;
-			if(wy === 0) wy = 0.00001;
-			return x => (threshold - this.inputs[2].weight - this.inputs[0].weight * x) / wy;
-		}
 	}
 	export class InputNeuron extends Neuron {
 		constant: boolean = false; // value won't change

@@ -166,7 +166,6 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 	componentWillUpdate(nextProps: any, newConfig: Configuration) {
 		if(this.state.hiddenLayers.length !== newConfig.hiddenLayers.length && newConfig.custom) {
 			if (this.state.custom/* && !forceNeuronRename*/) return;
-			$("#presetName").text("Custom Network");
 			const inN = newConfig.inputLayer.neuronCount;
 			const outN = newConfig.outputLayer.neuronCount;
 			newConfig.name = "Custom Network";
@@ -227,13 +226,11 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 	serializeToUrl(exportWeights = 0) {
 		const url = location.protocol + '//' + location.host + location.pathname + "?";
 		const params: any = {};
-		console.log("cust"+exportWeights);
 		if (this.state.custom || exportWeights > 0) {
 			params.config = Util.cloneConfig(this.state);
 		} else {
 			params.preset = this.state.name;
 		}
-		console.log(exportWeights);
 		if (exportWeights === 1) params.config.weights = this.net.connections.map(c => c.weight);
 		if (exportWeights === 2) params.config.weights = this.net.startWeights;
 		

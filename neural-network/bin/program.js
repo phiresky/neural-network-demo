@@ -238,18 +238,6 @@ var Net;
             }
             this.error = δ * Net.NonLinearities[this.activation].df(this.weightedInputs);
         };
-        Neuron.prototype.toLinearFunction = function (threshold) {
-            var _this = this;
-            if (this.inputs.length !== 3)
-                throw Error("only works for two dimensions");
-            // w1*x + w2*y + w3 = 0.5
-            // w2*y = 0.5 - w3 - w1*x
-            // y = (0.5 - w3 - w1*x) / w2
-            var wy = this.inputs[1].weight;
-            if (wy === 0)
-                wy = 0.00001;
-            return function (x) { return (threshold - _this.inputs[2].weight - _this.inputs[0].weight * x) / wy; };
-        };
         return Neuron;
     }());
     Net.Neuron = Neuron;
@@ -312,7 +300,8 @@ var Presets;
             saveLastWeights: false,
             drawArrows: false,
             originalBounds: null,
-            weights: null
+            weights: null,
+            drawCoordinateSystem: true,
         },
         {
             name: "Binary Classifier for XOR"
@@ -516,8 +505,9 @@ var Presets;
             batchTraining: true,
             saveLastWeights: true,
             drawArrows: true,
+            drawCoordinateSystem: false,
             "iterationsPerClick": 1,
-            "data": [{ "input": [0.39, 1.12], "output": [0] }, { "input": [0.48, 0.31], "output": [0] }, { "input": [0.51, 0.73], "output": [0] }, { "input": [0.27, 1], "output": [0] }, { "input": [1.21, 0.62], "output": [1] }, { "input": [1.05, -0.01], "output": [1] }, { "input": [0.93, -0.09], "output": [1] }, { "input": [0.86, 0.55], "output": [1] }, { "input": [0.73, 2.62], "output": [1] }, { "input": [0.8, 1.82], "output": [1] }],
+            "data": [{ "input": [0.39, 1.12], "output": [0] }, { "input": [0.48, 0.31], "output": [0] }, { "input": [0.51, 0.73], "output": [0] }, { "input": [1.21, 0.62], "output": [1] }, { "input": [1.05, -0.01], "output": [1] }, { "input": [0.93, -0.09], "output": [1] }, { "input": [0.86, 0.55], "output": [1] }, { "input": [0.20090787269681742, 0.8119715242881071], "output": [0] }, { "input": [0.5867537688442211, 0.09702177554438846], "output": [0] }, { "input": [0.6321474036850921, 1.05028810720268], "output": [1] }, { "input": [0.8818123953098829, 0.8800619765494136], "output": [1] }, { "input": [-0.060105527638190964, 0.4942160804020099], "output": [0] }],
             "inputLayer": {
                 "neuronCount": 2,
                 "names": [
@@ -662,7 +652,6 @@ var ExportModal = (function (_super) {
                 var text = r.result;
                 _this.props.sim.setState(JSON.parse(text));
                 $("#exportModal").modal('hide');
-                $("#presetName").text(file.name);
             }
             catch (e) {
                 _this.addIOError("Error while reading " + file.name + ": " + e);
@@ -709,7 +698,6 @@ var ExportModal = (function (_super) {
                     newState.data.push(ele);
                 }
                 sim.setState(newState, function () { return sim.table.loadData(); });
-                $("#presetName").text(file.name);
                 $("#exportModal").modal('hide');
             }
             catch (e) {
@@ -883,7 +871,6 @@ var Simulation = (function (_super) {
         if (this.state.hiddenLayers.length !== newConfig.hiddenLayers.length && newConfig.custom) {
             if (this.state.custom /* && !forceNeuronRename*/)
                 return;
-            $("#presetName").text("Custom Network");
             var inN = newConfig.inputLayer.neuronCount;
             var outN = newConfig.outputLayer.neuronCount;
             newConfig.name = "Custom Network";
@@ -949,14 +936,12 @@ var Simulation = (function (_super) {
         if (exportWeights === void 0) { exportWeights = 0; }
         var url = location.protocol + '//' + location.host + location.pathname + "?";
         var params = {};
-        console.log("cust" + exportWeights);
         if (this.state.custom || exportWeights > 0) {
             params.config = Util.cloneConfig(this.state);
         }
         else {
             params.preset = this.state.name;
         }
-        console.log(exportWeights);
         if (exportWeights === 1)
             params.config.weights = this.net.connections.map(function (c) { return c.weight; });
         if (exportWeights === 2)
@@ -1215,6 +1200,17 @@ var Util;
         g.stroke();
     }
     Util.drawArrow = drawArrow;
+    function toLinearFunction(_a, threshold) {
+        var wx = _a[0], wy = _a[1], wbias = _a[2];
+        if (threshold === void 0) { threshold = 0; }
+        // w1*x + w2*y + w3 = thres
+        // w2*y = thres - w3 - w1*x
+        // y = (thres - w3 - w1*x) / w2
+        if (wy === 0)
+            wy = 0.00001;
+        return function (x) { return (threshold - wbias - wx * x) / wy; };
+    }
+    Util.toLinearFunction = toLinearFunction;
 })(Util || (Util = {}));
 var BSFormGroup = (function (_super) {
     __extends(BSFormGroup, _super);
@@ -1645,17 +1641,23 @@ var NetworkVisualization = (function () {
             return;
         }
         var isSinglePerceptron = this.sim.net.layers.length === 2 && this.netType === NetType.BinaryClassify;
-        var separator = isSinglePerceptron && this.getSeparator(this.sim.net.outputs[0].toLinearFunction(0));
+        var separator = isSinglePerceptron && this.getSeparator(Util.toLinearFunction(this.sim.net.connections.map(function (i) { return i.weight; })));
         if (isSinglePerceptron)
             this.drawPolyBackground(separator);
         else
             this.drawBackground();
-        this.drawCoordinateSystem();
+        if (this.sim.state.drawCoordinateSystem)
+            this.drawCoordinateSystem();
         if (this.sim.state.drawArrows)
             this.drawArrows();
         this.drawDataPoints();
-        if (isSinglePerceptron)
-            this.drawLine.call(this, separator.minx, separator.miny, separator.maxx, separator.maxy, "black");
+        if (isSinglePerceptron) {
+            if (this.sim.state.drawArrows && this.sim.lastWeights !== undefined) {
+                var separator_1 = this.getSeparator(Util.toLinearFunction(this.sim.lastWeights));
+                this.drawLine(separator_1.minx, separator_1.miny, separator_1.maxx, separator_1.maxy, "gray");
+            }
+            this.drawLine(separator.minx, separator.miny, separator.maxx, separator.maxy, "black");
+        }
     };
     NetworkVisualization.prototype.drawDataPoints = function () {
         this.ctx.strokeStyle = "#000";
@@ -1700,43 +1702,31 @@ var NetworkVisualization = (function () {
             throw Error("conf not valid for arrows");
         if (ww.length !== oldww.length)
             throw Error("size changed");
-        var wasPointWrong = function (p) { return +(ww.map(function (w, i) { return w * p.input[i]; }).reduce(function (x, sum) { return sum + x; }) >= 0) == p.output[0]; };
+        var wasPointWrong = function (p) { return +(oldww[0] * p.input[0] + oldww[1] * p.input[1] + oldww[2] >= 0) !== p.output[0]; };
         var wasVectorWrong = function (dp) { return dp.some(function (p) { return wasPointWrong(p); }); };
-        if (ww[0] != oldww[0]
-            || ww[1] != oldww[1]
-            || ww[2] != oldww[2]) {
+        if (ww.some(function (x, i) { return x !== oldww[i]; })) {
             var oldX = 0, oldY = 0, newX = 0, newY = 0;
             if (wasVectorWrong(this.sim.state.data)) {
-                newX = oldww[1];
-                newY = oldww[2];
+                newX = oldww[0];
+                newY = oldww[1];
                 this.ctx.strokeStyle = "#808080";
                 Util.drawArrow(this.ctx, { x: scale.x(oldX), y: scale.y(oldY) }, { x: scale.x(newX), y: scale.y(newY) }, 5, 5);
-                console.log("A gray " + oldX + "," + oldY + " --> "
-                    + newX + "," + newY);
                 for (var _i = 0, _a = this.sim.state.data; _i < _a.length; _i++) {
                     var p = _a[_i];
                     if (wasPointWrong(p)) {
                         oldX = newX;
                         oldY = newY;
                         if (p.output[0] == 1) {
-                            newX += p.input[0]
-                                * this.sim.net.learnRate;
-                            newY += p.input[1]
-                                * this.sim.net.learnRate;
-                            this.ctx.strokeStyle = "#ff0000";
+                            newX += p.input[0] * this.sim.net.learnRate;
+                            newY += p.input[1] * this.sim.net.learnRate;
+                            this.ctx.strokeStyle = "#008800";
                         }
                         else {
-                            newX -= p.input[0]
-                                * this.sim.net.learnRate;
-                            newY -= p.input[1]
-                                * this.sim.net.learnRate;
-                            this.ctx.strokeStyle = "#0000ff";
+                            newX -= p.input[0] * this.sim.net.learnRate;
+                            newY -= p.input[1] * this.sim.net.learnRate;
+                            this.ctx.strokeStyle = "#880000";
                         }
-                        Util.drawArrow(this.ctx, { x: scale.x(oldX),
-                            y: scale.y(oldY) }, { x: scale.x(newX), y: scale.y(newY) }, 5, 5);
-                        // g.drawLine(scale.x(oldX),scale.y(oldY),scale.x(newX),scale.y(newY));
-                        console.log("A point " + oldX + "," + oldY
-                            + " --> " + newX + "," + newY);
+                        Util.drawArrow(this.ctx, { x: scale.x(oldX), y: scale.y(oldY) }, { x: scale.x(newX), y: scale.y(newY) }, 5, 5);
                         this.ctx.strokeStyle = "#808080";
                         this.ctx.arc(scale.x(p.input[0]), scale.y(p.input[1]), 8, 0, 2 * Math.PI);
                     }
@@ -1744,12 +1734,10 @@ var NetworkVisualization = (function () {
             }
             oldX = 0;
             oldY = 0;
-            newX = ww[1];
-            newY = ww[2];
+            newX = ww[0];
+            newY = ww[1];
             this.ctx.strokeStyle = "#000000";
             Util.drawArrow(this.ctx, { x: scale.x(oldX), y: scale.y(oldY) }, { x: scale.x(newX), y: scale.y(newY) }, 5, 5);
-            console.log("A black " + oldX + "," + oldY + " --> "
-                + newX + "," + newY);
         }
     };
     NetworkVisualization.prototype.getSeparator = function (lineFunction) {
@@ -1862,11 +1850,13 @@ var NetworkVisualization = (function () {
         if (this.sim.state.inputLayer.neuronCount == 2) {
             var fillamount = 0.6;
             var bounds = Util.bounds2dTrainingsInput(this.sim.state.data);
+            console.log(bounds);
             var w = bounds.maxx - bounds.minx, h = bounds.maxy - bounds.miny;
-            this.trafo.scalex = this.canvas.width / w * fillamount;
-            this.trafo.scaley = -this.canvas.height / h * fillamount;
-            this.trafo.offsetx -= this.trafo.toCanvas.x(bounds.minx - w * (1 - fillamount) / 1.5); // / bounds.minx;
-            this.trafo.offsety -= this.trafo.toCanvas.y(bounds.maxy + h * (1 - fillamount) / 1.5); // / bounds.minx;
+            var scale = Math.min(this.canvas.width / w, this.canvas.height / h) * fillamount;
+            this.trafo.scalex = scale;
+            this.trafo.scaley = -scale;
+            this.trafo.offsetx = -(bounds.maxx + bounds.minx) / 2 * scale + this.canvas.width / 2;
+            this.trafo.offsety = (bounds.maxy + bounds.miny) / 2 * scale + this.canvas.height / 2;
         }
     };
     NetworkVisualization.prototype.canvasClicked = function (evt) {
@@ -1910,6 +1900,7 @@ var NetworkVisualization = (function () {
         else
             return;
         this.sim.setState({ data: data, custom: true });
+        this.sim.lastWeights = undefined;
         this.onFrame();
     };
     NetworkVisualization.prototype.onView = function (previouslyHidden, mode) {

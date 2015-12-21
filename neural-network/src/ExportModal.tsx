@@ -74,7 +74,6 @@ class ExportModal extends React.Component<{sim:Simulation},{exportWeights:string
 				const text = r.result;
 				this.props.sim.setState(JSON.parse(text));
 				$("#exportModal").modal('hide');
-				$("#presetName").text(file.name);
 			} catch (e) {
 				this.addIOError("Error while reading " + file.name + ": " + e);
 			}
@@ -118,7 +117,6 @@ class ExportModal extends React.Component<{sim:Simulation},{exportWeights:string
 					newState.data.push(ele);
 				}
 				sim.setState(newState, () => sim.table.loadData());
-				$("#presetName").text(file.name);
 				$("#exportModal").modal('hide');
 			} catch (e) {
 				this.addIOError("Error while reading " + file.name + ": " + e);

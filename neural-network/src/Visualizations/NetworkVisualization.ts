@@ -88,15 +88,20 @@ class NetworkVisualization implements Visualization {
 			return;
 		}
 		const isSinglePerceptron = this.sim.net.layers.length === 2 && this.netType === NetType.BinaryClassify;
-		const separator:Util.Bounds = isSinglePerceptron && this.getSeparator(this.sim.net.outputs[0].toLinearFunction(0));
+		const separator:Util.Bounds = isSinglePerceptron && this.getSeparator(Util.toLinearFunction(this.sim.net.connections.map(i => i.weight) as any));
 		if(isSinglePerceptron)
 			this.drawPolyBackground(separator);
 		else this.drawBackground();
-		this.drawCoordinateSystem();
+		if(this.sim.state.drawCoordinateSystem) this.drawCoordinateSystem();
 		if(this.sim.state.drawArrows) this.drawArrows();
 		this.drawDataPoints();
-		if(isSinglePerceptron)
-			this.drawLine.call(this, separator.minx, separator.miny, separator.maxx, separator.maxy, "black");
+		if(isSinglePerceptron) {
+			if(this.sim.state.drawArrows && this.sim.lastWeights !== undefined) {
+				const separator = this.getSeparator(Util.toLinearFunction(this.sim.lastWeights as any));
+				this.drawLine(separator.minx, separator.miny, separator.maxx, separator.maxy, "gray");
+			}
+			this.drawLine(separator.minx, separator.miny, separator.maxx, separator.maxy, "black");
+		}
 	}
 
 	drawDataPoints() {
@@ -134,22 +139,18 @@ class NetworkVisualization implements Visualization {
 			|| this.sim.state.hiddenLayers.length !== 0)
 			throw Error("conf not valid for arrows");
 		if(ww.length !== oldww.length) throw Error("size changed");
-		const wasPointWrong = (p:TrainingData) => +(ww.map((w,i) => w*p.input[i]).reduce((x, sum) => sum + x) >= 0) == p.output[0];
+		const wasPointWrong = (p:TrainingData) => +(oldww[0] * p.input[0] + oldww[1] * p.input[1] + oldww[2] >= 0) !== p.output[0];
 		const wasVectorWrong = (dp:TrainingData[]) => dp.some(p => wasPointWrong(p));
-		if (ww[0] != oldww[0]
-				|| ww[1] != oldww[1]
-				|| ww[2] != oldww[2]) {
+		if (ww.some((x, i) => x !== oldww[i])) {
 			let oldX = 0, oldY = 0, newX = 0, newY = 0;
 			if(wasVectorWrong(this.sim.state.data)) {
 	
-				newX = oldww[1];
-				newY = oldww[2];
+				newX = oldww[0];
+				newY = oldww[1];
 	
 				this.ctx.strokeStyle = "#808080";
 				Util.drawArrow(this.ctx, {x:scale.x(oldX), y:scale.y(oldY)},
 						{x:scale.x(newX), y:scale.y(newY)}, 5, 5);
-				console.log("A gray " + oldX + "," + oldY + " --> "
-						+ newX + "," + newY);
 	
 				for (const p of this.sim.state.data) {
 					if (wasPointWrong(p)) {
@@ -157,25 +158,17 @@ class NetworkVisualization implements Visualization {
 						oldY = newY;
 	
 						if (p.output[0] == 1) {
-							newX += p.input[0]
-									* this.sim.net.learnRate;
-							newY += p.input[1]
-									* this.sim.net.learnRate;
-							this.ctx.strokeStyle = "#ff0000";
+							newX += p.input[0] * this.sim.net.learnRate;
+							newY += p.input[1] * this.sim.net.learnRate;
+							this.ctx.strokeStyle = "#008800";
 						} else {
-							newX -= p.input[0]
-									* this.sim.net.learnRate;
-							newY -= p.input[1]
-									* this.sim.net.learnRate;
-							this.ctx.strokeStyle = "#0000ff";
+							newX -= p.input[0] * this.sim.net.learnRate;
+							newY -= p.input[1] * this.sim.net.learnRate;
+							this.ctx.strokeStyle = "#880000";
 	
 						}
-						Util.drawArrow(this.ctx, {x:scale.x(oldX),
-								y:scale.y(oldY)}, {x:scale.x(newX), y:scale.y(newY)},
+						Util.drawArrow(this.ctx, {x:scale.x(oldX), y:scale.y(oldY)}, {x:scale.x(newX), y:scale.y(newY)},
 								5, 5);
-						// g.drawLine(scale.x(oldX),scale.y(oldY),scale.x(newX),scale.y(newY));
-						console.log("A point " + oldX + "," + oldY
-								+ " --> " + newX + "," + newY);
 	
 						this.ctx.strokeStyle = "#808080";
 						this.ctx.arc(scale.x(p.input[0]), scale.y(p.input[1]), 8, 0, 2*Math.PI);
@@ -185,14 +178,12 @@ class NetworkVisualization implements Visualization {
 			}
 			oldX = 0;
 			oldY = 0;
-			newX = ww[1];
-			newY = ww[2];
+			newX = ww[0];
+			newY = ww[1];
 
 			this.ctx.strokeStyle = "#000000";
 			Util.drawArrow(this.ctx, {x:scale.x(oldX), y:scale.y(oldY)},
 					{x:scale.x(newX), y:scale.y(newY)}, 5, 5);
-			console.log("A black " + oldX + "," + oldY + " --> "
-					+ newX + "," + newY);
 		}
 	}
 	
@@ -305,11 +296,13 @@ class NetworkVisualization implements Visualization {
 		if(this.sim.state.inputLayer.neuronCount == 2) {
 			const fillamount = 0.6;
 			const bounds = Util.bounds2dTrainingsInput(this.sim.state.data);
+			console.log(bounds);
 			const w = bounds.maxx - bounds.minx, h = bounds.maxy - bounds.miny;
-			this.trafo.scalex = this.canvas.width / w * fillamount;
-			this.trafo.scaley = - this.canvas.height / h * fillamount;
-			this.trafo.offsetx -= this.trafo.toCanvas.x(bounds.minx - w*(1-fillamount)/1.5);// / bounds.minx;
-			this.trafo.offsety -= this.trafo.toCanvas.y(bounds.maxy + h*(1-fillamount)/1.5);// / bounds.minx;
+			const scale = Math.min(this.canvas.width / w, this.canvas.height / h) * fillamount;
+			this.trafo.scalex = scale;
+			this.trafo.scaley = -scale;
+			this.trafo.offsetx = -(bounds.maxx + bounds.minx) / 2 * scale + this.canvas.width / 2;
+			this.trafo.offsety = (bounds.maxy + bounds.miny) / 2 * scale + this.canvas.height / 2;
 		}
 	}
 	canvasClicked(evt: MouseEvent) {
@@ -345,6 +338,7 @@ class NetworkVisualization implements Visualization {
 			}
 		} else return;
 		this.sim.setState({data, custom: true});
+		this.sim.lastWeights = undefined;
 		this.onFrame();
 	}
 	onView(previouslyHidden: boolean, mode: int) {
