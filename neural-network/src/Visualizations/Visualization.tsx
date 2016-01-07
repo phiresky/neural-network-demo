@@ -64,7 +64,7 @@ class ControlButtonBar extends React.Component<{running: boolean, sim:Simulation
 class StatusBar extends React.Component<{correct: string, iteration: int}, {}> {
 	render() {
 		return <h2>
-			{this.props.correct} — Iteration:&nbsp;{this.props.iteration}
+			{this.props.correct} —&nbsp;Iteration:&nbsp;{this.props.iteration}
 		</h2>
 	}
 }

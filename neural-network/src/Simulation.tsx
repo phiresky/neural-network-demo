@@ -226,6 +226,10 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 			if(co.bias != cn.bias) {
 				this.netgraph.onNetworkLoaded(this.net);
 			}
+			if(co.type !== cn.type) {
+				// gui layout may change, trigger resize
+				window.dispatchEvent(new Event('resize'));
+			}
 			this.net.learnRate = cn.learningRate;
 			if(cn.showGradient != co.showGradient || cn.drawCoordinateSystem != co.drawCoordinateSystem || cn.drawArrows != co.drawArrows)
 				this.onFrame(false);

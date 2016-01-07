@@ -931,6 +931,10 @@ var Simulation = (function (_super) {
             if (co.bias != cn.bias) {
                 this.netgraph.onNetworkLoaded(this.net);
             }
+            if (co.type !== cn.type) {
+                // gui layout may change, trigger resize
+                window.dispatchEvent(new Event('resize'));
+            }
             this.net.learnRate = cn.learningRate;
             if (cn.showGradient != co.showGradient || cn.drawCoordinateSystem != co.drawCoordinateSystem || cn.drawArrows != co.drawArrows)
                 this.onFrame(false);
@@ -2195,7 +2199,7 @@ var StatusBar = (function (_super) {
         _super.apply(this, arguments);
     }
     StatusBar.prototype.render = function () {
-        return React.createElement("h2", null, this.props.correct, " — Iteration: ", this.props.iteration);
+        return React.createElement("h2", null, this.props.correct, " — Iteration: ", this.props.iteration);
     };
     return StatusBar;
 }(React.Component));
