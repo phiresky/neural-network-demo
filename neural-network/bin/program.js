@@ -496,6 +496,7 @@ var Presets;
                 { input: [0.86, -0.53], output: [0.86, -0.53] }]
         },
         { "name": "Bit Position Auto Encoder", "learningRate": 0.05, "data": [{ "input": [1, 0, 0, 0], "output": [1, 0, 0, 0] }, { "input": [0, 1, 0, 0], "output": [0, 1, 0, 0] }, { "input": [0, 0, 1, 0], "output": [0, 0, 1, 0] }, { "input": [0, 0, 0, 1], "output": [0, 0, 0, 1] }], "inputLayer": { "neuronCount": 4, "names": ["in1", "in2", "in3", "in4"] }, "outputLayer": { "neuronCount": 4, "activation": "sigmoid", "names": ["out1", "out2", "out3", "out4"] }, "hiddenLayers": [{ "neuronCount": 2, "activation": "sigmoid" }], "netLayers": [{ "activation": "sigmoid", "neuronCount": 2 }, { "activation": "linear", "neuronCount": 1 }, { "neuronCount": 2, "activation": "sigmoid" }] },
+        { "name": "!listDivider" },
         {
             "name": "Rosenblatt Perzeptron",
             stepsPerSecond: 2,
@@ -999,7 +1000,11 @@ var Simulation = (function (_super) {
     };
     Simulation.prototype.render = function () {
         var _this = this;
-        return (React.createElement("div", null, React.createElement("div", {className: "container"}, React.createElement("div", {className: "page-header"}, React.createElement("h1", null, "Neural Network demo", React.createElement("small", null, this.state.custom ? " Custom Network" : " Preset: " + this.state.name))), React.createElement(LRVis, {sim: this, ref: function (e) { return _this.lrVis = e; }, leftVis: [this.netgraph, this.errorGraph, this.weightsGraph], rightVis: [this.netviz, this.table]}), React.createElement("div", {className: "panel panel-default"}, React.createElement("div", {className: "panel-heading"}, React.createElement("h3", {className: "panel-title"}, React.createElement("a", {"data-toggle": "collapse", "data-target": ".panel-body"}, "Configuration"))), React.createElement("div", {className: "panel-body collapse in"}, React.createElement(ConfigurationGui, React.__spread({}, this.state)))), React.createElement("footer", {className: "small"}, React.createElement("a", {href: "https://github.com/phiresky/kogsys-demos/"}, "Source on GitHub"))), React.createElement(ExportModal, {sim: this})));
+        return (React.createElement("div", null, React.createElement("div", {className: "container"}, React.createElement("div", {className: "page-header"}, React.createElement("div", {className: "btn-toolbar pull-right dropdown", style: { marginTop: "5px" }}, React.createElement("button", {className: "btn btn-default dropdown-toggle", "data-toggle": "dropdown"}, "Load ", React.createElement("span", {className: "caret"})), React.createElement("ul", {className: "dropdown-menu"}, Presets.getNames().map(function (name) {
+            return name === "!listDivider"
+                ? React.createElement("li", {className: "divider", key: "divider"})
+                : React.createElement("li", {key: name}, React.createElement("a", {onClick: function (e) { return sim.setState(Presets.get(e.target.textContent)); }}, name));
+        }))), React.createElement("h1", null, this.state.type === "perceptron" ? "Perceptron" : "Neural Network", " demo", React.createElement("small", null, this.state.custom ? " Custom Network" : " Preset: " + this.state.name))), React.createElement(LRVis, {sim: this, ref: function (e) { return _this.lrVis = e; }, leftVis: [this.netgraph, this.errorGraph, this.weightsGraph], rightVis: [this.netviz, this.table]}), React.createElement("div", {className: "panel panel-default"}, React.createElement("div", {className: "panel-heading"}, React.createElement("h3", {className: "panel-title"}, React.createElement("a", {"data-toggle": "collapse", "data-target": ".panel-body"}, "Configuration"))), React.createElement("div", {className: "panel-body collapse in"}, React.createElement(ConfigurationGui, React.__spread({}, this.state)))), React.createElement("footer", {className: "small"}, React.createElement("a", {href: "https://github.com/phiresky/kogsys-demos/"}, "Source on GitHub"))), React.createElement(ExportModal, {sim: this})));
     };
     return Simulation;
 }(React.Component));
@@ -2180,9 +2185,7 @@ var ControlButtonBar = (function (_super) {
         return React.createElement("div", {className: "h3"}, React.createElement("button", {className: this.props.running ? "btn btn-danger" : "btn btn-primary", onClick: sim.runtoggle.bind(sim)}, this.props.running ? "Stop" : "Animate"), " ", React.createElement("button", {className: "btn btn-warning", onClick: sim.reset.bind(sim)}, "Reset"), " ", React.createElement("button", {className: "btn btn-default", onClick: sim.trainAllButton.bind(sim)}, sim.state.showTrainNextButton ? "Batch Train" : "Train"), " ", sim.state.showTrainNextButton ?
             React.createElement("button", {className: "btn btn-default", onClick: sim.trainNextButton.bind(sim)}, "Train Next")
             :
-                React.createElement("button", {className: "btn btn-default", onClick: sim.forwardPassStep.bind(sim)}, "Forward Pass Step"), React.createElement("div", {className: "btn-group pull-right"}, React.createElement("button", {className: "btn btn-default dropdown-toggle", "data-toggle": "dropdown"}, "Load ", React.createElement("span", {className: "caret"})), React.createElement("ul", {className: "dropdown-menu"}, Presets.getNames().map(function (name) {
-            return React.createElement("li", {key: name}, React.createElement("a", {onClick: function (e) { return sim.setState(Presets.get(e.target.textContent)); }}, name));
-        }))));
+                React.createElement("button", {className: "btn btn-default", onClick: sim.forwardPassStep.bind(sim)}, "Forward Pass Step"));
     };
     return ControlButtonBar;
 }(React.Component));
@@ -2204,7 +2207,10 @@ var LRVis = (function (_super) {
     LRVis.prototype.render = function () {
         var _this = this;
         var sim = this.props.sim;
-        return React.createElement("div", null, React.createElement("div", {className: "row"}, React.createElement("div", {className: "col-sm-6"}, React.createElement(TabSwitcher, {ref: function (c) { return _this.leftVis = c; }, things: this.props.leftVis, onChangeVisualization: function (vis, aft) { return _this.changeBody(0, vis, aft); }})), React.createElement("div", {className: "col-sm-6"}, React.createElement(TabSwitcher, {ref: function (c) { return _this.rightVis = c; }, things: this.props.rightVis, onChangeVisualization: function (vis, aft) { return _this.changeBody(1, vis, aft); }}))), React.createElement("div", {className: "row"}, React.createElement("div", {className: "col-sm-6"}, React.createElement("div", {className: "visbody", ref: function (b) { return _this.bodyDivs[0] = b; }}), React.createElement(ControlButtonBar, {running: this.state.running, sim: sim}), React.createElement("hr", null)), React.createElement("div", {className: "col-sm-6"}, React.createElement("div", {className: "visbody", ref: function (b) { return _this.bodyDivs[1] = b; }}), React.createElement("div", null, React.createElement(StatusBar, {correct: this.state.correct, iteration: this.state.stepNum})), React.createElement("hr", null))));
+        var isPerceptron = this.props.sim.state.type === "perceptron";
+        var leftSize = isPerceptron ? 5 : 6;
+        var rightSize = 12 - leftSize;
+        return React.createElement("div", null, React.createElement("div", {className: "row"}, React.createElement("div", {className: "col-sm-" + leftSize}, React.createElement(TabSwitcher, {ref: function (c) { return _this.leftVis = c; }, things: this.props.leftVis, onChangeVisualization: function (vis, aft) { return _this.changeBody(0, vis, aft); }})), React.createElement("div", {className: "col-sm-" + rightSize}, React.createElement(TabSwitcher, {ref: function (c) { return _this.rightVis = c; }, things: this.props.rightVis, onChangeVisualization: function (vis, aft) { return _this.changeBody(1, vis, aft); }}))), React.createElement("div", {className: "row"}, React.createElement("div", {className: "col-sm-" + leftSize}, React.createElement("div", {className: "visbody", ref: function (b) { return _this.bodyDivs[0] = b; }}), React.createElement(ControlButtonBar, {running: this.state.running, sim: sim}), React.createElement("hr", null)), React.createElement("div", {className: "col-sm-" + rightSize}, React.createElement("div", {className: "visbody", ref: function (b) { return _this.bodyDivs[1] = b; }}), React.createElement("div", null, React.createElement(StatusBar, {correct: this.state.correct, iteration: this.state.stepNum})), React.createElement("hr", null))));
     };
     return LRVis;
 }(MultiVisDisplayer));

@@ -58,15 +58,6 @@ class ControlButtonBar extends React.Component<{running: boolean, sim:Simulation
 			:
 				<button className="btn btn-default" onClick={sim.forwardPassStep.bind(sim)}>Forward Pass Step</button>
 			}
-			<div className="btn-group pull-right">
-				<button className="btn btn-default dropdown-toggle" data-toggle="dropdown">{"Load "}
-					<span className="caret" /></button>
-				<ul className="dropdown-menu">
-					{Presets.getNames().map(name =>
-						<li key={name}><a onClick={e => sim.setState(Presets.get((e.target as Element).textContent))}>{name}</a></li>)
-					}
-				</ul>
-			</div>
 		</div>;
 	}
 }
@@ -85,15 +76,18 @@ class LRVis extends MultiVisDisplayer<{leftVis: Visualization[], rightVis: Visua
 	}
 	render() {
 		const sim = this.props.sim;
+		const isPerceptron = this.props.sim.state.type === "perceptron";
+		const leftSize = isPerceptron ? 5 : 6;
+		const rightSize = 12 - leftSize;
 		return <div>
 				<div className="row">
-					<div className="col-sm-6">
+					<div className={`col-sm-${leftSize}`}>
 						<TabSwitcher ref={(c:TabSwitcher) => this.leftVis = c}
 							things={this.props.leftVis}
 							onChangeVisualization={(vis,aft) => this.changeBody(0, vis, aft)}
 						/>
 					</div>
-					<div className="col-sm-6">
+					<div className={`col-sm-${rightSize}`}>
 						<TabSwitcher ref={(c:TabSwitcher) => this.rightVis = c}
 							things={this.props.rightVis}
 							onChangeVisualization={(vis,aft) => this.changeBody(1, vis, aft)}
@@ -101,12 +95,12 @@ class LRVis extends MultiVisDisplayer<{leftVis: Visualization[], rightVis: Visua
 					</div>
 				</div>
 				<div className="row">
-					<div className="col-sm-6">
+					<div className={`col-sm-${leftSize}`}>
 						<div className="visbody" ref={b => this.bodyDivs[0] = b } />
 						<ControlButtonBar running={this.state.running} sim={sim}/>
 						<hr />
 					</div>
-					<div className="col-sm-6">
+					<div className={`col-sm-${rightSize}`}>
 						<div className="visbody" ref={b => this.bodyDivs[1] = b } />
 						<div>
 							<StatusBar correct={this.state.correct} iteration={this.state.stepNum} />

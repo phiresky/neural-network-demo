@@ -291,7 +291,19 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 			<div>
 				<div className="container">
 					<div className="page-header">
-						<h1>Neural Network demo
+						<div className="btn-toolbar pull-right dropdown" style={{marginTop:"5px"}}>
+							<button className="btn btn-default dropdown-toggle" data-toggle="dropdown">{"Load "}
+								<span className="caret" />
+							</button>
+							<ul className="dropdown-menu">
+								{Presets.getNames().map(name =>
+									name==="!listDivider"
+									? <li className="divider" key="divider" />
+									: <li key={name}><a onClick={e => sim.setState(Presets.get((e.target as Element).textContent))}>{name}</a></li>)
+								}
+							</ul>
+						</div>
+						<h1>{this.state.type === "perceptron" ?"Perceptron":"Neural Network"} demo
 							<small>{this.state.custom?" Custom Network":" Preset: "+this.state.name}</small>
 						</h1>
 					</div>
