@@ -300,7 +300,6 @@ class NetworkVisualization implements Visualization {
 		if(this.sim.state.inputLayer.neuronCount == 2) {
 			const fillamount = 0.6;
 			const bounds = Util.bounds2dTrainingsInput(this.sim.state.data);
-			console.log(bounds);
 			const w = bounds.maxx - bounds.minx, h = bounds.maxy - bounds.miny;
 			const scale = Math.min(this.canvas.width / w, this.canvas.height / h) * fillamount;
 			this.trafo.scalex = scale;

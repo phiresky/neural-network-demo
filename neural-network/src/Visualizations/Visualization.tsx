@@ -22,23 +22,20 @@ abstract class MultiVisDisplayer<T> extends React.Component<{sim:Simulation}&T, 
 		super(props);
 		this.state = {
 			running: false,
-			bodies: [props.sim.netgraph, props.sim.netviz],
+			bodies: [null, null],
 			correct: "",
 			stepNum: 0
 		};
 	}
 	onFrame(framenum:int) {
-		for(const body of this.state.bodies) body.onFrame(framenum);
+		for(const body of this.state.bodies) if(body) body.onFrame(framenum);
 	}
+	/// hack to prevent overwriting from react
+	bodiesTmp: Visualization[];
 	changeBody(i: int, vis: Visualization, aft: () => void) {
-		const bodies = this.state.bodies.slice();
-		bodies[i] = vis;
-		this.setState({bodies}, aft);
-	}
-	componentDidMount() {
-		for(let i = 0; i < this.state.bodies.length; i++) {
-			$(this.bodyDivs[i]).append(this.state.bodies[i].container);
-		}
+		this.bodiesTmp = this.bodiesTmp || this.state.bodies.slice();
+		this.bodiesTmp[i] = vis;
+		this.setState({bodies: this.bodiesTmp}, () => {this.bodiesTmp = undefined; aft()});
 	}
 	componentDidUpdate(prevProps:any, prevState:LRVisState) {
 		for(let i = 0; i < prevState.bodies.length; i++) {
@@ -113,7 +110,7 @@ class TabSwitcher extends React.Component<TSProps, {modes: _Mode[], currentMode:
 		super(props);
 		this.state = {
 			modes:this.createButtonsAndActions(),
-			currentMode: 0
+			currentMode: -1
 		};
 	}
 	render() {
@@ -128,6 +125,9 @@ class TabSwitcher extends React.Component<TSProps, {modes: _Mode[], currentMode:
 				</li>
 			)}
 		</ul></div>;
+	}
+	componentDidMount() {
+		this.setMode(0, true);
 	}
 	createButtonsAndActions() {
 		const modes:_Mode[] = [];
@@ -146,6 +146,7 @@ class TabSwitcher extends React.Component<TSProps, {modes: _Mode[], currentMode:
 		return modes;
 	}
 	setMode(mode:int, force = false) {
+		console.log(this, mode);
 		if (!force && mode == this.state.currentMode) return;
 		const action = this.state.modes[mode];
 		const lastAction = this.state.modes[this.state.currentMode];
@@ -165,6 +166,7 @@ class TabSwitcher extends React.Component<TSProps, {modes: _Mode[], currentMode:
 		const beforeActions = JSON.stringify(this.props.things.map(t => t.actions));
 		this.props.things.forEach(thing => thing.onNetworkLoaded(net));
 		const afterActions = JSON.stringify(this.props.things.map(t => t.actions));
+		console.log(`${beforeActions} ≟ ${afterActions}`);
 		if(beforeActions !== afterActions)
 			this.setState({
 				modes:this.createButtonsAndActions(),

@@ -1859,7 +1859,6 @@ var NetworkVisualization = (function () {
         if (this.sim.state.inputLayer.neuronCount == 2) {
             var fillamount = 0.6;
             var bounds = Util.bounds2dTrainingsInput(this.sim.state.data);
-            console.log(bounds);
             var w = bounds.maxx - bounds.minx, h = bounds.maxy - bounds.miny;
             var scale = Math.min(this.canvas.width / w, this.canvas.height / h) * fillamount;
             this.trafo.scalex = scale;
@@ -2084,7 +2083,7 @@ var MultiVisDisplayer = (function (_super) {
         this.bodyDivs = [];
         this.state = {
             running: false,
-            bodies: [props.sim.netgraph, props.sim.netviz],
+            bodies: [null, null],
             correct: "",
             stepNum: 0
         };
@@ -2092,18 +2091,15 @@ var MultiVisDisplayer = (function (_super) {
     MultiVisDisplayer.prototype.onFrame = function (framenum) {
         for (var _i = 0, _a = this.state.bodies; _i < _a.length; _i++) {
             var body = _a[_i];
-            body.onFrame(framenum);
+            if (body)
+                body.onFrame(framenum);
         }
     };
     MultiVisDisplayer.prototype.changeBody = function (i, vis, aft) {
-        var bodies = this.state.bodies.slice();
-        bodies[i] = vis;
-        this.setState({ bodies: bodies }, aft);
-    };
-    MultiVisDisplayer.prototype.componentDidMount = function () {
-        for (var i = 0; i < this.state.bodies.length; i++) {
-            $(this.bodyDivs[i]).append(this.state.bodies[i].container);
-        }
+        var _this = this;
+        this.bodiesTmp = this.bodiesTmp || this.state.bodies.slice();
+        this.bodiesTmp[i] = vis;
+        this.setState({ bodies: this.bodiesTmp }, function () { _this.bodiesTmp = undefined; aft(); });
     };
     MultiVisDisplayer.prototype.componentDidUpdate = function (prevProps, prevState) {
         for (var i = 0; i < prevState.bodies.length; i++) {
@@ -2135,7 +2131,7 @@ var TabSwitcher = (function (_super) {
         _super.call(this, props);
         this.state = {
             modes: this.createButtonsAndActions(),
-            currentMode: 0
+            currentMode: -1
         };
     }
     TabSwitcher.prototype.render = function () {
@@ -2144,6 +2140,9 @@ var TabSwitcher = (function (_super) {
         return React.createElement("div", null, React.createElement("ul", {className: "nav nav-pills"}, this.state.modes.map(function (mode, i) {
             return React.createElement("li", {key: i, className: _this.state.currentMode === i ? "custom-active" : ""}, React.createElement("a", {style: mode.color ? { backgroundColor: mode.color, color: isDark(mode.color) ? "white" : "black" } : {}, onClick: function (e) { return _this.setMode(i); }}, mode.text));
         })));
+    };
+    TabSwitcher.prototype.componentDidMount = function () {
+        this.setMode(0, true);
     };
     TabSwitcher.prototype.createButtonsAndActions = function () {
         var modes = [];
@@ -2164,6 +2163,7 @@ var TabSwitcher = (function (_super) {
     };
     TabSwitcher.prototype.setMode = function (mode, force) {
         if (force === void 0) { force = false; }
+        console.log(this, mode);
         if (!force && mode == this.state.currentMode)
             return;
         var action = this.state.modes[mode];
@@ -2187,6 +2187,7 @@ var TabSwitcher = (function (_super) {
         var beforeActions = JSON.stringify(this.props.things.map(function (t) { return t.actions; }));
         this.props.things.forEach(function (thing) { return thing.onNetworkLoaded(net); });
         var afterActions = JSON.stringify(this.props.things.map(function (t) { return t.actions; }));
+        console.log(beforeActions + " \u225F " + afterActions);
         if (beforeActions !== afterActions)
             this.setState({
                 modes: this.createButtonsAndActions(),
