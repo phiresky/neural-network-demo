@@ -1592,7 +1592,7 @@ var NetworkVisualization = (function () {
         this.canvas = $("<canvas class=fullsize>")[0];
         this.canvas.width = 550;
         this.canvas.height = 400;
-        this.trafo = new TransformNavigation(this.canvas, function () { return _this.inputMode == _this.actions.length - 1; }, function () { return _this.onFrame(); });
+        this.trafo = new TransformNavigation(this.canvas, function () { return _this.inputMode == 0; } /* move view mode*/ /* move view mode*/, function () { return _this.onFrame(); });
         this.ctx = this.canvas.getContext('2d');
         window.addEventListener('resize', this.canvasResized.bind(this));
         this.canvas.addEventListener("click", this.canvasClicked.bind(this));
@@ -1613,20 +1613,19 @@ var NetworkVisualization = (function () {
         }
         switch (this.netType) {
             case NetType.BinaryClassify:
-                this.actions = ["Add Red", "Add Green", "Remove", "Move View"];
+                this.actions = ["Move View", "Add Red", "Add Green", "Remove"];
                 break;
             case NetType.AutoEncode:
-                this.actions = ["Add Data point", "", "Remove", "Move View"];
+                this.actions = ["Move View", "Add Data point", "", "Remove"];
                 break;
             case NetType.MultiClass:
-                this.actions = [];
+                this.actions = ["Move View"];
                 var i = 0;
                 for (var _i = 0, _a = this.sim.state.outputLayer.names; _i < _a.length; _i++) {
                     var name_1 = _a[_i];
                     this.actions.push({ name: name_1, color: NetworkVisualization.colors.multiClass.bg[i++] });
                 }
                 this.actions.push("Remove");
-                this.actions.push("Move View");
                 break;
             case NetType.CantDraw:
                 this.actions = [];
@@ -1873,7 +1872,7 @@ var NetworkVisualization = (function () {
         var rect = this.canvas.getBoundingClientRect();
         var x = this.trafo.toReal.x(evt.clientX - rect.left);
         var y = this.trafo.toReal.y(evt.clientY - rect.top);
-        var removeMode = this.actions.length - 2;
+        var removeMode = this.actions.length - 1;
         if (this.inputMode === removeMode || evt.button == 2 || evt.shiftKey) {
             //remove nearest
             var nearestDist = Infinity, nearest = -1;
@@ -1886,7 +1885,7 @@ var NetworkVisualization = (function () {
             if (nearest >= 0)
                 data.splice(nearest, 1);
         }
-        else if (this.inputMode < removeMode) {
+        else if (this.inputMode < removeMode && this.inputMode > 0 /* move mode */) {
             // add data point
             if (this.netType === NetType.AutoEncode) {
                 data.push({ input: [x, y], output: [x, y] });

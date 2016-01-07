@@ -40,7 +40,8 @@ class NetworkVisualization implements Visualization {
 		this.canvas = <HTMLCanvasElement>$("<canvas class=fullsize>")[0];
 		this.canvas.width = 550;
 		this.canvas.height = 400;
-		this.trafo = new TransformNavigation(this.canvas, () => this.inputMode == this.actions.length - 1, () => this.onFrame());
+		this.trafo = new TransformNavigation(this.canvas, () => this.inputMode == 0 /* move view mode*/,
+			() => this.onFrame());
 		this.ctx = <CanvasRenderingContext2D>this.canvas.getContext('2d');
 		window.addEventListener('resize', this.canvasResized.bind(this));
 		this.canvas.addEventListener("click", this.canvasClicked.bind(this));
@@ -58,18 +59,17 @@ class NetworkVisualization implements Visualization {
 		}
 		switch(this.netType) {
 			case NetType.BinaryClassify:
-				this.actions = ["Add Red", "Add Green", "Remove", "Move View"];
+				this.actions = ["Move View", "Add Red", "Add Green", "Remove"];
 				break;
 			case NetType.AutoEncode:
-				this.actions = ["Add Data point", "", "Remove", "Move View"];
+				this.actions = ["Move View", "Add Data point", "", "Remove"];
 				break;
 			case NetType.MultiClass:
-				this.actions = [];
+				this.actions = ["Move View"];
 				let i = 0;
 				for(const name of this.sim.state.outputLayer.names)
 					this.actions.push({name:name, color:NetworkVisualization.colors.multiClass.bg[i++]});
 				this.actions.push("Remove");
-				this.actions.push("Move View");
 				break;
 			case NetType.CantDraw:
 				this.actions = [];
@@ -314,7 +314,7 @@ class NetworkVisualization implements Visualization {
 		const rect = this.canvas.getBoundingClientRect();
 		const x = this.trafo.toReal.x(evt.clientX - rect.left);
 		const y = this.trafo.toReal.y(evt.clientY - rect.top);
-		const removeMode = this.actions.length - 2;
+		const removeMode = this.actions.length - 1;
 		if (this.inputMode === removeMode || evt.button == 2 || evt.shiftKey) {
 			//remove nearest
 			let nearestDist = Infinity, nearest = -1;
@@ -324,7 +324,7 @@ class NetworkVisualization implements Visualization {
 				if (dist < nearestDist) nearest = i, nearestDist = dist;
 			}
 			if (nearest >= 0) data.splice(nearest, 1);
-		} else if (this.inputMode < removeMode) {
+		} else if (this.inputMode < removeMode && this.inputMode > 0 /* move mode */) {
 			// add data point
 			if (this.netType === NetType.AutoEncode) {
 				data.push({ input: [x, y], output: [x, y] });
