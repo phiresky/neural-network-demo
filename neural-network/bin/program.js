@@ -299,6 +299,7 @@ var Presets;
             ],
             saveLastWeights: false,
             drawArrows: false,
+            arrowScale: 0.3,
             originalBounds: null,
             weights: null,
             drawCoordinateSystem: true,
@@ -1689,11 +1690,16 @@ var NetworkVisualization = (function () {
         }
     };
     NetworkVisualization.prototype.drawArrows = function () {
+        var _this = this;
+        this.ctx.lineWidth = 2;
         var ww = this.sim.net.connections.map(function (c) { return c.weight; });
         var oldww = this.sim.lastWeights;
         if (oldww === undefined)
             return;
-        var scale = this.trafo.toCanvas;
+        var scale = {
+            x: function (x) { return _this.trafo.toCanvas.x(x * _this.sim.state.arrowScale); },
+            y: function (y) { return _this.trafo.toCanvas.y(y * _this.sim.state.arrowScale); }
+        };
         if (ww.length !== 3)
             throw Error("arrows only work with 2d data");
         if (this.sim.state.inputLayer.neuronCount !== 2

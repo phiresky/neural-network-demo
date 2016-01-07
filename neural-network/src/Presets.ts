@@ -32,6 +32,7 @@ interface Configuration {
 	saveLastWeights?: boolean;
 	drawArrows?: boolean;
 	drawCoordinateSystem?: boolean;
+    arrowScale?: int;
 }
 module Presets {
 	export const presets: Configuration[] = [
@@ -59,6 +60,7 @@ module Presets {
 			],
 			saveLastWeights: false,
 			drawArrows: false,
+			arrowScale: 0.3,
 			originalBounds: null,
 			weights: null,
 			drawCoordinateSystem: true,

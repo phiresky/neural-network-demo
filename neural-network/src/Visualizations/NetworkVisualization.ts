@@ -129,10 +129,14 @@ class NetworkVisualization implements Visualization {
 	}
 	
 	drawArrows() {
+		this.ctx.lineWidth = 2;
 		const ww = this.sim.net.connections.map(c => c.weight);
 		const oldww = this.sim.lastWeights;
 		if (oldww === undefined) return;
-		const scale = this.trafo.toCanvas;
+		const scale = {
+			x:(x:number) => this.trafo.toCanvas.x(x*this.sim.state.arrowScale),
+			y:(y:number) => this.trafo.toCanvas.y(y*this.sim.state.arrowScale)
+		}
 		if(ww.length !== 3) throw Error("arrows only work with 2d data");
 		if(this.sim.state.inputLayer.neuronCount !== 2
 			|| this.sim.state.outputLayer.neuronCount !== 1
