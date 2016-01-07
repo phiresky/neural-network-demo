@@ -16,7 +16,7 @@ function checkSanity() {
     sim.state.outputLayer = { neuronCount: 1, activation: "sigmoid", names: [''] };
     sim.net.connections.forEach(function (e, i) { return e.weight = inp[i]; });
     for (var i = 0; i < 1000; i++)
-        sim.step();
+        sim.trainAll();
     var realout = sim.net.connections.map(function (e) { return e.weight; });
     if (realout.every(function (e, i) { return e !== out[i]; }))
         throw "insanity!";
@@ -144,7 +144,7 @@ var Net;
             }
             return Math.sqrt(sum / this.outputs.length);
         };
-        /** if individual is true, train individually, else train as a set */
+        /** if individual is true, train individually, else batch train */
         NeuralNet.prototype.trainAll = function (data, individual) {
             if (!individual)
                 for (var _i = 0, _a = this.connections; _i < _a.length; _i++) {
@@ -153,7 +153,7 @@ var Net;
                 }
             for (var _b = 0, data_1 = data; _b < data_1.length; _b++) {
                 var val = data_1[_b];
-                this.train(val.input, val.output, individual);
+                this.train(val, individual);
             }
             if (!individual)
                 for (var _c = 0, _d = this.connections; _c < _d.length; _c++) {
@@ -162,11 +162,11 @@ var Net;
                 }
         };
         /** if flush is false, only calculate deltas but don't reset or add them */
-        NeuralNet.prototype.train = function (inputVals, expectedOutput, flush) {
+        NeuralNet.prototype.train = function (val, flush) {
             if (flush === void 0) { flush = true; }
-            this.setInputsAndCalculate(inputVals);
+            this.setInputsAndCalculate(val.input);
             for (var i = 0; i < this.outputs.length; i++)
-                this.outputs[i].targetOutput = expectedOutput[i];
+                this.outputs[i].targetOutput = val.output[i];
             for (var i_1 = this.layers.length - 1; i_1 > 0; i_1--) {
                 for (var _i = 0, _a = this.layers[i_1]; _i < _a.length; _i++) {
                     var neuron = _a[_i];
@@ -303,6 +303,7 @@ var Presets;
             originalBounds: null,
             weights: null,
             drawCoordinateSystem: true,
+            showTrainNextButton: false
         },
         {
             name: "Binary Classifier for XOR"
@@ -503,6 +504,7 @@ var Presets;
             "autoRestart": false,
             batchTraining: true,
             saveLastWeights: true,
+            showTrainNextButton: true,
             drawArrows: true,
             drawCoordinateSystem: false,
             "iterationsPerClick": 1,
@@ -711,7 +713,9 @@ var ExportModal = (function (_super) {
 var Simulation = (function (_super) {
     __extends(Simulation, _super);
     function Simulation(props) {
+        var _this = this;
         _super.call(this, props);
+        /** training steps that should be done by now (used for animation) */
         this.stepsWanted = 0;
         this.stepsCurrent = 0;
         this.frameNum = 0;
@@ -722,10 +726,10 @@ var Simulation = (function (_super) {
         this.averageError = 1;
         this.statusIterEle = document.getElementById('statusIteration');
         this.statusCorrectEle = document.getElementById('statusCorrect');
-        this.forwardPassState = -1;
+        this.currentTrainingDataPoint = -1;
         this.forwardPassEles = [];
         this.aniFrameCallback = this.animationStep.bind(this);
-        this.netviz = new NetworkVisualization(this);
+        this.netviz = new NetworkVisualization(this, function (p) { return p === _this.state.data[_this.currentTrainingDataPoint]; });
         this.netgraph = new NetworkGraph(this);
         this.errorGraph = new ErrorGraph(this);
         this.table = new TableEditor(this);
@@ -743,36 +747,47 @@ var Simulation = (function (_super) {
         this.lrVis.rightVis.onNetworkLoaded(this.net);
         this.onFrame(true);
     };
-    Simulation.prototype.step = function () {
+    Simulation.prototype.trainAll = function () {
+        this.currentTrainingDataPoint = -1;
         this.stepsCurrent++;
         if (this.state.saveLastWeights)
             this.lastWeights = this.net.connections.map(function (c) { return c.weight; });
         this.net.trainAll(this.state.data, !this.state.batchTraining);
     };
+    Simulation.prototype.trainNext = function () {
+        this.stop();
+        this.currentTrainingDataPoint++;
+        if (this.state.saveLastWeights)
+            this.lastWeights = this.net.connections.map(function (c) { return c.weight; });
+        if (this.currentTrainingDataPoint >= this.state.data.length) {
+            this.stepsCurrent++;
+            this.stepsWanted++;
+            this.currentTrainingDataPoint -= this.state.data.length;
+        }
+        this.net.train(this.state.data[this.currentTrainingDataPoint]);
+        this.onFrame(true);
+    };
     Simulation.prototype.forwardPassStep = function () {
         if (!this.netgraph.currentlyDisplayingForwardPass) {
             this.forwardPassEles = [];
-            this.forwardPassState = -1;
-            this.netviz.highlightedDataPoints = [];
+            this.currentTrainingDataPoint = -1;
         }
         this.stop();
         if (this.forwardPassEles.length > 0) {
             this.netgraph.applyUpdate(this.forwardPassEles.shift());
         }
         else {
-            if (this.forwardPassState < this.state.data.length - 1) {
+            if (this.currentTrainingDataPoint < this.state.data.length - 1) {
                 // start next
                 this.lrVis.leftVis.setMode(0);
-                this.forwardPassState++;
-                this.forwardPassEles = this.netgraph.forwardPass(this.state.data[this.forwardPassState]);
+                this.currentTrainingDataPoint++;
+                this.forwardPassEles = this.netgraph.forwardPass(this.state.data[this.currentTrainingDataPoint]);
                 this.netgraph.applyUpdate(this.forwardPassEles.shift());
-                this.netviz.highlightedDataPoints = [this.state.data[this.forwardPassState]];
                 this.netviz.onFrame();
             }
             else {
                 // end
-                this.forwardPassState = -1;
-                this.netviz.highlightedDataPoints = [];
+                this.currentTrainingDataPoint = -1;
                 this.netgraph.onFrame(0);
                 this.netviz.onFrame();
             }
@@ -865,7 +880,7 @@ var Simulation = (function (_super) {
         }
         this.stepsWanted += delta / 1000 * this.state.stepsPerSecond;
         while (this.stepsCurrent < this.stepsWanted)
-            this.step();
+            this.trainAll();
         this.onFrame(false);
         if (this.running)
             this.runningId = requestAnimationFrame(this.aniFrameCallback);
@@ -873,7 +888,8 @@ var Simulation = (function (_super) {
     Simulation.prototype.iterations = function () {
         this.stop();
         for (var i = 0; i < this.state.iterationsPerClick; i++)
-            this.step();
+            this.trainAll();
+        this.stepsWanted = this.stepsCurrent;
         this.onFrame(true);
     };
     Simulation.prototype.componentWillUpdate = function (nextProps, newConfig) {
@@ -1551,7 +1567,6 @@ var NetworkGraph = (function () {
             this.showbias = this.biasBeforeForwardPass;
             this.onNetworkLoaded(this.net, true);
             this.currentlyDisplayingForwardPass = false;
-            this.sim.netviz.highlightedDataPoints = [];
         }
         if (this.net.connections.length > 20 && framenum % 15 !== 0) {
             // skip some frames because slow
@@ -1591,15 +1606,15 @@ var NetType;
     NetType[NetType["CantDraw"] = 3] = "CantDraw";
 })(NetType || (NetType = {}));
 var NetworkVisualization = (function () {
-    function NetworkVisualization(sim) {
+    function NetworkVisualization(sim, dataPointIsHighlighted) {
         var _this = this;
         this.sim = sim;
+        this.dataPointIsHighlighted = dataPointIsHighlighted;
         this.actions = [];
         this.inputMode = 0;
         this.backgroundResolution = 15;
         this.container = $("<div>");
         this.netType = NetType.BinaryClassify;
-        this.highlightedDataPoints = [];
         var tmp = NetworkVisualization.colors.multiClass;
         tmp.bg = tmp.fg.map(function (c) { return Util.printColor(Util.parseColor(c).map(function (x) { return (x * 1.3) | 0; })); });
         this.canvas = $("<canvas class=fullsize>")[0];
@@ -1704,7 +1719,7 @@ var NetworkVisualization = (function () {
             : this.netType === NetType.MultiClass ?
                 NetworkVisualization.colors.multiClass.fg[Util.getMaxIndex(p.output)]
                 : null;
-        this.drawPoint(p.input[0], p.input[1], color, this.highlightedDataPoints.indexOf(p) >= 0);
+        this.drawPoint(p.input[0], p.input[1], color, this.dataPointIsHighlighted(p));
     };
     NetworkVisualization.prototype.drawPoint = function (x, y, color, highlight) {
         if (highlight === void 0) { highlight = false; }
@@ -1748,8 +1763,12 @@ var NetworkVisualization = (function () {
                 newY = oldww[1];
                 this.ctx.strokeStyle = this.ctx.fillStyle = "#808080";
                 Util.drawArrow(this.ctx, { x: scale.x(oldX), y: scale.y(oldY) }, { x: scale.x(newX), y: scale.y(newY) }, al, aw);
-                for (var _i = 0, _a = this.sim.state.data; _i < _a.length; _i++) {
-                    var p = _a[_i];
+                var points = this.sim.state.data;
+                // single training point
+                if (this.sim.currentTrainingDataPoint >= 0)
+                    points = [points[this.sim.currentTrainingDataPoint]];
+                for (var _i = 0, points_1 = points; _i < points_1.length; _i++) {
+                    var p = points_1[_i];
                     if (wasPointWrong(p)) {
                         oldX = newX;
                         oldY = newY;
@@ -2136,7 +2155,10 @@ var LRVis = (function (_super) {
     LRVis.prototype.render = function () {
         var _this = this;
         var sim = this.props.sim;
-        return React.createElement("div", null, React.createElement("div", {className: "row"}, React.createElement("div", {className: "col-sm-6"}, React.createElement(TabSwitcher, {ref: function (c) { return _this.leftVis = c; }, things: this.props.leftVis, onChangeVisualization: function (vis, aft) { return _this.changeBody(0, vis, aft); }})), React.createElement("div", {className: "col-sm-6"}, React.createElement(TabSwitcher, {ref: function (c) { return _this.rightVis = c; }, things: this.props.rightVis, onChangeVisualization: function (vis, aft) { return _this.changeBody(1, vis, aft); }}))), React.createElement("div", {className: "row"}, React.createElement("div", {className: "col-sm-6"}, React.createElement("div", {className: "visbody", ref: function (b) { return _this.bodyDivs[0] = b; }}), React.createElement("div", {className: "h3"}, React.createElement("button", {className: this.state.running ? "btn btn-danger" : "btn btn-primary", onClick: sim.runtoggle.bind(sim)}, this.state.running ? "Stop" : "Animate"), " ", React.createElement("button", {className: "btn btn-warning", onClick: sim.reset.bind(sim)}, "Reset"), " ", React.createElement("button", {className: "btn btn-default", onClick: sim.iterations.bind(sim)}, "Train"), " ", React.createElement("button", {className: "btn btn-default", onClick: sim.forwardPassStep.bind(sim)}, "Forward Pass Step"), React.createElement("div", {className: "btn-group pull-right"}, React.createElement("button", {className: "btn btn-default dropdown-toggle", "data-toggle": "dropdown"}, "Load ", React.createElement("span", {className: "caret"})), React.createElement("ul", {className: "dropdown-menu"}, Presets.getNames().map(function (name) {
+        return React.createElement("div", null, React.createElement("div", {className: "row"}, React.createElement("div", {className: "col-sm-6"}, React.createElement(TabSwitcher, {ref: function (c) { return _this.leftVis = c; }, things: this.props.leftVis, onChangeVisualization: function (vis, aft) { return _this.changeBody(0, vis, aft); }})), React.createElement("div", {className: "col-sm-6"}, React.createElement(TabSwitcher, {ref: function (c) { return _this.rightVis = c; }, things: this.props.rightVis, onChangeVisualization: function (vis, aft) { return _this.changeBody(1, vis, aft); }}))), React.createElement("div", {className: "row"}, React.createElement("div", {className: "col-sm-6"}, React.createElement("div", {className: "visbody", ref: function (b) { return _this.bodyDivs[0] = b; }}), React.createElement("div", {className: "h3"}, React.createElement("button", {className: this.state.running ? "btn btn-danger" : "btn btn-primary", onClick: sim.runtoggle.bind(sim)}, this.state.running ? "Stop" : "Animate"), " ", React.createElement("button", {className: "btn btn-warning", onClick: sim.reset.bind(sim)}, "Reset"), " ", React.createElement("button", {className: "btn btn-default", onClick: sim.iterations.bind(sim)}, sim.state.showTrainNextButton ? "Batch Train" : "Train"), " ", sim.state.showTrainNextButton ?
+            React.createElement("button", {className: "btn btn-default", onClick: sim.trainNext.bind(sim)}, "Train Next")
+            :
+                React.createElement("button", {className: "btn btn-default", onClick: sim.forwardPassStep.bind(sim)}, "Forward Pass Step"), React.createElement("div", {className: "btn-group pull-right"}, React.createElement("button", {className: "btn btn-default dropdown-toggle", "data-toggle": "dropdown"}, "Load ", React.createElement("span", {className: "caret"})), React.createElement("ul", {className: "dropdown-menu"}, Presets.getNames().map(function (name) {
             return React.createElement("li", {key: name}, React.createElement("a", {onClick: function (e) { return sim.setState(Presets.get(e.target.textContent)); }}, name));
         })))), React.createElement("hr", null)), React.createElement("div", {className: "col-sm-6"}, React.createElement("div", {className: "visbody", ref: function (b) { return _this.bodyDivs[1] = b; }}), React.createElement("div", {id: "status"}, React.createElement("h2", null, this.state.correct, " — Iteration: ", this.state.stepNum)), React.createElement("hr", null))));
     };

@@ -20,7 +20,7 @@ function checkSanity() {
 	sim.state.hiddenLayers = [{ neuronCount: 2, activation: "sigmoid" }];
 	sim.state.outputLayer = { neuronCount: 1, activation: "sigmoid", names: [''] };
 	sim.net.connections.forEach((e, i) => e.weight = inp[i]);
-	for (var i = 0; i < 1000; i++) sim.step();
+	for (var i = 0; i < 1000; i++) sim.trainAll();
 	const realout = sim.net.connections.map(e => e.weight);
 	if (realout.every((e, i) => e !== out[i])) throw "insanity!";
 	return "ok";

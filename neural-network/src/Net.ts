@@ -100,20 +100,20 @@ module Net {
 			return Math.sqrt(sum / this.outputs.length);
 		}
 		
-		/** if individual is true, train individually, else train as a set */
+		/** if individual is true, train individually, else batch train */
 		trainAll(data: TrainingData[], individual: boolean) {
 			if(!individual) for (const conn of this.connections) conn.zeroDeltaWeight();
 			for (const val of data) {
-				this.train(val.input, val.output, individual);
+				this.train(val, individual);
 			}
 			if(!individual) for (const conn of this.connections) conn.flushDeltaWeight();
 		}
 
 		/** if flush is false, only calculate deltas but don't reset or add them */
-		train(inputVals: double[], expectedOutput: double[], flush = true) {
-			this.setInputsAndCalculate(inputVals);
+		train(val: TrainingData, flush = true) {
+			this.setInputsAndCalculate(val.input);
 			for (var i = 0; i < this.outputs.length; i++)
-				this.outputs[i].targetOutput = expectedOutput[i];
+				this.outputs[i].targetOutput = val.output[i];
 			for (let i = this.layers.length - 1; i > 0; i--) {
 				for (const neuron of this.layers[i]) {
 					neuron.calculateError();

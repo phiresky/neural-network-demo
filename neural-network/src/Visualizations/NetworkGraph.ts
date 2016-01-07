@@ -186,7 +186,6 @@ class NetworkGraph implements Visualization {
 			this.showbias = this.biasBeforeForwardPass;
 			this.onNetworkLoaded(this.net, true);
 			this.currentlyDisplayingForwardPass = false;
-			this.sim.netviz.highlightedDataPoints = [];
 		}
 		if(this.net.connections.length > 20 && framenum % 15 !== 0) {
 			// skip some frames because slow

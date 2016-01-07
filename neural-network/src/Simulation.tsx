@@ -5,6 +5,7 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 	errorGraph: ErrorGraph;
 	weightsGraph: WeightsGraph;
 
+	/** training steps that should be done by now (used for animation) */
 	stepsWanted = 0;
 	stepsCurrent = 0;
 	frameNum = 0;
@@ -22,7 +23,7 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 
 	constructor(props:{autoRun: boolean}) {
 		super(props);
-		this.netviz = new NetworkVisualization(this);
+		this.netviz = new NetworkVisualization(this, p => p === this.state.data[this.currentTrainingDataPoint]);
 		this.netgraph = new NetworkGraph(this);
 		this.errorGraph = new ErrorGraph(this);
 		this.table = new TableEditor(this);
@@ -42,37 +43,50 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 	}
 	statusIterEle = document.getElementById('statusIteration');
 	statusCorrectEle = document.getElementById('statusCorrect');
-	step() {
+	trainAll() {
+		this.currentTrainingDataPoint = -1;
 		this.stepsCurrent++;
 		if(this.state.saveLastWeights)
 			this.lastWeights = this.net.connections.map(c => c.weight);
 		this.net.trainAll(this.state.data, !this.state.batchTraining);
 	}
 	
-	forwardPassState = -1;
+	currentTrainingDataPoint = -1;
+	trainNext() {
+		this.stop();
+		this.currentTrainingDataPoint++;
+		if(this.state.saveLastWeights)
+			this.lastWeights = this.net.connections.map(c => c.weight);
+		if(this.currentTrainingDataPoint >= this.state.data.length) {
+			this.stepsCurrent++;
+			this.stepsWanted++;
+			this.currentTrainingDataPoint -= this.state.data.length;
+		}
+		this.net.train(this.state.data[this.currentTrainingDataPoint]);
+		this.onFrame(true);
+	}
+	
+
 	forwardPassEles:NetGraphUpdate[] = [];
 	forwardPassStep() {
 		if(!this.netgraph.currentlyDisplayingForwardPass) {
 			this.forwardPassEles = [];
-			this.forwardPassState = -1;
-			this.netviz.highlightedDataPoints = [];
+			this.currentTrainingDataPoint = -1;
 		}
 		this.stop();
 		if(this.forwardPassEles.length > 0) {
 			this.netgraph.applyUpdate(this.forwardPassEles.shift());
 		} else {
-			if(this.forwardPassState < this.state.data.length - 1) {
+			if(this.currentTrainingDataPoint < this.state.data.length - 1) {
 				// start next
 				this.lrVis.leftVis.setMode(0);
-				this.forwardPassState++;
-				this.forwardPassEles = this.netgraph.forwardPass(this.state.data[this.forwardPassState]);
+				this.currentTrainingDataPoint++;
+				this.forwardPassEles = this.netgraph.forwardPass(this.state.data[this.currentTrainingDataPoint]);
 				this.netgraph.applyUpdate(this.forwardPassEles.shift());
-				this.netviz.highlightedDataPoints = [this.state.data[this.forwardPassState]];
 				this.netviz.onFrame();
 			} else {
 				// end
-				this.forwardPassState = -1;
-				this.netviz.highlightedDataPoints = [];
+				this.currentTrainingDataPoint = -1;
 				this.netgraph.onFrame(0);
 				this.netviz.onFrame();
 			}
@@ -166,7 +180,7 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 			delta = 1000 / 5;
 		}
 		this.stepsWanted += delta / 1000 * this.state.stepsPerSecond;  
-		while(this.stepsCurrent < this.stepsWanted) this.step();
+		while(this.stepsCurrent < this.stepsWanted) this.trainAll();
 		this.onFrame(false);
 		if (this.running) this.runningId = requestAnimationFrame(this.aniFrameCallback);
 	}
@@ -174,7 +188,8 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 	iterations() {
 		this.stop();
 		for (var i = 0; i < this.state.iterationsPerClick; i++)
-			this.step();
+			this.trainAll();
+		this.stepsWanted = this.stepsCurrent;
 		this.onFrame(true);
 	}
 	

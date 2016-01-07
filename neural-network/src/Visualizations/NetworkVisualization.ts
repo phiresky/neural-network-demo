@@ -16,7 +16,6 @@ class NetworkVisualization implements Visualization {
 	backgroundResolution = 15;
 	container = $("<div>");
 	netType: NetType = NetType.BinaryClassify;
-	highlightedDataPoints: TrainingData[] = [];
 	static colors = {
 		binaryClassify: {
 			bg: ["#f88", "#8f8"],
@@ -35,7 +34,7 @@ class NetworkVisualization implements Visualization {
 		}
 	}
 
-	constructor(public sim: Simulation) {
+	constructor(public sim: Simulation, public dataPointIsHighlighted:(p:TrainingData) => boolean) {
 		const tmp = NetworkVisualization.colors.multiClass;
 		tmp.bg = tmp.fg.map(c => Util.printColor(<any>Util.parseColor(c).map(x => (x*1.3)|0))); 
 		this.canvas = <HTMLCanvasElement>$("<canvas class=fullsize>")[0];
@@ -132,7 +131,7 @@ class NetworkVisualization implements Visualization {
 			: this.netType === NetType.MultiClass ? 
 				NetworkVisualization.colors.multiClass.fg[Util.getMaxIndex(p.output)]
 			: null;
-		this.drawPoint(p.input[0], p.input[1], color, this.highlightedDataPoints.indexOf(p) >= 0);
+		this.drawPoint(p.input[0], p.input[1], color, this.dataPointIsHighlighted(p));
 	}
 	
 	drawPoint(x: number, y: number, color: string, highlight = false) {
@@ -176,8 +175,12 @@ class NetworkVisualization implements Visualization {
 				this.ctx.strokeStyle = this.ctx.fillStyle = "#808080";
 				Util.drawArrow(this.ctx, {x:scale.x(oldX), y:scale.y(oldY)},
 						{x:scale.x(newX), y:scale.y(newY)}, al, aw);
-	
-				for (const p of this.sim.state.data) {
+				
+				let points = this.sim.state.data;
+				// single training point
+				if(this.sim.currentTrainingDataPoint >= 0)
+					points = [points[this.sim.currentTrainingDataPoint]];
+				for (const p of points) {
 					if (wasPointWrong(p)) {
 						oldX = newX;
 						oldY = newY;

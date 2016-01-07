@@ -33,6 +33,7 @@ interface Configuration {
 	drawArrows?: boolean;
 	drawCoordinateSystem?: boolean;
     arrowScale?: int;
+	showTrainNextButton?: boolean;
 }
 module Presets {
 	export const presets: Configuration[] = [
@@ -64,6 +65,7 @@ module Presets {
 			originalBounds: null,
 			weights: null,
 			drawCoordinateSystem: true,
+			showTrainNextButton: false
 		},
 		{
 			name: "Binary Classifier for XOR"
@@ -266,6 +268,7 @@ module Presets {
 			"autoRestart": false,
 			batchTraining: true,
 			saveLastWeights: true,
+			showTrainNextButton: true,
 			drawArrows: true,
 			drawCoordinateSystem: false,
 			"iterationsPerClick": 1,

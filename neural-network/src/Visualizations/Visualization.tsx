@@ -75,8 +75,12 @@ class LRVis extends MultiVisDisplayer<{leftVis: Visualization[], rightVis: Visua
 						<div className="h3">
 							<button className={this.state.running?"btn btn-danger":"btn btn-primary"} onClick={sim.runtoggle.bind(sim)}>{this.state.running?"Stop":"Animate"}</button>&nbsp;
 							<button className="btn btn-warning" onClick={sim.reset.bind(sim)}>Reset</button>&nbsp;
-							<button className="btn btn-default" onClick={sim.iterations.bind(sim)}>Train</button>&nbsp;
-							<button className="btn btn-default" onClick={sim.forwardPassStep.bind(sim)}>Forward Pass Step</button>
+							<button className="btn btn-default" onClick={sim.iterations.bind(sim)}>{sim.state.showTrainNextButton?"Batch Train":"Train"}</button>&nbsp;
+							{sim.state.showTrainNextButton?
+								<button className="btn btn-default" onClick={sim.trainNext.bind(sim)}>Train Next</button>
+							:
+								<button className="btn btn-default" onClick={sim.forwardPassStep.bind(sim)}>Forward Pass Step</button>
+							}
 							<div className="btn-group pull-right">
 								<button className="btn btn-default dropdown-toggle" data-toggle="dropdown">{"Load "}
 									<span className="caret" /></button>
