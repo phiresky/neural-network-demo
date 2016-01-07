@@ -9,6 +9,16 @@ class BSFormGroup extends React.Component<{
 	}
 }
 
+class BSCheckbox extends React.Component<{conf: Configuration, label: string, id:string}, {}> {
+	render() {
+		return (
+			<BSFormGroup label={this.props.label} id={this.props.id} isStatic>
+				<input type="checkbox" checked={this.props.conf[this.props.id]} id={this.props.id} onChange={() => sim.loadConfig()} />
+			</BSFormGroup>
+		);
+	}
+}
+
 class ConfigurationGui extends React.Component<Configuration, {}> {
 	render() {
 		const conf = this.props;
@@ -22,27 +32,31 @@ class ConfigurationGui extends React.Component<Configuration, {}> {
 					<BSFormGroup label="Steps per Second" id="stepsPerSecond">
 						<input className="form-control" type="number" min={0.1} max={1000} id="stepsPerSecond" value={""+conf.stepsPerSecond} onChange={loadConfig} />
 					</BSFormGroup>
-					<BSFormGroup label="When correct, restart after 5 seconds" id="autoRestart" isStatic>
-						<input type="checkbox" id="autoRestart" checked={conf.autoRestart} onChange={loadConfig} />
-					</BSFormGroup>
-					<BSFormGroup label="Show class propabilities as gradient" id="showGradient" isStatic>
-						<input type="checkbox" checked={conf.showGradient} id="showGradient" onChange={loadConfig} />
-					</BSFormGroup>
+					<BSCheckbox label="When correct, restart after 5 seconds" id="autoRestart" conf={conf} />
+					{conf.type !== "perceptron"?
+						<BSCheckbox label="Show class propabilities as gradient" id="showGradient" conf={conf}/>
+					:""}
 					<button className="btn btn-default" data-toggle="modal" data-target="#exportModal">Import / Export</button>
 				</div>
 				<div className="col-sm-6">
-					<h4>Net</h4>
+					<h4>{conf.type==="perceptron"?"Perceptron":"Net"}</h4>
 					<BSFormGroup id="learningRate" label="Learning Rate" isStatic>
 						<span id="learningRateVal" style={{marginRight: '1em'}}>{conf.learningRate.toFixed(3)}</span>
 						<input type="range" min={0.005} max={1} step={0.005} id="learningRate" value={Util.logScale(conf.learningRate)+""} onChange={loadConfig} />
 					</BSFormGroup>
-					<BSFormGroup label="Show bias input" id="bias" isStatic>
-						<input type="checkbox" checked={conf.bias} id="bias" onChange={loadConfig} />
-					</BSFormGroup>
-					<BSFormGroup label="Batch training" id="batchTraining" isStatic>
-						<input type="checkbox" checked={conf.batchTraining} id="batchTraining" onChange={loadConfig} />
-					</BSFormGroup>
-					<NeuronGui {...this.props} />
+					<BSCheckbox label="Show bias input" id="bias" conf={conf} />
+					{conf.type === "perceptron"?
+						<div>
+							<BSCheckbox label="Animate online training" id="animationTrainSinglePoints" conf={conf} />
+							<BSCheckbox label="Draw Arrows" id="drawArrows" conf={conf} />
+							<BSCheckbox label="Draw coordinate system" id="drawCoordinateSystem" conf={conf} />
+						</div>
+					:
+						<div>
+							<BSCheckbox id="batchTraining" label="Batch training" conf={conf} />
+							<NeuronGui {...this.props} />
+						</div>
+					}
 				</div>
 			</div>;
 	}

@@ -87,7 +87,7 @@ class NetworkVisualization implements Visualization {
 			this.ctx.fillText("Cannot draw this data", this.canvas.width / 2, this.canvas.height / 2);
 			return;
 		}
-		const isSinglePerceptron = this.sim.net.layers.length === 2 && this.netType === NetType.BinaryClassify;
+		const isSinglePerceptron = this.sim.state.type === "perceptron";
 		const separator:Util.Bounds = isSinglePerceptron && this.getSeparator(Util.toLinearFunction(this.sim.net.connections.map(i => i.weight) as any));
 		if(isSinglePerceptron)
 			this.drawPolyBackground(separator);

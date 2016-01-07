@@ -305,6 +305,7 @@ var Presets;
             drawCoordinateSystem: true,
             showTrainNextButton: false,
             animationTrainSinglePoints: false,
+            type: "nn"
         },
         {
             name: "Binary Classifier for XOR"
@@ -509,6 +510,7 @@ var Presets;
             drawArrows: true,
             drawCoordinateSystem: false,
             animationTrainSinglePoints: true,
+            type: "perceptron",
             "iterationsPerClick": 1,
             "data": [{ "input": [0.39, 1.12], "output": [0] }, { "input": [0.48, 0.31], "output": [0] }, { "input": [0.51, 0.73], "output": [0] }, { "input": [1.21, 0.62], "output": [1] }, { "input": [1.05, -0.01], "output": [1] }, { "input": [0.93, -0.09], "output": [1] }, { "input": [0.86, 0.55], "output": [1] }, { "input": [0.20090787269681742, 0.8119715242881071], "output": [0] }, { "input": [0.5867537688442211, 0.09702177554438846], "output": [0] }, { "input": [0.6321474036850921, 1.05028810720268], "output": [1] }, { "input": [0.8818123953098829, 0.8800619765494136], "output": [1] }, { "input": [-0.060105527638190964, 0.4942160804020099], "output": [0] }],
             "inputLayer": {
@@ -525,7 +527,7 @@ var Presets;
                     "class"
                 ]
             },
-            "hiddenLayers": []
+            "hiddenLayers": [],
         }
     ];
     function getNames() {
@@ -1258,6 +1260,16 @@ var BSFormGroup = (function (_super) {
     };
     return BSFormGroup;
 }(React.Component));
+var BSCheckbox = (function (_super) {
+    __extends(BSCheckbox, _super);
+    function BSCheckbox() {
+        _super.apply(this, arguments);
+    }
+    BSCheckbox.prototype.render = function () {
+        return (React.createElement(BSFormGroup, {label: this.props.label, id: this.props.id, isStatic: true}, React.createElement("input", {type: "checkbox", checked: this.props.conf[this.props.id], id: this.props.id, onChange: function () { return sim.loadConfig(); }})));
+    };
+    return BSCheckbox;
+}(React.Component));
 var ConfigurationGui = (function (_super) {
     __extends(ConfigurationGui, _super);
     function ConfigurationGui() {
@@ -1266,7 +1278,12 @@ var ConfigurationGui = (function (_super) {
     ConfigurationGui.prototype.render = function () {
         var conf = this.props;
         var loadConfig = function () { return sim.loadConfig(); };
-        return React.createElement("div", {className: "form-horizontal"}, React.createElement("div", {className: "col-sm-6"}, React.createElement("h4", null, "Display"), React.createElement(BSFormGroup, {label: "Iterations per click on 'Train'", id: "iterationsPerClick"}, React.createElement("input", {className: "form-control", type: "number", min: 0, max: 10000, id: "iterationsPerClick", value: "" + conf.iterationsPerClick, onChange: loadConfig})), React.createElement(BSFormGroup, {label: "Steps per Second", id: "stepsPerSecond"}, React.createElement("input", {className: "form-control", type: "number", min: 0.1, max: 1000, id: "stepsPerSecond", value: "" + conf.stepsPerSecond, onChange: loadConfig})), React.createElement(BSFormGroup, {label: "When correct, restart after 5 seconds", id: "autoRestart", isStatic: true}, React.createElement("input", {type: "checkbox", id: "autoRestart", checked: conf.autoRestart, onChange: loadConfig})), React.createElement(BSFormGroup, {label: "Show class propabilities as gradient", id: "showGradient", isStatic: true}, React.createElement("input", {type: "checkbox", checked: conf.showGradient, id: "showGradient", onChange: loadConfig})), React.createElement("button", {className: "btn btn-default", "data-toggle": "modal", "data-target": "#exportModal"}, "Import / Export")), React.createElement("div", {className: "col-sm-6"}, React.createElement("h4", null, "Net"), React.createElement(BSFormGroup, {id: "learningRate", label: "Learning Rate", isStatic: true}, React.createElement("span", {id: "learningRateVal", style: { marginRight: '1em' }}, conf.learningRate.toFixed(3)), React.createElement("input", {type: "range", min: 0.005, max: 1, step: 0.005, id: "learningRate", value: Util.logScale(conf.learningRate) + "", onChange: loadConfig})), React.createElement(BSFormGroup, {label: "Show bias input", id: "bias", isStatic: true}, React.createElement("input", {type: "checkbox", checked: conf.bias, id: "bias", onChange: loadConfig})), React.createElement(BSFormGroup, {label: "Batch training", id: "batchTraining", isStatic: true}, React.createElement("input", {type: "checkbox", checked: conf.batchTraining, id: "batchTraining", onChange: loadConfig})), React.createElement(NeuronGui, React.__spread({}, this.props))));
+        return React.createElement("div", {className: "form-horizontal"}, React.createElement("div", {className: "col-sm-6"}, React.createElement("h4", null, "Display"), React.createElement(BSFormGroup, {label: "Iterations per click on 'Train'", id: "iterationsPerClick"}, React.createElement("input", {className: "form-control", type: "number", min: 0, max: 10000, id: "iterationsPerClick", value: "" + conf.iterationsPerClick, onChange: loadConfig})), React.createElement(BSFormGroup, {label: "Steps per Second", id: "stepsPerSecond"}, React.createElement("input", {className: "form-control", type: "number", min: 0.1, max: 1000, id: "stepsPerSecond", value: "" + conf.stepsPerSecond, onChange: loadConfig})), React.createElement(BSCheckbox, {label: "When correct, restart after 5 seconds", id: "autoRestart", conf: conf}), conf.type !== "perceptron" ?
+            React.createElement(BSCheckbox, {label: "Show class propabilities as gradient", id: "showGradient", conf: conf})
+            : "", React.createElement("button", {className: "btn btn-default", "data-toggle": "modal", "data-target": "#exportModal"}, "Import / Export")), React.createElement("div", {className: "col-sm-6"}, React.createElement("h4", null, conf.type === "perceptron" ? "Perceptron" : "Net"), React.createElement(BSFormGroup, {id: "learningRate", label: "Learning Rate", isStatic: true}, React.createElement("span", {id: "learningRateVal", style: { marginRight: '1em' }}, conf.learningRate.toFixed(3)), React.createElement("input", {type: "range", min: 0.005, max: 1, step: 0.005, id: "learningRate", value: Util.logScale(conf.learningRate) + "", onChange: loadConfig})), React.createElement(BSCheckbox, {label: "Show bias input", id: "bias", conf: conf}), conf.type === "perceptron" ?
+            React.createElement("div", null, React.createElement(BSCheckbox, {label: "Animate online training", id: "animationTrainSinglePoints", conf: conf}), React.createElement(BSCheckbox, {label: "Draw Arrows", id: "drawArrows", conf: conf}), React.createElement(BSCheckbox, {label: "Draw coordinate system", id: "drawCoordinateSystem", conf: conf}))
+            :
+                React.createElement("div", null, React.createElement(BSCheckbox, {id: "batchTraining", label: "Batch training", conf: conf}), React.createElement(NeuronGui, React.__spread({}, this.props)))));
     };
     return ConfigurationGui;
 }(React.Component));
@@ -1676,7 +1693,7 @@ var NetworkVisualization = (function () {
             this.ctx.fillText("Cannot draw this data", this.canvas.width / 2, this.canvas.height / 2);
             return;
         }
-        var isSinglePerceptron = this.sim.net.layers.length === 2 && this.netType === NetType.BinaryClassify;
+        var isSinglePerceptron = this.sim.state.type === "perceptron";
         var separator = isSinglePerceptron && this.getSeparator(Util.toLinearFunction(this.sim.net.connections.map(function (i) { return i.weight; })));
         if (isSinglePerceptron)
             this.drawPolyBackground(separator);
