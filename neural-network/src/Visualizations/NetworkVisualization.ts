@@ -16,6 +16,7 @@ class NetworkVisualization implements Visualization {
 	backgroundResolution = 15;
 	container = $("<div>");
 	netType: NetType = NetType.BinaryClassify;
+	highlightedDataPoints: TrainingData[] = [];
 	static colors = {
 		binaryClassify: {
 			bg: ["#f88", "#8f8"],
@@ -106,9 +107,9 @@ class NetworkVisualization implements Visualization {
 
 	drawDataPoints() {
 		this.ctx.strokeStyle = "#000";
-		if (this.netType === NetType.BinaryClassify) {
+		if (this.netType === NetType.BinaryClassify || this.netType === NetType.MultiClass) {
 			for (const val of this.sim.state.data) {
-				this.drawPoint(val.input[0], val.input[1], NetworkVisualization.colors.binaryClassify.fg[val.output[0] | 0]);
+				this.drawDataPoint(val);
 			}
 		} else if (this.netType === NetType.AutoEncode) {
 			for (const val of this.sim.state.data) {
@@ -119,17 +120,37 @@ class NetworkVisualization implements Visualization {
 				this.drawPoint(ix, iy, NetworkVisualization.colors.autoencoder.input);
 				this.drawPoint(ox, oy, NetworkVisualization.colors.autoencoder.output);
 			}
-		} else if(this.netType === NetType.MultiClass) {
-			for (const val of this.sim.state.data) {
-				this.drawPoint(val.input[0], val.input[1], NetworkVisualization.colors.multiClass.fg[Util.getMaxIndex(val.output)]);
-			}
 		} else {
 			throw "can't draw this"
 		}
 	}
 	
+	drawDataPoint(p:TrainingData) {
+		const color = 
+			this.netType === NetType.BinaryClassify ? 
+				NetworkVisualization.colors.binaryClassify.fg[p.output[0] | 0]
+			: this.netType === NetType.MultiClass ? 
+				NetworkVisualization.colors.multiClass.fg[Util.getMaxIndex(p.output)]
+			: null;
+		this.drawPoint(p.input[0], p.input[1], color, this.highlightedDataPoints.indexOf(p) >= 0);
+	}
+	
+	drawPoint(x: number, y: number, color: string, highlight = false) {
+		x = this.trafo.toCanvas.x(x), y = this.trafo.toCanvas.y(y);
+		this.ctx.fillStyle = color;
+		this.ctx.beginPath();
+		this.ctx.lineWidth = highlight ? 5 : 1;
+		this.ctx.strokeStyle = highlight ? "#000000": "#000000";
+		this.ctx.arc(x, y, 5, 0, 2 * Math.PI);
+		this.ctx.fill();
+		this.ctx.arc(x, y, 5, 0, 2 * Math.PI);
+		this.ctx.stroke();
+	}
+	
 	drawArrows() {
 		this.ctx.lineWidth = 2;
+		const al = 8;
+		const aw = 4;
 		const ww = this.sim.net.connections.map(c => c.weight);
 		const oldww = this.sim.lastWeights;
 		if (oldww === undefined) return;
@@ -152,9 +173,9 @@ class NetworkVisualization implements Visualization {
 				newX = oldww[0];
 				newY = oldww[1];
 	
-				this.ctx.strokeStyle = "#808080";
+				this.ctx.strokeStyle = this.ctx.fillStyle = "#808080";
 				Util.drawArrow(this.ctx, {x:scale.x(oldX), y:scale.y(oldY)},
-						{x:scale.x(newX), y:scale.y(newY)}, 5, 5);
+						{x:scale.x(newX), y:scale.y(newY)}, al, aw);
 	
 				for (const p of this.sim.state.data) {
 					if (wasPointWrong(p)) {
@@ -164,17 +185,17 @@ class NetworkVisualization implements Visualization {
 						if (p.output[0] == 1) {
 							newX += p.input[0] * this.sim.net.learnRate;
 							newY += p.input[1] * this.sim.net.learnRate;
-							this.ctx.strokeStyle = "#008800";
+							this.ctx.strokeStyle = this.ctx.fillStyle = "#008800";
 						} else {
 							newX -= p.input[0] * this.sim.net.learnRate;
 							newY -= p.input[1] * this.sim.net.learnRate;
-							this.ctx.strokeStyle = "#880000";
+							this.ctx.strokeStyle = this.ctx.fillStyle = "#880000";
 	
 						}
 						Util.drawArrow(this.ctx, {x:scale.x(oldX), y:scale.y(oldY)}, {x:scale.x(newX), y:scale.y(newY)},
-								5, 5);
+								al, aw);
 	
-						this.ctx.strokeStyle = "#808080";
+						this.ctx.strokeStyle = this.ctx.fillStyle = "#808080";
 						this.ctx.arc(scale.x(p.input[0]), scale.y(p.input[1]), 8, 0, 2*Math.PI);
 	
 					}
@@ -185,9 +206,9 @@ class NetworkVisualization implements Visualization {
 			newX = ww[0];
 			newY = ww[1];
 
-			this.ctx.strokeStyle = "#000000";
+			this.ctx.strokeStyle = this.ctx.fillStyle = "#000000";
 			Util.drawArrow(this.ctx, {x:scale.x(oldX), y:scale.y(oldY)},
-					{x:scale.x(newX), y:scale.y(newY)}, 5, 5);
+					{x:scale.x(newX), y:scale.y(newY)}, al, aw);
 		}
 	}
 	
@@ -207,17 +228,6 @@ class NetworkVisualization implements Visualization {
 		this.ctx.lineWidth = 2;
 		this.ctx.moveTo(x, y);
 		this.ctx.lineTo(x2, y2);
-		this.ctx.stroke();
-	}
-
-	drawPoint(x: double, y: double, color: string) {
-		x = this.trafo.toCanvas.x(x); y = this.trafo.toCanvas.y(y);
-		this.ctx.fillStyle = color;
-		this.ctx.beginPath();
-		this.ctx.lineWidth = 1;
-		this.ctx.arc(x, y, 5, 0, 2 * Math.PI);
-		this.ctx.fill();
-		this.ctx.arc(x, y, 5, 0, 2 * Math.PI);
 		this.ctx.stroke();
 	}
 	clear(color: string) {

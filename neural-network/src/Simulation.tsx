@@ -55,6 +55,7 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 		if(!this.netgraph.currentlyDisplayingForwardPass) {
 			this.forwardPassEles = [];
 			this.forwardPassState = -1;
+			this.netviz.highlightedDataPoints = [];
 		}
 		this.stop();
 		if(this.forwardPassEles.length > 0) {
@@ -66,10 +67,14 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 				this.forwardPassState++;
 				this.forwardPassEles = this.netgraph.forwardPass(this.state.data[this.forwardPassState]);
 				this.netgraph.applyUpdate(this.forwardPassEles.shift());
+				this.netviz.highlightedDataPoints = [this.state.data[this.forwardPassState]];
+				this.netviz.onFrame();
 			} else {
 				// end
 				this.forwardPassState = -1;
+				this.netviz.highlightedDataPoints = [];
 				this.netgraph.onFrame(0);
+				this.netviz.onFrame();
 			}
 		}
 	}

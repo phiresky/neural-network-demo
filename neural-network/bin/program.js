@@ -753,6 +753,7 @@ var Simulation = (function (_super) {
         if (!this.netgraph.currentlyDisplayingForwardPass) {
             this.forwardPassEles = [];
             this.forwardPassState = -1;
+            this.netviz.highlightedDataPoints = [];
         }
         this.stop();
         if (this.forwardPassEles.length > 0) {
@@ -765,11 +766,15 @@ var Simulation = (function (_super) {
                 this.forwardPassState++;
                 this.forwardPassEles = this.netgraph.forwardPass(this.state.data[this.forwardPassState]);
                 this.netgraph.applyUpdate(this.forwardPassEles.shift());
+                this.netviz.highlightedDataPoints = [this.state.data[this.forwardPassState]];
+                this.netviz.onFrame();
             }
             else {
                 // end
                 this.forwardPassState = -1;
+                this.netviz.highlightedDataPoints = [];
                 this.netgraph.onFrame(0);
+                this.netviz.onFrame();
             }
         }
     };
@@ -1181,12 +1186,13 @@ var Util;
         e.stopPropagation();
     }
     Util.stopEvent = stopEvent;
-    /** Draws a line with an arrow head at its end.
-     *
-     * start.x/start.y - Starting point end.x/end.y - End point al - Arrowhead length aw -
-     * Arrowhead width
+    /**
+     * Draws a line with an arrow head at its end.
      *
      * FOUND ON USENET
+     * @param al Arrowhead length
+     * @param aw Arrowhead width
+     *
      */
     function drawArrow(g, start, end, al, aw) {
         // Compute length of line
@@ -1202,10 +1208,11 @@ var Util;
         g.beginPath();
         g.moveTo(start.x, start.y);
         g.lineTo(end.x, end.y);
-        g.lineTo(back_bottom.x, back_bottom.y);
-        g.moveTo(end.x, end.y);
-        g.lineTo(back_top.x, back_top.y);
         g.stroke();
+        g.moveTo(back_bottom.x, back_bottom.y);
+        g.lineTo(end.x, end.y);
+        g.lineTo(back_top.x, back_top.y);
+        g.fill();
     }
     Util.drawArrow = drawArrow;
     function toLinearFunction(_a, threshold) {
@@ -1544,6 +1551,7 @@ var NetworkGraph = (function () {
             this.showbias = this.biasBeforeForwardPass;
             this.onNetworkLoaded(this.net, true);
             this.currentlyDisplayingForwardPass = false;
+            this.sim.netviz.highlightedDataPoints = [];
         }
         if (this.net.connections.length > 20 && framenum % 15 !== 0) {
             // skip some frames because slow
@@ -1591,6 +1599,7 @@ var NetworkVisualization = (function () {
         this.backgroundResolution = 15;
         this.container = $("<div>");
         this.netType = NetType.BinaryClassify;
+        this.highlightedDataPoints = [];
         var tmp = NetworkVisualization.colors.multiClass;
         tmp.bg = tmp.fg.map(function (c) { return Util.printColor(Util.parseColor(c).map(function (x) { return (x * 1.3) | 0; })); });
         this.canvas = $("<canvas class=fullsize>")[0];
@@ -1668,10 +1677,10 @@ var NetworkVisualization = (function () {
     };
     NetworkVisualization.prototype.drawDataPoints = function () {
         this.ctx.strokeStyle = "#000";
-        if (this.netType === NetType.BinaryClassify) {
+        if (this.netType === NetType.BinaryClassify || this.netType === NetType.MultiClass) {
             for (var _i = 0, _a = this.sim.state.data; _i < _a.length; _i++) {
                 var val = _a[_i];
-                this.drawPoint(val.input[0], val.input[1], NetworkVisualization.colors.binaryClassify.fg[val.output[0] | 0]);
+                this.drawDataPoint(val);
             }
         }
         else if (this.netType === NetType.AutoEncode) {
@@ -1685,19 +1694,35 @@ var NetworkVisualization = (function () {
                 this.drawPoint(ox, oy, NetworkVisualization.colors.autoencoder.output);
             }
         }
-        else if (this.netType === NetType.MultiClass) {
-            for (var _d = 0, _e = this.sim.state.data; _d < _e.length; _d++) {
-                var val = _e[_d];
-                this.drawPoint(val.input[0], val.input[1], NetworkVisualization.colors.multiClass.fg[Util.getMaxIndex(val.output)]);
-            }
-        }
         else {
             throw "can't draw this";
         }
     };
+    NetworkVisualization.prototype.drawDataPoint = function (p) {
+        var color = this.netType === NetType.BinaryClassify ?
+            NetworkVisualization.colors.binaryClassify.fg[p.output[0] | 0]
+            : this.netType === NetType.MultiClass ?
+                NetworkVisualization.colors.multiClass.fg[Util.getMaxIndex(p.output)]
+                : null;
+        this.drawPoint(p.input[0], p.input[1], color, this.highlightedDataPoints.indexOf(p) >= 0);
+    };
+    NetworkVisualization.prototype.drawPoint = function (x, y, color, highlight) {
+        if (highlight === void 0) { highlight = false; }
+        x = this.trafo.toCanvas.x(x), y = this.trafo.toCanvas.y(y);
+        this.ctx.fillStyle = color;
+        this.ctx.beginPath();
+        this.ctx.lineWidth = highlight ? 5 : 1;
+        this.ctx.strokeStyle = highlight ? "#000000" : "#000000";
+        this.ctx.arc(x, y, 5, 0, 2 * Math.PI);
+        this.ctx.fill();
+        this.ctx.arc(x, y, 5, 0, 2 * Math.PI);
+        this.ctx.stroke();
+    };
     NetworkVisualization.prototype.drawArrows = function () {
         var _this = this;
         this.ctx.lineWidth = 2;
+        var al = 8;
+        var aw = 4;
         var ww = this.sim.net.connections.map(function (c) { return c.weight; });
         var oldww = this.sim.lastWeights;
         if (oldww === undefined)
@@ -1721,8 +1746,8 @@ var NetworkVisualization = (function () {
             if (wasVectorWrong(this.sim.state.data)) {
                 newX = oldww[0];
                 newY = oldww[1];
-                this.ctx.strokeStyle = "#808080";
-                Util.drawArrow(this.ctx, { x: scale.x(oldX), y: scale.y(oldY) }, { x: scale.x(newX), y: scale.y(newY) }, 5, 5);
+                this.ctx.strokeStyle = this.ctx.fillStyle = "#808080";
+                Util.drawArrow(this.ctx, { x: scale.x(oldX), y: scale.y(oldY) }, { x: scale.x(newX), y: scale.y(newY) }, al, aw);
                 for (var _i = 0, _a = this.sim.state.data; _i < _a.length; _i++) {
                     var p = _a[_i];
                     if (wasPointWrong(p)) {
@@ -1731,15 +1756,15 @@ var NetworkVisualization = (function () {
                         if (p.output[0] == 1) {
                             newX += p.input[0] * this.sim.net.learnRate;
                             newY += p.input[1] * this.sim.net.learnRate;
-                            this.ctx.strokeStyle = "#008800";
+                            this.ctx.strokeStyle = this.ctx.fillStyle = "#008800";
                         }
                         else {
                             newX -= p.input[0] * this.sim.net.learnRate;
                             newY -= p.input[1] * this.sim.net.learnRate;
-                            this.ctx.strokeStyle = "#880000";
+                            this.ctx.strokeStyle = this.ctx.fillStyle = "#880000";
                         }
-                        Util.drawArrow(this.ctx, { x: scale.x(oldX), y: scale.y(oldY) }, { x: scale.x(newX), y: scale.y(newY) }, 5, 5);
-                        this.ctx.strokeStyle = "#808080";
+                        Util.drawArrow(this.ctx, { x: scale.x(oldX), y: scale.y(oldY) }, { x: scale.x(newX), y: scale.y(newY) }, al, aw);
+                        this.ctx.strokeStyle = this.ctx.fillStyle = "#808080";
                         this.ctx.arc(scale.x(p.input[0]), scale.y(p.input[1]), 8, 0, 2 * Math.PI);
                     }
                 }
@@ -1748,8 +1773,8 @@ var NetworkVisualization = (function () {
             oldY = 0;
             newX = ww[0];
             newY = ww[1];
-            this.ctx.strokeStyle = "#000000";
-            Util.drawArrow(this.ctx, { x: scale.x(oldX), y: scale.y(oldY) }, { x: scale.x(newX), y: scale.y(newY) }, 5, 5);
+            this.ctx.strokeStyle = this.ctx.fillStyle = "#000000";
+            Util.drawArrow(this.ctx, { x: scale.x(oldX), y: scale.y(oldY) }, { x: scale.x(newX), y: scale.y(newY) }, al, aw);
         }
     };
     NetworkVisualization.prototype.getSeparator = function (lineFunction) {
@@ -1769,17 +1794,6 @@ var NetworkVisualization = (function () {
         this.ctx.lineWidth = 2;
         this.ctx.moveTo(x, y);
         this.ctx.lineTo(x2, y2);
-        this.ctx.stroke();
-    };
-    NetworkVisualization.prototype.drawPoint = function (x, y, color) {
-        x = this.trafo.toCanvas.x(x);
-        y = this.trafo.toCanvas.y(y);
-        this.ctx.fillStyle = color;
-        this.ctx.beginPath();
-        this.ctx.lineWidth = 1;
-        this.ctx.arc(x, y, 5, 0, 2 * Math.PI);
-        this.ctx.fill();
-        this.ctx.arc(x, y, 5, 0, 2 * Math.PI);
         this.ctx.stroke();
     };
     NetworkVisualization.prototype.clear = function (color) {
@@ -2166,7 +2180,6 @@ var TabSwitcher = (function (_super) {
     };
     TabSwitcher.prototype.setMode = function (mode, force) {
         if (force === void 0) { force = false; }
-        console.log(this, mode);
         if (!force && mode == this.state.currentMode)
             return;
         var action = this.state.modes[mode];
@@ -2190,7 +2203,6 @@ var TabSwitcher = (function (_super) {
         var beforeActions = JSON.stringify(this.props.things.map(function (t) { return t.actions; }));
         this.props.things.forEach(function (thing) { return thing.onNetworkLoaded(net); });
         var afterActions = JSON.stringify(this.props.things.map(function (t) { return t.actions; }));
-        console.log(beforeActions + " \u225F " + afterActions);
         if (beforeActions !== afterActions)
             this.setState({
                 modes: this.createButtonsAndActions(),

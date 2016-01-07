@@ -121,12 +121,13 @@ module Util {
 	}
 	
 	interface Point { x: double, y: double}
-	/** Draws a line with an arrow head at its end.
+	/** 
+	 * Draws a line with an arrow head at its end.
 	 *
-	 * start.x/start.y - Starting point end.x/end.y - End point al - Arrowhead length aw -
-	 * Arrowhead width
+	 * FOUND ON USENET  
+	 * @param al Arrowhead length
+	 * @param aw Arrowhead width
 	 *
-	 * FOUND ON USENET
 	 */
 	export function drawArrow(g:CanvasRenderingContext2D, start:Point, end: Point,
 			al:double, aw:double) {
@@ -143,10 +144,11 @@ module Util {
 		g.beginPath();
 		g.moveTo(start.x, start.y);
 		g.lineTo(end.x, end.y);
-		g.lineTo(back_bottom.x, back_bottom.y);
-		g.moveTo(end.x, end.y);
-		g.lineTo(back_top.x, back_top.y);
 		g.stroke();
+		g.moveTo(back_bottom.x, back_bottom.y);
+		g.lineTo(end.x, end.y);
+		g.lineTo(back_top.x, back_top.y);
+		g.fill();
 	}
 	
 	export function toLinearFunction([wx, wy, wbias]: [number, number, number], threshold = 0): (x:number) => number {

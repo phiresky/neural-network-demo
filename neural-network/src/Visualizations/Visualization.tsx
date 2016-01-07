@@ -146,7 +146,6 @@ class TabSwitcher extends React.Component<TSProps, {modes: _Mode[], currentMode:
 		return modes;
 	}
 	setMode(mode:int, force = false) {
-		console.log(this, mode);
 		if (!force && mode == this.state.currentMode) return;
 		const action = this.state.modes[mode];
 		const lastAction = this.state.modes[this.state.currentMode];
@@ -166,7 +165,6 @@ class TabSwitcher extends React.Component<TSProps, {modes: _Mode[], currentMode:
 		const beforeActions = JSON.stringify(this.props.things.map(t => t.actions));
 		this.props.things.forEach(thing => thing.onNetworkLoaded(net));
 		const afterActions = JSON.stringify(this.props.things.map(t => t.actions));
-		console.log(`${beforeActions} ≟ ${afterActions}`);
 		if(beforeActions !== afterActions)
 			this.setState({
 				modes:this.createButtonsAndActions(),
