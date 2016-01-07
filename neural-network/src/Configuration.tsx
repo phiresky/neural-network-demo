@@ -19,8 +19,8 @@ class ConfigurationGui extends React.Component<Configuration, {}> {
 					<BSFormGroup label="Iterations per click on 'Train'" id="iterationsPerClick">
 						<input className="form-control" type="number" min={0} max={10000} id="iterationsPerClick" value={""+conf.iterationsPerClick} onChange={loadConfig} />
 					</BSFormGroup>
-					<BSFormGroup label="Steps per Frame" id="stepsPerFrame">
-						<input className="form-control" type="number" min={1} max={1000} id="stepsPerFrame" value={""+conf.stepsPerFrame} onChange={loadConfig} />
+					<BSFormGroup label="Steps per Second" id="stepsPerSecond">
+						<input className="form-control" type="number" min={0.1} max={1000} id="stepsPerSecond" value={""+conf.stepsPerSecond} onChange={loadConfig} />
 					</BSFormGroup>
 					<BSFormGroup label="When correct, restart after 5 seconds" id="autoRestart" isStatic>
 						<input type="checkbox" id="autoRestart" checked={conf.autoRestart} onChange={loadConfig} />

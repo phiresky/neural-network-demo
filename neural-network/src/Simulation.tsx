@@ -5,10 +5,12 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 	errorGraph: ErrorGraph;
 	weightsGraph: WeightsGraph;
 
-	stepNum = 0;
+	stepsWanted = 0;
+	stepsCurrent = 0;
 	frameNum = 0;
 	running = false; runningId = -1;
 	restartTimeout = -1;
+	lastTimestamp = 0;
 	averageError = 1;
 
 	net: Net.NeuralNet;
@@ -32,7 +34,7 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 		if (this.net) this.stop();
 		console.log("initializeNet()");
 		this.net = new Net.NeuralNet(this.state.inputLayer, this.state.hiddenLayers, this.state.outputLayer, this.state.learningRate, undefined, this.state.weights);
-		this.stepNum = 0;
+		this.stepsWanted = this.stepsCurrent = 0;
 		this.errorHistory = [];
 		this.lrVis.leftVis.onNetworkLoaded(this.net);
 		this.lrVis.rightVis.onNetworkLoaded(this.net);
@@ -41,7 +43,7 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 	statusIterEle = document.getElementById('statusIteration');
 	statusCorrectEle = document.getElementById('statusCorrect');
 	step() {
-		this.stepNum++;
+		this.stepsCurrent++;
 		if(this.state.saveLastWeights)
 			this.lastWeights = this.net.connections.map(c => c.weight);
 		this.net.trainAll(this.state.data, !this.state.batchTraining);
@@ -83,7 +85,8 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 		if (this.running) return;
 		this.running = true;
 		this.lrVis.setState({running:true});
-		this.animationStep();
+		this.lastTimestamp = performance.now(); 
+		requestAnimationFrame(this.aniFrameCallback);
 	}
 
 	stop() {
@@ -117,7 +120,7 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 			this.averageError += this.net.getLoss(val.output);
 		}
 		this.averageError /= this.state.data.length;
-		this.errorHistory.push([this.stepNum, this.averageError]);
+		this.errorHistory.push([this.stepsCurrent, this.averageError]);
 	}
 
 	updateStatusLine() {
@@ -131,7 +134,7 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 		} else {
 			this.lrVis.setState({correct:`Error: ${(this.averageError).toFixed(2) }`});
 		}
-		this.lrVis.setState({stepNum: this.stepNum});
+		this.lrVis.setState({stepNum: this.stepsCurrent});
 
 		if (correct == this.state.data.length) {
 			if (this.state.autoRestart && this.running && this.restartTimeout == -1) {
@@ -150,8 +153,15 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 	}
 
 	aniFrameCallback = this.animationStep.bind(this);
-	animationStep() {
-		for (let i = 0; i < this.state.stepsPerFrame; i++) this.step();
+	animationStep(timestamp: number) {
+		let delta = timestamp - this.lastTimestamp;
+		this.lastTimestamp = timestamp;
+		if(delta > 1000 / 5) {
+			console.warn(`only ${(1000/delta).toFixed(1)} fps`);
+			delta = 1000 / 5;
+		}
+		this.stepsWanted += delta / 1000 * this.state.stepsPerSecond;  
+		while(this.stepsCurrent < this.stepsWanted) this.step();
 		this.onFrame(false);
 		if (this.running) this.runningId = requestAnimationFrame(this.aniFrameCallback);
 	}

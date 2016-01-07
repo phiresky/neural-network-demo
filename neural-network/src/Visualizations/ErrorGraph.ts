@@ -16,7 +16,7 @@ class ErrorGraph implements Visualization {
 		this.chart = this.container.highcharts();
 	}
 	onFrame() {
-		const data:[number,number] = [this.sim.stepNum, this.sim.averageError];
+		const data:[number,number] = [this.sim.stepsCurrent, this.sim.averageError];
 		this.chart.series[0].addPoint(data, true, false);
 	}
 	onView() {
