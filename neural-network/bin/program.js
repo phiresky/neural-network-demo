@@ -512,7 +512,7 @@ var Presets;
             animationTrainSinglePoints: true,
             type: "perceptron",
             "iterationsPerClick": 1,
-            "data": [{ "input": [0.39, 1.12], "output": [0] }, { "input": [0.48, 0.31], "output": [0] }, { "input": [0.51, 0.73], "output": [0] }, { "input": [1.21, 0.62], "output": [1] }, { "input": [1.05, -0.01], "output": [1] }, { "input": [0.93, -0.09], "output": [1] }, { "input": [0.86, 0.55], "output": [1] }, { "input": [0.20090787269681742, 0.8119715242881071], "output": [0] }, { "input": [0.5867537688442211, 0.09702177554438846], "output": [0] }, { "input": [0.6321474036850921, 1.05028810720268], "output": [1] }, { "input": [0.8818123953098829, 0.8800619765494136], "output": [1] }, { "input": [-0.060105527638190964, 0.4942160804020099], "output": [0] }],
+            "data": [{ "input": [0.2101231155778894, 0.4947319932998326], "output": [0] }, { "input": [0.07838107202680059, 0.42886097152428815], "output": [0] }, { "input": [0.027711055276381822, 0.9000921273031828], "output": [0] }, { "input": [0.5344112227805695, 0.5910050251256282], "output": [0] }, { "input": [0.5445452261306533, 0.11977386934673367], "output": [0] }, { "input": [0.4482721943048576, -0.07783919597989952], "output": [0] }, { "input": [0.7725603015075377, -0.305854271356784], "output": [0] }, { "input": [0.5445452261306533, -0.3210552763819096], "output": [0] }, { "input": [-0.028025963149078823, 0.20084589614740372], "output": [1] }, { "input": [0.2506591289782244, -0.36159128978224464], "output": [1] }, { "input": [-0.22057202680067015, -0.04237018425460638], "output": [1] }, { "input": [-0.3573810720268008, 0.2819179229480737], "output": [1] }, { "input": [-0.5549941373534341, 0.2211139028475712], "output": [1] }, { "input": [0.05304606365159121, -0.3109212730318259], "output": [1] }, { "input": [-0.4485871021775546, -0.31598827470686774], "output": [1] }],
             "inputLayer": {
                 "neuronCount": 2,
                 "names": [
@@ -931,7 +931,7 @@ var Simulation = (function (_super) {
                 this.netgraph.onNetworkLoaded(this.net);
             }
             this.net.learnRate = cn.learningRate;
-            if (cn.showGradient != co.showGradient)
+            if (cn.showGradient != co.showGradient || cn.drawCoordinateSystem != co.drawCoordinateSystem || cn.drawArrows != co.drawArrows)
                 this.onFrame(false);
         }
     };
@@ -1280,7 +1280,7 @@ var ConfigurationGui = (function (_super) {
         var loadConfig = function () { return sim.loadConfig(); };
         return React.createElement("div", {className: "form-horizontal"}, React.createElement("div", {className: "col-sm-6"}, React.createElement("h4", null, "Display"), React.createElement(BSFormGroup, {label: "Iterations per click on 'Train'", id: "iterationsPerClick"}, React.createElement("input", {className: "form-control", type: "number", min: 0, max: 10000, id: "iterationsPerClick", value: "" + conf.iterationsPerClick, onChange: loadConfig})), React.createElement(BSFormGroup, {label: "Steps per Second", id: "stepsPerSecond"}, React.createElement("input", {className: "form-control", type: "number", min: 0.1, max: 1000, id: "stepsPerSecond", value: "" + conf.stepsPerSecond, onChange: loadConfig})), React.createElement(BSCheckbox, {label: "When correct, restart after 5 seconds", id: "autoRestart", conf: conf}), conf.type !== "perceptron" ?
             React.createElement(BSCheckbox, {label: "Show class propabilities as gradient", id: "showGradient", conf: conf})
-            : "", React.createElement("button", {className: "btn btn-default", "data-toggle": "modal", "data-target": "#exportModal"}, "Import / Export")), React.createElement("div", {className: "col-sm-6"}, React.createElement("h4", null, conf.type === "perceptron" ? "Perceptron" : "Net"), React.createElement(BSFormGroup, {id: "learningRate", label: "Learning Rate", isStatic: true}, React.createElement("span", {id: "learningRateVal", style: { marginRight: '1em' }}, conf.learningRate.toFixed(3)), React.createElement("input", {type: "range", min: 0.005, max: 1, step: 0.005, id: "learningRate", value: Util.logScale(conf.learningRate) + "", onChange: loadConfig})), React.createElement(BSCheckbox, {label: "Show bias input", id: "bias", conf: conf}), conf.type === "perceptron" ?
+            : "", React.createElement(BSCheckbox, {label: "Show bias input", id: "bias", conf: conf}), React.createElement("button", {className: "btn btn-default", "data-toggle": "modal", "data-target": "#exportModal"}, "Import / Export")), React.createElement("div", {className: "col-sm-6"}, React.createElement("h4", null, conf.type === "perceptron" ? "Perceptron" : "Net"), React.createElement(BSFormGroup, {id: "learningRate", label: "Learning Rate", isStatic: true}, React.createElement("span", {id: "learningRateVal", style: { marginRight: '1em' }}, conf.learningRate.toFixed(3)), React.createElement("input", {type: "range", min: 0.005, max: 1, step: 0.005, id: "learningRate", value: Util.logScale(conf.learningRate) + "", onChange: loadConfig})), conf.type === "perceptron" ?
             React.createElement("div", null, React.createElement(BSCheckbox, {label: "Animate online training", id: "animationTrainSinglePoints", conf: conf}), React.createElement(BSCheckbox, {label: "Draw Arrows", id: "drawArrows", conf: conf}), React.createElement(BSCheckbox, {label: "Draw coordinate system", id: "drawCoordinateSystem", conf: conf}))
             :
                 React.createElement("div", null, React.createElement(BSCheckbox, {id: "batchTraining", label: "Batch training", conf: conf}), React.createElement(NeuronGui, React.__spread({}, this.props)))));
@@ -1752,7 +1752,8 @@ var NetworkVisualization = (function () {
         this.ctx.strokeStyle = highlight ? "#000000" : "#000000";
         this.ctx.arc(x, y, 5, 0, 2 * Math.PI);
         this.ctx.fill();
-        this.ctx.arc(x, y, 5, 0, 2 * Math.PI);
+        this.ctx.beginPath();
+        this.ctx.arc(x, y, highlight ? 7 : 5, 0, 2 * Math.PI);
         this.ctx.stroke();
     };
     NetworkVisualization.prototype.drawArrows = function () {
@@ -1951,7 +1952,7 @@ var NetworkVisualization = (function () {
             }
             else {
                 var inv = function (x) { return x == 0 ? 1 : 0; };
-                var label = this.inputMode;
+                var label = this.inputMode - 1;
                 if (evt.button != 0)
                     label = inv(label);
                 if (evt.ctrlKey || evt.metaKey || evt.altKey)
@@ -2169,6 +2170,32 @@ var MultiVisDisplayer = (function (_super) {
     };
     return MultiVisDisplayer;
 }(React.Component));
+var ControlButtonBar = (function (_super) {
+    __extends(ControlButtonBar, _super);
+    function ControlButtonBar() {
+        _super.apply(this, arguments);
+    }
+    ControlButtonBar.prototype.render = function () {
+        var sim = this.props.sim;
+        return React.createElement("div", {className: "h3"}, React.createElement("button", {className: this.props.running ? "btn btn-danger" : "btn btn-primary", onClick: sim.runtoggle.bind(sim)}, this.props.running ? "Stop" : "Animate"), " ", React.createElement("button", {className: "btn btn-warning", onClick: sim.reset.bind(sim)}, "Reset"), " ", React.createElement("button", {className: "btn btn-default", onClick: sim.trainAllButton.bind(sim)}, sim.state.showTrainNextButton ? "Batch Train" : "Train"), " ", sim.state.showTrainNextButton ?
+            React.createElement("button", {className: "btn btn-default", onClick: sim.trainNextButton.bind(sim)}, "Train Next")
+            :
+                React.createElement("button", {className: "btn btn-default", onClick: sim.forwardPassStep.bind(sim)}, "Forward Pass Step"), React.createElement("div", {className: "btn-group pull-right"}, React.createElement("button", {className: "btn btn-default dropdown-toggle", "data-toggle": "dropdown"}, "Load ", React.createElement("span", {className: "caret"})), React.createElement("ul", {className: "dropdown-menu"}, Presets.getNames().map(function (name) {
+            return React.createElement("li", {key: name}, React.createElement("a", {onClick: function (e) { return sim.setState(Presets.get(e.target.textContent)); }}, name));
+        }))));
+    };
+    return ControlButtonBar;
+}(React.Component));
+var StatusBar = (function (_super) {
+    __extends(StatusBar, _super);
+    function StatusBar() {
+        _super.apply(this, arguments);
+    }
+    StatusBar.prototype.render = function () {
+        return React.createElement("h2", null, this.props.correct, " — Iteration: ", this.props.iteration);
+    };
+    return StatusBar;
+}(React.Component));
 var LRVis = (function (_super) {
     __extends(LRVis, _super);
     function LRVis(props) {
@@ -2177,12 +2204,7 @@ var LRVis = (function (_super) {
     LRVis.prototype.render = function () {
         var _this = this;
         var sim = this.props.sim;
-        return React.createElement("div", null, React.createElement("div", {className: "row"}, React.createElement("div", {className: "col-sm-6"}, React.createElement(TabSwitcher, {ref: function (c) { return _this.leftVis = c; }, things: this.props.leftVis, onChangeVisualization: function (vis, aft) { return _this.changeBody(0, vis, aft); }})), React.createElement("div", {className: "col-sm-6"}, React.createElement(TabSwitcher, {ref: function (c) { return _this.rightVis = c; }, things: this.props.rightVis, onChangeVisualization: function (vis, aft) { return _this.changeBody(1, vis, aft); }}))), React.createElement("div", {className: "row"}, React.createElement("div", {className: "col-sm-6"}, React.createElement("div", {className: "visbody", ref: function (b) { return _this.bodyDivs[0] = b; }}), React.createElement("div", {className: "h3"}, React.createElement("button", {className: this.state.running ? "btn btn-danger" : "btn btn-primary", onClick: sim.runtoggle.bind(sim)}, this.state.running ? "Stop" : "Animate"), " ", React.createElement("button", {className: "btn btn-warning", onClick: sim.reset.bind(sim)}, "Reset"), " ", React.createElement("button", {className: "btn btn-default", onClick: sim.trainAllButton.bind(sim)}, sim.state.showTrainNextButton ? "Batch Train" : "Train"), " ", sim.state.showTrainNextButton ?
-            React.createElement("button", {className: "btn btn-default", onClick: sim.trainNextButton.bind(sim)}, "Train Next")
-            :
-                React.createElement("button", {className: "btn btn-default", onClick: sim.forwardPassStep.bind(sim)}, "Forward Pass Step"), React.createElement("div", {className: "btn-group pull-right"}, React.createElement("button", {className: "btn btn-default dropdown-toggle", "data-toggle": "dropdown"}, "Load ", React.createElement("span", {className: "caret"})), React.createElement("ul", {className: "dropdown-menu"}, Presets.getNames().map(function (name) {
-            return React.createElement("li", {key: name}, React.createElement("a", {onClick: function (e) { return sim.setState(Presets.get(e.target.textContent)); }}, name));
-        })))), React.createElement("hr", null)), React.createElement("div", {className: "col-sm-6"}, React.createElement("div", {className: "visbody", ref: function (b) { return _this.bodyDivs[1] = b; }}), React.createElement("div", {id: "status"}, React.createElement("h2", null, this.state.correct, " — Iteration: ", this.state.stepNum)), React.createElement("hr", null))));
+        return React.createElement("div", null, React.createElement("div", {className: "row"}, React.createElement("div", {className: "col-sm-6"}, React.createElement(TabSwitcher, {ref: function (c) { return _this.leftVis = c; }, things: this.props.leftVis, onChangeVisualization: function (vis, aft) { return _this.changeBody(0, vis, aft); }})), React.createElement("div", {className: "col-sm-6"}, React.createElement(TabSwitcher, {ref: function (c) { return _this.rightVis = c; }, things: this.props.rightVis, onChangeVisualization: function (vis, aft) { return _this.changeBody(1, vis, aft); }}))), React.createElement("div", {className: "row"}, React.createElement("div", {className: "col-sm-6"}, React.createElement("div", {className: "visbody", ref: function (b) { return _this.bodyDivs[0] = b; }}), React.createElement(ControlButtonBar, {running: this.state.running, sim: sim}), React.createElement("hr", null)), React.createElement("div", {className: "col-sm-6"}, React.createElement("div", {className: "visbody", ref: function (b) { return _this.bodyDivs[1] = b; }}), React.createElement("div", null, React.createElement(StatusBar, {correct: this.state.correct, iteration: this.state.stepNum})), React.createElement("hr", null))));
     };
     return LRVis;
 }(MultiVisDisplayer));

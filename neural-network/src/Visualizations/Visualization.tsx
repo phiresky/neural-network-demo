@@ -46,6 +46,37 @@ abstract class MultiVisDisplayer<T> extends React.Component<{sim:Simulation}&T, 
 		}
 	}
 }
+class ControlButtonBar extends React.Component<{running: boolean, sim:Simulation}, {}>{
+	render() {
+		const sim = this.props.sim;
+		return <div className="h3">
+			<button className={this.props.running?"btn btn-danger":"btn btn-primary"} onClick={sim.runtoggle.bind(sim)}>{this.props.running?"Stop":"Animate"}</button>&nbsp;
+			<button className="btn btn-warning" onClick={sim.reset.bind(sim)}>Reset</button>&nbsp;
+			<button className="btn btn-default" onClick={sim.trainAllButton.bind(sim)}>{sim.state.showTrainNextButton?"Batch Train":"Train"}</button>&nbsp;
+			{sim.state.showTrainNextButton?
+				<button className="btn btn-default" onClick={sim.trainNextButton.bind(sim)}>Train Next</button>
+			:
+				<button className="btn btn-default" onClick={sim.forwardPassStep.bind(sim)}>Forward Pass Step</button>
+			}
+			<div className="btn-group pull-right">
+				<button className="btn btn-default dropdown-toggle" data-toggle="dropdown">{"Load "}
+					<span className="caret" /></button>
+				<ul className="dropdown-menu">
+					{Presets.getNames().map(name =>
+						<li key={name}><a onClick={e => sim.setState(Presets.get((e.target as Element).textContent))}>{name}</a></li>)
+					}
+				</ul>
+			</div>
+		</div>;
+	}
+}
+class StatusBar extends React.Component<{correct: string, iteration: int}, {}> {
+	render() {
+		return <h2>
+			{this.props.correct} — Iteration:&nbsp;{this.props.iteration}
+		</h2>
+	}
+}
 class LRVis extends MultiVisDisplayer<{leftVis: Visualization[], rightVis: Visualization[]}> {
 	leftVis: TabSwitcher;
 	rightVis: TabSwitcher;
@@ -72,33 +103,13 @@ class LRVis extends MultiVisDisplayer<{leftVis: Visualization[], rightVis: Visua
 				<div className="row">
 					<div className="col-sm-6">
 						<div className="visbody" ref={b => this.bodyDivs[0] = b } />
-						<div className="h3">
-							<button className={this.state.running?"btn btn-danger":"btn btn-primary"} onClick={sim.runtoggle.bind(sim)}>{this.state.running?"Stop":"Animate"}</button>&nbsp;
-							<button className="btn btn-warning" onClick={sim.reset.bind(sim)}>Reset</button>&nbsp;
-							<button className="btn btn-default" onClick={sim.trainAllButton.bind(sim)}>{sim.state.showTrainNextButton?"Batch Train":"Train"}</button>&nbsp;
-							{sim.state.showTrainNextButton?
-								<button className="btn btn-default" onClick={sim.trainNextButton.bind(sim)}>Train Next</button>
-							:
-								<button className="btn btn-default" onClick={sim.forwardPassStep.bind(sim)}>Forward Pass Step</button>
-							}
-							<div className="btn-group pull-right">
-								<button className="btn btn-default dropdown-toggle" data-toggle="dropdown">{"Load "}
-									<span className="caret" /></button>
-								<ul className="dropdown-menu">
-									{Presets.getNames().map(name =>
-										<li key={name}><a onClick={e => sim.setState(Presets.get((e.target as Element).textContent))}>{name}</a></li>)
-									}
-								</ul>
-							</div>
-						</div>
+						<ControlButtonBar running={this.state.running} sim={sim}/>
 						<hr />
 					</div>
 					<div className="col-sm-6">
 						<div className="visbody" ref={b => this.bodyDivs[1] = b } />
-						<div id="status">
-							<h2>
-								{this.state.correct} — Iteration:&nbsp;{this.state.stepNum}
-							</h2>
+						<div>
+							<StatusBar correct={this.state.correct} iteration={this.state.stepNum} />
 						</div>
 						<hr />
 					</div>

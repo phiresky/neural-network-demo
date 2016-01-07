@@ -36,6 +36,7 @@ class ConfigurationGui extends React.Component<Configuration, {}> {
 					{conf.type !== "perceptron"?
 						<BSCheckbox label="Show class propabilities as gradient" id="showGradient" conf={conf}/>
 					:""}
+					<BSCheckbox label="Show bias input" id="bias" conf={conf} />
 					<button className="btn btn-default" data-toggle="modal" data-target="#exportModal">Import / Export</button>
 				</div>
 				<div className="col-sm-6">
@@ -44,7 +45,6 @@ class ConfigurationGui extends React.Component<Configuration, {}> {
 						<span id="learningRateVal" style={{marginRight: '1em'}}>{conf.learningRate.toFixed(3)}</span>
 						<input type="range" min={0.005} max={1} step={0.005} id="learningRate" value={Util.logScale(conf.learningRate)+""} onChange={loadConfig} />
 					</BSFormGroup>
-					<BSCheckbox label="Show bias input" id="bias" conf={conf} />
 					{conf.type === "perceptron"?
 						<div>
 							<BSCheckbox label="Animate online training" id="animationTrainSinglePoints" conf={conf} />

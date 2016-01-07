@@ -142,7 +142,8 @@ class NetworkVisualization implements Visualization {
 		this.ctx.strokeStyle = highlight ? "#000000": "#000000";
 		this.ctx.arc(x, y, 5, 0, 2 * Math.PI);
 		this.ctx.fill();
-		this.ctx.arc(x, y, 5, 0, 2 * Math.PI);
+		this.ctx.beginPath();
+		this.ctx.arc(x, y, highlight ? 7 : 5, 0, 2 * Math.PI);
 		this.ctx.stroke();
 	}
 	
@@ -343,7 +344,7 @@ class NetworkVisualization implements Visualization {
 				data.push({ input: [x, y], output: [x, y] });
 			} else {
 				const inv = (x: int) => x == 0 ? 1 : 0;
-				let label = this.inputMode;
+				let label = this.inputMode - 1;
 				if (evt.button != 0) label = inv(label);
 				if (evt.ctrlKey || evt.metaKey || evt.altKey) label = inv(label);
 				let output = [label];

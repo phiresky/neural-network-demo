@@ -227,7 +227,7 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 				this.netgraph.onNetworkLoaded(this.net);
 			}
 			this.net.learnRate = cn.learningRate;
-			if(cn.showGradient != co.showGradient)
+			if(cn.showGradient != co.showGradient || cn.drawCoordinateSystem != co.drawCoordinateSystem || cn.drawArrows != co.drawArrows)
 				this.onFrame(false);
 		}
 	}
