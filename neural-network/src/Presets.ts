@@ -34,6 +34,7 @@ interface Configuration {
 	drawCoordinateSystem?: boolean;
     arrowScale?: int;
 	showTrainNextButton?: boolean;
+	animationTrainSinglePoints?: boolean;
 }
 module Presets {
 	export const presets: Configuration[] = [
@@ -65,7 +66,8 @@ module Presets {
 			originalBounds: null,
 			weights: null,
 			drawCoordinateSystem: true,
-			showTrainNextButton: false
+			showTrainNextButton: false,
+			animationTrainSinglePoints: false,
 		},
 		{
 			name: "Binary Classifier for XOR"
@@ -271,6 +273,7 @@ module Presets {
 			showTrainNextButton: true,
 			drawArrows: true,
 			drawCoordinateSystem: false,
+			animationTrainSinglePoints: true,
 			"iterationsPerClick": 1,
 			"data": [{"input":[0.39,1.12],"output":[0]},{"input":[0.48,0.31],"output":[0]},{"input":[0.51,0.73],"output":[0]},{"input":[1.21,0.62],"output":[1]},{"input":[1.05,-0.01],"output":[1]},{"input":[0.93,-0.09],"output":[1]},{"input":[0.86,0.55],"output":[1]},{"input":[0.20090787269681742,0.8119715242881071],"output":[0]},{"input":[0.5867537688442211,0.09702177554438846],"output":[0]},{"input":[0.6321474036850921,1.05028810720268],"output":[1]},{"input":[0.8818123953098829,0.8800619765494136],"output":[1]},{"input":[-0.060105527638190964,0.4942160804020099],"output":[0]}],
 			"inputLayer": {

@@ -303,7 +303,8 @@ var Presets;
             originalBounds: null,
             weights: null,
             drawCoordinateSystem: true,
-            showTrainNextButton: false
+            showTrainNextButton: false,
+            animationTrainSinglePoints: false,
         },
         {
             name: "Binary Classifier for XOR"
@@ -507,6 +508,7 @@ var Presets;
             showTrainNextButton: true,
             drawArrows: true,
             drawCoordinateSystem: false,
+            animationTrainSinglePoints: true,
             "iterationsPerClick": 1,
             "data": [{ "input": [0.39, 1.12], "output": [0] }, { "input": [0.48, 0.31], "output": [0] }, { "input": [0.51, 0.73], "output": [0] }, { "input": [1.21, 0.62], "output": [1] }, { "input": [1.05, -0.01], "output": [1] }, { "input": [0.93, -0.09], "output": [1] }, { "input": [0.86, 0.55], "output": [1] }, { "input": [0.20090787269681742, 0.8119715242881071], "output": [0] }, { "input": [0.5867537688442211, 0.09702177554438846], "output": [0] }, { "input": [0.6321474036850921, 1.05028810720268], "output": [1] }, { "input": [0.8818123953098829, 0.8800619765494136], "output": [1] }, { "input": [-0.060105527638190964, 0.4942160804020099], "output": [0] }],
             "inputLayer": {
@@ -754,18 +756,28 @@ var Simulation = (function (_super) {
             this.lastWeights = this.net.connections.map(function (c) { return c.weight; });
         this.net.trainAll(this.state.data, !this.state.batchTraining);
     };
-    Simulation.prototype.trainNext = function () {
+    Simulation.prototype.trainAllButton = function () {
         this.stop();
+        for (var i = 0; i < this.state.iterationsPerClick; i++)
+            this.trainAll();
+        this.stepsWanted = this.stepsCurrent;
+        this.onFrame(true);
+    };
+    Simulation.prototype.trainNextButton = function () {
+        this.stop();
+        this.trainNext();
+        this.stepsWanted = this.stepsCurrent;
+        this.onFrame(true);
+    };
+    Simulation.prototype.trainNext = function () {
         this.currentTrainingDataPoint++;
         if (this.state.saveLastWeights)
             this.lastWeights = this.net.connections.map(function (c) { return c.weight; });
+        this.stepsCurrent++;
         if (this.currentTrainingDataPoint >= this.state.data.length) {
-            this.stepsCurrent++;
-            this.stepsWanted++;
             this.currentTrainingDataPoint -= this.state.data.length;
         }
         this.net.train(this.state.data[this.currentTrainingDataPoint]);
-        this.onFrame(true);
     };
     Simulation.prototype.forwardPassStep = function () {
         if (!this.netgraph.currentlyDisplayingForwardPass) {
@@ -880,17 +892,10 @@ var Simulation = (function (_super) {
         }
         this.stepsWanted += delta / 1000 * this.state.stepsPerSecond;
         while (this.stepsCurrent < this.stepsWanted)
-            this.trainAll();
+            this.state.animationTrainSinglePoints ? this.trainNext() : this.trainAll();
         this.onFrame(false);
         if (this.running)
             this.runningId = requestAnimationFrame(this.aniFrameCallback);
-    };
-    Simulation.prototype.iterations = function () {
-        this.stop();
-        for (var i = 0; i < this.state.iterationsPerClick; i++)
-            this.trainAll();
-        this.stepsWanted = this.stepsCurrent;
-        this.onFrame(true);
     };
     Simulation.prototype.componentWillUpdate = function (nextProps, newConfig) {
         if (this.state.hiddenLayers.length !== newConfig.hiddenLayers.length && newConfig.custom) {
@@ -1273,7 +1278,7 @@ var NeuronLayer = (function (_super) {
     NeuronLayer.prototype.render = function () {
         var p = this.props;
         return React.createElement("div", null, p.name, " layer: ", p.layer.neuronCount, " neurons ", React.createElement("button", {className: "btn btn-xs btn-default", onClick: function () { return p.countChanged(1); }}, "+"), React.createElement("button", {className: "btn btn-xs btn-default", onClick: function () { return p.countChanged(-1); }}, "-"), p.layer.activation ?
-            React.createElement("select", {className: "btn btn-xs btn-default activation", onChange: function (e) { return p.activationChanged(e.target.value); }, value: p.layer.activation}, Object.keys(Net.NonLinearities).map(function (name) { return React.createElement("option", {key: name}, name); }))
+            React.createElement("select", {className: "btn btn-xs btn-default activation", onChange: function (e) { return p.activationChanged(e.target.value); }, value: p.layer.activation}, Object.keys(Net.NonLinearities).map(function (name) { return React.createElement("option", {key: name, value: name}, name); }))
             : "");
     };
     return NeuronLayer;
@@ -2155,8 +2160,8 @@ var LRVis = (function (_super) {
     LRVis.prototype.render = function () {
         var _this = this;
         var sim = this.props.sim;
-        return React.createElement("div", null, React.createElement("div", {className: "row"}, React.createElement("div", {className: "col-sm-6"}, React.createElement(TabSwitcher, {ref: function (c) { return _this.leftVis = c; }, things: this.props.leftVis, onChangeVisualization: function (vis, aft) { return _this.changeBody(0, vis, aft); }})), React.createElement("div", {className: "col-sm-6"}, React.createElement(TabSwitcher, {ref: function (c) { return _this.rightVis = c; }, things: this.props.rightVis, onChangeVisualization: function (vis, aft) { return _this.changeBody(1, vis, aft); }}))), React.createElement("div", {className: "row"}, React.createElement("div", {className: "col-sm-6"}, React.createElement("div", {className: "visbody", ref: function (b) { return _this.bodyDivs[0] = b; }}), React.createElement("div", {className: "h3"}, React.createElement("button", {className: this.state.running ? "btn btn-danger" : "btn btn-primary", onClick: sim.runtoggle.bind(sim)}, this.state.running ? "Stop" : "Animate"), " ", React.createElement("button", {className: "btn btn-warning", onClick: sim.reset.bind(sim)}, "Reset"), " ", React.createElement("button", {className: "btn btn-default", onClick: sim.iterations.bind(sim)}, sim.state.showTrainNextButton ? "Batch Train" : "Train"), " ", sim.state.showTrainNextButton ?
-            React.createElement("button", {className: "btn btn-default", onClick: sim.trainNext.bind(sim)}, "Train Next")
+        return React.createElement("div", null, React.createElement("div", {className: "row"}, React.createElement("div", {className: "col-sm-6"}, React.createElement(TabSwitcher, {ref: function (c) { return _this.leftVis = c; }, things: this.props.leftVis, onChangeVisualization: function (vis, aft) { return _this.changeBody(0, vis, aft); }})), React.createElement("div", {className: "col-sm-6"}, React.createElement(TabSwitcher, {ref: function (c) { return _this.rightVis = c; }, things: this.props.rightVis, onChangeVisualization: function (vis, aft) { return _this.changeBody(1, vis, aft); }}))), React.createElement("div", {className: "row"}, React.createElement("div", {className: "col-sm-6"}, React.createElement("div", {className: "visbody", ref: function (b) { return _this.bodyDivs[0] = b; }}), React.createElement("div", {className: "h3"}, React.createElement("button", {className: this.state.running ? "btn btn-danger" : "btn btn-primary", onClick: sim.runtoggle.bind(sim)}, this.state.running ? "Stop" : "Animate"), " ", React.createElement("button", {className: "btn btn-warning", onClick: sim.reset.bind(sim)}, "Reset"), " ", React.createElement("button", {className: "btn btn-default", onClick: sim.trainAllButton.bind(sim)}, sim.state.showTrainNextButton ? "Batch Train" : "Train"), " ", sim.state.showTrainNextButton ?
+            React.createElement("button", {className: "btn btn-default", onClick: sim.trainNextButton.bind(sim)}, "Train Next")
             :
                 React.createElement("button", {className: "btn btn-default", onClick: sim.forwardPassStep.bind(sim)}, "Forward Pass Step"), React.createElement("div", {className: "btn-group pull-right"}, React.createElement("button", {className: "btn btn-default dropdown-toggle", "data-toggle": "dropdown"}, "Load ", React.createElement("span", {className: "caret"})), React.createElement("ul", {className: "dropdown-menu"}, Presets.getNames().map(function (name) {
             return React.createElement("li", {key: name}, React.createElement("a", {onClick: function (e) { return sim.setState(Presets.get(e.target.textContent)); }}, name));

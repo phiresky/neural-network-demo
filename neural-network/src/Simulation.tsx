@@ -51,19 +51,31 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 		this.net.trainAll(this.state.data, !this.state.batchTraining);
 	}
 	
+	trainAllButton() {
+		this.stop();
+		for (var i = 0; i < this.state.iterationsPerClick; i++)
+			this.trainAll();
+		this.stepsWanted = this.stepsCurrent;
+		this.onFrame(true);
+	}
+	
+	trainNextButton() {
+		this.stop();
+		this.trainNext();
+		this.stepsWanted = this.stepsCurrent;
+		this.onFrame(true);
+	}
+	
 	currentTrainingDataPoint = -1;
 	trainNext() {
-		this.stop();
 		this.currentTrainingDataPoint++;
 		if(this.state.saveLastWeights)
 			this.lastWeights = this.net.connections.map(c => c.weight);
+		this.stepsCurrent++;
 		if(this.currentTrainingDataPoint >= this.state.data.length) {
-			this.stepsCurrent++;
-			this.stepsWanted++;
 			this.currentTrainingDataPoint -= this.state.data.length;
 		}
 		this.net.train(this.state.data[this.currentTrainingDataPoint]);
-		this.onFrame(true);
 	}
 	
 
@@ -180,17 +192,9 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 			delta = 1000 / 5;
 		}
 		this.stepsWanted += delta / 1000 * this.state.stepsPerSecond;  
-		while(this.stepsCurrent < this.stepsWanted) this.trainAll();
+		while(this.stepsCurrent < this.stepsWanted) this.state.animationTrainSinglePoints? this.trainNext():this.trainAll();
 		this.onFrame(false);
 		if (this.running) this.runningId = requestAnimationFrame(this.aniFrameCallback);
-	}
-
-	iterations() {
-		this.stop();
-		for (var i = 0; i < this.state.iterationsPerClick; i++)
-			this.trainAll();
-		this.stepsWanted = this.stepsCurrent;
-		this.onFrame(true);
 	}
 	
 	componentWillUpdate(nextProps: any, newConfig: Configuration) {
