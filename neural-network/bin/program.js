@@ -1000,8 +1000,12 @@ var TransformNavigation = (function () {
             if (!transformActive())
                 return;
             var delta = e.deltaY / Math.abs(e.deltaY);
+            var beforeTransform = { x: _this.toReal.x(e.offsetX), y: _this.toReal.y(e.offsetY) };
             _this.scalex *= 1 - delta / 10;
             _this.scaley *= 1 - delta / 10;
+            var afterTransform = { x: _this.toReal.x(e.offsetX), y: _this.toReal.y(e.offsetY) };
+            _this.offsetx += (afterTransform.x - beforeTransform.x) * _this.scalex;
+            _this.offsety += (afterTransform.y - beforeTransform.y) * _this.scaley;
             transformChanged();
             Util.stopEvent(e);
         });

@@ -20,8 +20,12 @@ class TransformNavigation {
 			if (e.deltaY === 0) return;
 			if (!transformActive()) return;
 			var delta = e.deltaY / Math.abs(e.deltaY);
+			const beforeTransform = {x:this.toReal.x(e.offsetX),y:this.toReal.y(e.offsetY)};
 			this.scalex *= 1 - delta / 10;
 			this.scaley *= 1 - delta / 10;
+			const afterTransform = {x:this.toReal.x(e.offsetX),y:this.toReal.y(e.offsetY)};
+			this.offsetx += (afterTransform.x - beforeTransform.x) * this.scalex;
+			this.offsety += (afterTransform.y - beforeTransform.y) * this.scaley;
 			transformChanged();
 			Util.stopEvent(e);
 		});
