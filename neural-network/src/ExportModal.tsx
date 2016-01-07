@@ -31,7 +31,7 @@ class ExportModal extends React.Component<{sim:Simulation},{exportWeights:string
 							<hr />
 							<h4 className="modal-title">Export to file</h4>
 							<button className="btn btn-default" onClick={() => this.exportJSON(this.props.sim.state)}>
-								Export configuration as json
+								Export configuration and data as json
 							</button>
 							<button className="btn btn-default" onClick={() => this.exportCSV(this.props.sim.state)}>
 								Export training data as CSV
