@@ -108,6 +108,23 @@ module Net {
 			}
 			if(!individual) for (const conn of this.connections) conn.flushDeltaWeight();
 		}
+		
+		/** averaged perceptron (from http://ciml.info/dl/v0_8/ciml-v0_8-ch03.pdf , p.48) */
+		trainAllAveraged(data: TrainingData[]) {
+			//if(this.layers.length !== 2 || this.outputs.length !== 1 || this.outputs[0].activation !== "threshold (≥ 0)")
+			//	throw Error("can only be used for single perceptron");
+			let u = this.connections.map(w => 0);
+			let c = 1;
+			for(const val of data) {
+				this.train(val);
+				if(this.outputs[0].error !== 0) {
+					const y = val.output[0] === 1 ? -1 : 1;
+					u = this.connections.map((conn,i) => u[i] + y * c * conn.inp.output);
+				}
+				++c;
+			}
+			this.connections.forEach((conn, i) => conn.weight -= u[i]/c);
+		}
 
 		/** if flush is false, only calculate deltas but don't reset or add them */
 		train(val: TrainingData, flush = true) {
@@ -140,7 +157,7 @@ module Net {
 		}
 		flushDeltaWeight() {
 			this.weight += this.deltaWeight;
-			this.deltaWeight = NaN;
+			this.deltaWeight = NaN; // set to NaN to prevent flushing bugs
 		}
 	}
 	export class Neuron {

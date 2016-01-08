@@ -161,6 +161,27 @@ var Net;
                     conn.flushDeltaWeight();
                 }
         };
+        /** averaged perceptron (from http://ciml.info/dl/v0_8/ciml-v0_8-ch03.pdf , p.48) */
+        NeuralNet.prototype.trainAllAveraged = function (data) {
+            //if(this.layers.length !== 2 || this.outputs.length !== 1 || this.outputs[0].activation !== "threshold (≥ 0)")
+            //	throw Error("can only be used for single perceptron");
+            var u = this.connections.map(function (w) { return 0; });
+            var c = 1;
+            var _loop_1 = function(val) {
+                this_1.train(val);
+                if (this_1.outputs[0].error !== 0) {
+                    var y = val.output[0] === 1 ? -1 : 1;
+                    u = this_1.connections.map(function (conn, i) { return u[i] + y * c * conn.inp.output; });
+                }
+                ++c;
+            };
+            var this_1 = this;
+            for (var _i = 0, data_2 = data; _i < data_2.length; _i++) {
+                var val = data_2[_i];
+                _loop_1(val);
+            }
+            this.connections.forEach(function (conn, i) { return conn.weight -= u[i] / c; });
+        };
         /** if flush is false, only calculate deltas but don't reset or add them */
         NeuralNet.prototype.train = function (val, flush) {
             if (flush === void 0) { flush = true; }
@@ -203,7 +224,7 @@ var Net;
         };
         NeuronConnection.prototype.flushDeltaWeight = function () {
             this.weight += this.deltaWeight;
-            this.deltaWeight = NaN;
+            this.deltaWeight = NaN; // set to NaN to prevent flushing bugs
         };
         return NeuronConnection;
     }());
@@ -280,7 +301,7 @@ var Presets;
             stepsPerSecond: 3000,
             learningRate: 0.05,
             showGradient: false,
-            batchTraining: false,
+            trainingMethod: "Online Training",
             custom: false,
             bias: false,
             autoRestartTime: 5000,
@@ -498,14 +519,14 @@ var Presets;
         { "name": "Bit Position Auto Encoder", "learningRate": 0.05, "data": [{ "input": [1, 0, 0, 0], "output": [1, 0, 0, 0] }, { "input": [0, 1, 0, 0], "output": [0, 1, 0, 0] }, { "input": [0, 0, 1, 0], "output": [0, 0, 1, 0] }, { "input": [0, 0, 0, 1], "output": [0, 0, 0, 1] }], "inputLayer": { "neuronCount": 4, "names": ["in1", "in2", "in3", "in4"] }, "outputLayer": { "neuronCount": 4, "activation": "sigmoid", "names": ["out1", "out2", "out3", "out4"] }, "hiddenLayers": [{ "neuronCount": 2, "activation": "sigmoid" }], "netLayers": [{ "activation": "sigmoid", "neuronCount": 2 }, { "activation": "linear", "neuronCount": 1 }, { "neuronCount": 2, "activation": "sigmoid" }] },
         { "name": "!listDivider" },
         {
-            "name": "Rosenblatt Perzeptron",
+            "name": "Rosenblatt Perceptron",
             stepsPerSecond: 2,
             "learningRate": 0.5,
             "showGradient": false,
             "bias": false,
             "autoRestartTime": 5000,
             "autoRestart": false,
-            batchTraining: true,
+            trainingMethod: "Batch Training",
             saveLastWeights: true,
             showTrainNextButton: true,
             drawArrows: true,
@@ -529,6 +550,12 @@ var Presets;
                 ]
             },
             "hiddenLayers": [],
+        },
+        {
+            "name": "Averaged Perceptron",
+            parent: "Rosenblatt Perceptron",
+            trainingMethod: "Averaged Perceptron",
+            drawArrows: false
         }
     ];
     function getNames() {
@@ -757,7 +784,7 @@ var Simulation = (function (_super) {
         this.stepsCurrent++;
         if (this.state.saveLastWeights)
             this.lastWeights = this.net.connections.map(function (c) { return c.weight; });
-        this.net.trainAll(this.state.data, !this.state.batchTraining);
+        Simulation.trainingMethods[this.state.type][this.state.trainingMethod](this.net, this.state.data);
     };
     Simulation.prototype.trainAllButton = function () {
         this.stop();
@@ -1009,6 +1036,17 @@ var Simulation = (function (_super) {
                 ? React.createElement("li", {className: "divider", key: "divider"})
                 : React.createElement("li", {key: name}, React.createElement("a", {onClick: function (e) { return sim.setState(Presets.get(e.target.textContent)); }}, name));
         }))), React.createElement("h1", null, this.state.type === "perceptron" ? "Perceptron" : "Neural Network", " demo", React.createElement("small", null, this.state.custom ? " Custom Network" : " Preset: " + this.state.name))), React.createElement(LRVis, {sim: this, ref: function (e) { return _this.lrVis = e; }, leftVis: [this.netgraph, this.errorGraph, this.weightsGraph], rightVis: [this.netviz, this.table]}), React.createElement("div", {className: "panel panel-default"}, React.createElement("div", {className: "panel-heading"}, React.createElement("h3", {className: "panel-title"}, React.createElement("a", {"data-toggle": "collapse", "data-target": ".panel-body"}, "Configuration"))), React.createElement("div", {className: "panel-body collapse in"}, React.createElement(ConfigurationGui, React.__spread({}, this.state)))), React.createElement("footer", {className: "small"}, React.createElement("a", {href: "https://github.com/phiresky/kogsys-demos/"}, "Source on GitHub"))), React.createElement(ExportModal, {sim: this})));
+    };
+    Simulation.trainingMethods = {
+        "nn": {
+            "Batch Training": function (net, data) { return net.trainAll(data, false); },
+            "Online Training": function (net, data) { return net.trainAll(data, true); }
+        },
+        "perceptron": {
+            "Batch Training": function (net, data) { return net.trainAll(data, false); },
+            "Online Training": function (net, data) { return net.trainAll(data, true); },
+            "Averaged Perceptron": function (net, data) { return net.trainAllAveraged(data); }
+        }
     };
     return Simulation;
 }(React.Component));
@@ -1292,7 +1330,7 @@ var ConfigurationGui = (function (_super) {
             : "", React.createElement(BSCheckbox, {label: "Show bias input", id: "bias", conf: conf}), React.createElement("button", {className: "btn btn-default", "data-toggle": "modal", "data-target": "#exportModal"}, "Import / Export")), React.createElement("div", {className: "col-sm-6"}, React.createElement("h4", null, conf.type === "perceptron" ? "Perceptron" : "Net"), React.createElement(BSFormGroup, {id: "learningRate", label: "Learning Rate", isStatic: true}, React.createElement("span", {id: "learningRateVal", style: { marginRight: '1em' }}, conf.learningRate.toFixed(3)), React.createElement("input", {type: "range", min: 0.005, max: 1, step: 0.005, id: "learningRate", value: Util.logScale(conf.learningRate) + "", onChange: loadConfig})), conf.type === "perceptron" ?
             React.createElement("div", null, React.createElement(BSCheckbox, {label: "Animate online training", id: "animationTrainSinglePoints", conf: conf}), React.createElement(BSCheckbox, {label: "Draw Arrows", id: "drawArrows", conf: conf}), React.createElement(BSCheckbox, {label: "Draw coordinate system", id: "drawCoordinateSystem", conf: conf}))
             :
-                React.createElement("div", null, React.createElement(BSCheckbox, {id: "batchTraining", label: "Batch training", conf: conf}), React.createElement(NeuronGui, React.__spread({}, this.props)))));
+                React.createElement("div", null, React.createElement(BSFormGroup, {id: "trainingMethod", label: "Training Method"}, React.createElement("select", {id: "trainingMethod", className: "btn btn-default", onChange: loadConfig, value: conf.trainingMethod}, Object.keys(Simulation.trainingMethods[conf.type]).map(function (name) { return React.createElement("option", {key: name, value: name}, name); }))), React.createElement(NeuronGui, React.__spread({}, this.props)))));
     };
     return ConfigurationGui;
 }(React.Component));

@@ -20,6 +20,20 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 	errorHistory: [number, number][];
 	
 	lastWeights: number[];
+	
+	static trainingMethods:{[type:string]: {[name:string]: (net:Net.NeuralNet, data:TrainingData[]) => void}} = {
+		"nn": {
+			"Batch Training": (net,data) => net.trainAll(data, false),
+			"Online Training": (net,data) => net.trainAll(data, true)
+		},
+		"perceptron": {
+			"Batch Training": (net,data) => net.trainAll(data, false),
+			"Online Training": (net,data) => net.trainAll(data, true),
+			"Averaged Perceptron": (net,data) => net.trainAllAveraged(data)
+		}
+	}
+	trainingMethod: (data:TrainingData[]) => void;
+	
 
 	constructor(props:{autoRun: boolean}) {
 		super(props);
@@ -48,7 +62,7 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 		this.stepsCurrent++;
 		if(this.state.saveLastWeights)
 			this.lastWeights = this.net.connections.map(c => c.weight);
-		this.net.trainAll(this.state.data, !this.state.batchTraining);
+		Simulation.trainingMethods[this.state.type][this.state.trainingMethod](this.net, this.state.data);
 	}
 	
 	trainAllButton() {

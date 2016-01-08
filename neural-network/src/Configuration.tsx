@@ -53,7 +53,13 @@ class ConfigurationGui extends React.Component<Configuration, {}> {
 						</div>
 					:
 						<div>
-							<BSCheckbox id="batchTraining" label="Batch training" conf={conf} />
+							<BSFormGroup id="trainingMethod" label="Training Method">
+								<select id="trainingMethod" className="btn btn-default"
+										onChange={loadConfig} 
+										value={conf.trainingMethod}>
+									{Object.keys(Simulation.trainingMethods[conf.type]).map(name => <option key={name} value={name}>{name}</option>)}
+								</select>
+							</BSFormGroup>
 							<NeuronGui {...this.props} />
 						</div>
 					}

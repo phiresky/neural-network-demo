@@ -9,6 +9,7 @@ interface LayerConfig {
 interface OutputLayerConfig extends LayerConfig {
 	names: string[];
 }
+type ConfigurationType = "perceptron"|"nn";
 /** Configuration interface. Default preset must contain values for all these properties! */
 interface Configuration {
 	[property: string]: any;
@@ -28,14 +29,14 @@ interface Configuration {
 	showGradient?: boolean;
 	originalBounds?: Util.Bounds;
 	weights?: double[];
-	batchTraining?: boolean;
+	trainingMethod?: string;
 	saveLastWeights?: boolean;
 	drawArrows?: boolean;
 	drawCoordinateSystem?: boolean;
     arrowScale?: int;
 	showTrainNextButton?: boolean;
 	animationTrainSinglePoints?: boolean;
-	type?: "perceptron"|"nn";
+	type?: ConfigurationType;
 }
 module Presets {
 	export const presets: Configuration[] = [
@@ -44,7 +45,7 @@ module Presets {
 			stepsPerSecond: 3000,
 			learningRate: 0.05,
 			showGradient: false,
-			batchTraining: false,
+			trainingMethod: "Online Training",
 			custom: false,
 			bias: false,
 			autoRestartTime: 5000,
@@ -264,14 +265,14 @@ module Presets {
 		{ "name": "Bit Position Auto Encoder", "learningRate": 0.05, "data": [{ "input": [1, 0, 0, 0], "output": [1, 0, 0, 0] }, { "input": [0, 1, 0, 0], "output": [0, 1, 0, 0] }, { "input": [0, 0, 1, 0], "output": [0, 0, 1, 0] }, { "input": [0, 0, 0, 1], "output": [0, 0, 0, 1] }], "inputLayer": { "neuronCount": 4, "names": ["in1", "in2", "in3", "in4"] }, "outputLayer": { "neuronCount": 4, "activation": "sigmoid", "names": ["out1", "out2", "out3", "out4"] }, "hiddenLayers": [{ "neuronCount": 2, "activation": "sigmoid" }], "netLayers": [{ "activation": "sigmoid", "neuronCount": 2 }, { "activation": "linear", "neuronCount": 1 }, { "neuronCount": 2, "activation": "sigmoid" }] },
 		{"name": "!listDivider"},
 		{
-			"name": "Rosenblatt Perzeptron",
+			"name": "Rosenblatt Perceptron",
 			stepsPerSecond: 2,
 			"learningRate": 0.5,
 			"showGradient": false,
 			"bias": false,
 			"autoRestartTime": 5000,
 			"autoRestart": false,
-			batchTraining: true,
+			trainingMethod: "Batch Training",
 			saveLastWeights: true,
 			showTrainNextButton: true,
 			drawArrows: true,
@@ -295,6 +296,12 @@ module Presets {
 				]
 			},
 			"hiddenLayers": [],
+		},
+		{
+			"name": "Averaged Perceptron",
+			parent: "Rosenblatt Perceptron",
+			trainingMethod: "Averaged Perceptron",
+			drawArrows: false
 		}
 	];
 	export function getNames(): string[] {
