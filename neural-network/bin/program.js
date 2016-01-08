@@ -544,7 +544,7 @@ var Presets;
         {
             "name": "Rosenblatt Perceptron",
             stepsPerSecond: 2,
-            "learningRate": 0.5,
+            "learningRate": 1,
             "showGradient": false,
             bias: true,
             "autoRestartTime": 5000,
@@ -1058,13 +1058,16 @@ var Simulation = (function (_super) {
     };
     Simulation.prototype.render = function () {
         var _this = this;
+        var pageTitle = this.state.type === "perceptron" ? "Perceptron demo" : "Neural Network demo";
+        var presetName = this.state.custom ? " Custom Network" : " Preset: " + this.state.name;
+        document.title = pageTitle + " \u2014 " + presetName;
         return (React.createElement("div", null, React.createElement("div", {className: "container"}, React.createElement("div", {className: "page-header"}, React.createElement("div", {className: "btn-toolbar pull-right dropdown", style: { marginTop: "5px" }}, React.createElement("button", {className: "btn btn-info dropdown-toggle", "data-toggle": "dropdown"}, "Load Preset ", React.createElement("span", {className: "caret"})), React.createElement("ul", {className: "dropdown-menu"}, React.createElement("li", {className: "dropdown-header"}, "Neural Network"), Presets.getNames().map(function (name) {
             var ele = React.createElement("li", {key: name}, React.createElement("a", {onClick: function (e) { return sim.setState(Presets.get(name)); }}, name));
             if (name === "Rosenblatt Perceptron")
                 return [React.createElement("li", {className: "divider"}), React.createElement("li", {className: "dropdown-header"}, "Perceptron"), ele];
             else
                 return ele;
-        }))), React.createElement("h1", null, this.state.type === "perceptron" ? "Perceptron" : "Neural Network", " demo", React.createElement("small", null, this.state.custom ? " Custom Network" : " Preset: " + this.state.name))), React.createElement(LRVis, {sim: this, ref: function (e) { return _this.lrVis = e; }, leftVis: [this.netgraph, this.errorGraph, this.weightsGraph], rightVis: [this.netviz, this.table]}), React.createElement("div", {className: "panel panel-default"}, React.createElement("div", {className: "panel-heading"}, React.createElement("h3", {className: "panel-title"}, React.createElement("a", {"data-toggle": "collapse", "data-target": ".panel-body"}, "Configuration"))), React.createElement("div", {className: "panel-body collapse in"}, React.createElement(ConfigurationGui, React.__spread({}, this.state)))), React.createElement("footer", {className: "small"}, React.createElement("a", {href: "https://github.com/phiresky/kogsys-demos/"}, "Source on GitHub"))), React.createElement(ExportModal, {sim: this})));
+        }))), React.createElement("h1", null, pageTitle, React.createElement("small", null, presetName))), React.createElement(LRVis, {sim: this, ref: function (e) { return _this.lrVis = e; }, leftVis: [this.netgraph, this.errorGraph, this.weightsGraph], rightVis: [this.netviz, this.table]}), React.createElement("div", {className: "panel panel-default"}, React.createElement("div", {className: "panel-heading"}, React.createElement("h3", {className: "panel-title"}, React.createElement("a", {"data-toggle": "collapse", "data-target": ".panel-body"}, "Configuration"))), React.createElement("div", {className: "panel-body collapse in"}, React.createElement(ConfigurationGui, React.__spread({}, this.state)))), React.createElement("footer", {className: "small"}, React.createElement("a", {href: "https://github.com/phiresky/kogsys-demos/"}, "Source on GitHub"))), React.createElement(ExportModal, {sim: this})));
     };
     Simulation.trainingMethods = {
         "nn": {

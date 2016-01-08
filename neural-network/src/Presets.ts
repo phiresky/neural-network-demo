@@ -266,7 +266,7 @@ module Presets {
 		{
 			"name": "Rosenblatt Perceptron",
 			stepsPerSecond: 2,
-			"learningRate": 0.5,
+			"learningRate": 1,
 			"showGradient": false,
 			bias: true,
 			"autoRestartTime": 5000,

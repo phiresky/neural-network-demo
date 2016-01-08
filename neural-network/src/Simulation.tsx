@@ -309,6 +309,9 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 	}
 	
 	render() {
+		const pageTitle = this.state.type === "perceptron" ?"Perceptron demo":"Neural Network demo";
+		const presetName = this.state.custom?" Custom Network":" Preset: "+this.state.name;
+		document.title = `${pageTitle} — ${presetName}`;
 		return (
 			<div>
 				<div className="container">
@@ -327,8 +330,8 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 								})}
 							</ul>
 						</div>
-						<h1>{this.state.type === "perceptron" ?"Perceptron":"Neural Network"} demo
-							<small>{this.state.custom?" Custom Network":" Preset: "+this.state.name}</small>
+						<h1>{pageTitle}
+							<small>{presetName}</small>
 						</h1>
 					</div>
 					<LRVis sim={this} ref={(e:LRVis) => this.lrVis = e}
