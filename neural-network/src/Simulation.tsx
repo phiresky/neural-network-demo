@@ -19,17 +19,18 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 
 	errorHistory: [number, number][];
 	
-	lastWeights: number[];
+	/** data of the last training steps. first entry has .dataPoint set to undefined and contains the previous weights */
+	lastWeights: Net.WeightsStep[];
 	
-	static trainingMethods:{[type:string]: {[name:string]: (net:Net.NeuralNet, data:TrainingData[]) => void}} = {
+	static trainingMethods:{[type:string]: {[name:string]: (net:Net.NeuralNet, data:TrainingData[]) => Net.WeightsStep[]}} = {
 		"nn": {
-			"Batch Training": (net,data) => net.trainAll(data, false),
-			"Online Training": (net,data) => net.trainAll(data, true)
+			"Batch Training": (net,data) => net.trainAll(data, false, false),
+			"Online Training": (net,data) => net.trainAll(data, true, false)
 		},
 		"perceptron": {
-			"Batch Training": (net,data) => net.trainAll(data, false),
-			"Online Training": (net,data) => net.trainAll(data, true),
-			"Averaged Perceptron": (net,data) => net.trainAllAveraged(data)
+			"Batch Training": (net,data) => net.trainAll(data, false, true),
+			"Online Training": (net,data) => net.trainAll(data, true, true),
+			"Averaged Perceptron": (net,data) => net.trainAllAveraged(data, true)
 		}
 	}
 	trainingMethod: (data:TrainingData[]) => void;
@@ -51,6 +52,7 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 		this.net = new Net.NeuralNet(this.state.inputLayer, this.state.hiddenLayers, this.state.outputLayer, this.state.learningRate, undefined, this.state.weights);
 		this.stepsWanted = this.stepsCurrent = 0;
 		this.errorHistory = [];
+		this.lastWeights = [];
 		this.lrVis.leftVis.onNetworkLoaded(this.net);
 		this.lrVis.rightVis.onNetworkLoaded(this.net);
 		this.onFrame(true);
@@ -61,8 +63,9 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 		this.currentTrainingDataPoint = -1;
 		this.stepsCurrent++;
 		if(this.state.saveLastWeights)
-			this.lastWeights = this.net.connections.map(c => c.weight);
-		Simulation.trainingMethods[this.state.type][this.state.trainingMethod](this.net, this.state.data);
+			this.lastWeights = [{dataPoint: null, weights: this.net.connections.map(c => c.weight)}];
+		const steps = Simulation.trainingMethods[this.state.type][this.state.trainingMethod](this.net, this.state.data);
+		this.lastWeights = this.lastWeights.concat(steps);
 	}
 	
 	trainAllButton() {
@@ -84,12 +87,13 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 	trainNext() {
 		this.currentTrainingDataPoint++;
 		if(this.state.saveLastWeights)
-			this.lastWeights = this.net.connections.map(c => c.weight);
+			this.lastWeights = [{dataPoint: null, weights: this.net.connections.map(c => c.weight)}];
 		this.stepsCurrent++;
 		if(this.currentTrainingDataPoint >= this.state.data.length) {
 			this.currentTrainingDataPoint -= this.state.data.length;
 		}
-		this.net.train(this.state.data[this.currentTrainingDataPoint]);
+		const newWeights = this.net.train(this.state.data[this.currentTrainingDataPoint], true, this.state.saveLastWeights);
+		if(this.state.saveLastWeights) this.lastWeights.push(newWeights);
 	}
 	
 
@@ -310,15 +314,17 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 				<div className="container">
 					<div className="page-header">
 						<div className="btn-toolbar pull-right dropdown" style={{marginTop:"5px"}}>
-							<button className="btn btn-default dropdown-toggle" data-toggle="dropdown">{"Load "}
+							<button className="btn btn-info dropdown-toggle" data-toggle="dropdown">{"Load Preset "}
 								<span className="caret" />
 							</button>
 							<ul className="dropdown-menu">
-								{Presets.getNames().map(name =>
-									name==="!listDivider"
-									? <li className="divider" key="divider" />
-									: <li key={name}><a onClick={e => sim.setState(Presets.get((e.target as Element).textContent))}>{name}</a></li>)
-								}
+								<li className="dropdown-header">Neural Network</li>
+								{Presets.getNames().map(name => {
+									const ele = <li key={name}><a onClick={e => sim.setState(Presets.get(name))}>{name}</a></li>;
+									if(name === "Rosenblatt Perceptron")
+										return [<li className="divider" />, <li className="dropdown-header">Perceptron</li>, ele];
+									else return ele;
+								})}
 							</ul>
 						</div>
 						<h1>{this.state.type === "perceptron" ?"Perceptron":"Neural Network"} demo

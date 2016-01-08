@@ -45,21 +45,22 @@ class ConfigurationGui extends React.Component<Configuration, {}> {
 						<span id="learningRateVal" style={{marginRight: '1em'}}>{conf.learningRate.toFixed(3)}</span>
 						<input type="range" min={0.005} max={1} step={0.005} id="learningRate" value={Util.logScale(conf.learningRate)+""} onChange={loadConfig} />
 					</BSFormGroup>
+					<BSFormGroup id="trainingMethod" label="Training Method">
+						<select id="trainingMethod" className="btn btn-default"
+								onChange={loadConfig} 
+								value={conf.trainingMethod}>
+							{Object.keys(Simulation.trainingMethods[conf.type]).map(name => <option key={name} value={name}>{name}</option>)}
+						</select>
+					</BSFormGroup>
 					{conf.type === "perceptron"?
 						<div>
-							<BSCheckbox label="Animate online training" id="animationTrainSinglePoints" conf={conf} />
+							<BSCheckbox label="Animate single data points" id="animationTrainSinglePoints" conf={conf} />
 							<BSCheckbox label="Draw Arrows" id="drawArrows" conf={conf} />
 							<BSCheckbox label="Draw coordinate system" id="drawCoordinateSystem" conf={conf} />
 						</div>
 					:
 						<div>
-							<BSFormGroup id="trainingMethod" label="Training Method">
-								<select id="trainingMethod" className="btn btn-default"
-										onChange={loadConfig} 
-										value={conf.trainingMethod}>
-									{Object.keys(Simulation.trainingMethods[conf.type]).map(name => <option key={name} value={name}>{name}</option>)}
-								</select>
-							</BSFormGroup>
+
 							<NeuronGui {...this.props} />
 						</div>
 					}

@@ -46,6 +46,16 @@ module Net {
 		}
 	}
 
+	/** 
+	 * intermediate result of a single data point training step and the resulting weights vector
+	 * 
+	 * used to visualize the weights vector in the perceptron demo 
+	 */
+	export class WeightsStep {
+		dataPoint: TrainingData;
+		weights: number[];
+	}
+	
 	// back propagation code adapted from https://de.wikipedia.org/wiki/Backpropagation
 	export class NeuralNet {
 		layers: Neuron[][] = [];
@@ -101,33 +111,39 @@ module Net {
 		}
 		
 		/** if individual is true, train individually, else batch train */
-		trainAll(data: TrainingData[], individual: boolean) {
+		trainAll(data: TrainingData[], individual: boolean, storeWeightSteps: boolean) {
+			if(storeWeightSteps) var weights: WeightsStep[] = [];
 			if(!individual) for (const conn of this.connections) conn.zeroDeltaWeight();
 			for (const val of data) {
-				this.train(val, individual);
+				const step = this.train(val, individual, storeWeightSteps);
+				if(storeWeightSteps) weights.push(step);
 			}
 			if(!individual) for (const conn of this.connections) conn.flushDeltaWeight();
+			return weights;
 		}
 		
 		/** averaged perceptron (from http://ciml.info/dl/v0_8/ciml-v0_8-ch03.pdf , p.48) */
-		trainAllAveraged(data: TrainingData[]) {
-			//if(this.layers.length !== 2 || this.outputs.length !== 1 || this.outputs[0].activation !== "threshold (≥ 0)")
-			//	throw Error("can only be used for single perceptron");
+		trainAllAveraged(data: TrainingData[], storeWeightSteps: boolean) {
+			if(this.layers.length !== 2 || this.outputs.length !== 1 || this.outputs[0].activation !== "threshold (≥ 0)")
+				throw Error("can only be used for single perceptron");
+			if(storeWeightSteps) var weights: WeightsStep[] = [];
 			let u = this.connections.map(w => 0);
 			let c = 1;
 			for(const val of data) {
-				this.train(val);
+				this.train(val, true, storeWeightSteps);
 				if(this.outputs[0].error !== 0) {
 					const y = val.output[0] === 1 ? -1 : 1;
 					u = this.connections.map((conn,i) => u[i] + y * c * conn.inp.output);
+					if(storeWeightSteps) weights.push({dataPoint:val, weights: this.connections.map((conn, i) => conn.weight - u[i]/c)});
 				}
 				++c;
 			}
 			this.connections.forEach((conn, i) => conn.weight -= u[i]/c);
+			return weights;
 		}
 
 		/** if flush is false, only calculate deltas but don't reset or add them */
-		train(val: TrainingData, flush = true) {
+		train(val: TrainingData, flush = true, storeWeightSteps: boolean) {
 			this.setInputsAndCalculate(val.input);
 			for (var i = 0; i < this.outputs.length; i++)
 				this.outputs[i].targetOutput = val.output[i];
@@ -140,12 +156,14 @@ module Net {
 					}
 				}
 			}
+			if(storeWeightSteps) var weights = this.connections.map(conn => conn.weight + conn.deltaWeight);
 			if(flush) for (const conn of this.connections) conn.flushDeltaWeight();
+			return {weights, dataPoint:val};
 		}
 	}
 
 	export class NeuronConnection {
-		private deltaWeight = NaN; public weight = 0;
+		deltaWeight = NaN; public weight = 0;
 		constructor(public inp: Neuron, public out: Neuron) {
 
 		}

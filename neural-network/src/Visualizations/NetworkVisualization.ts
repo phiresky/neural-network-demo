@@ -20,13 +20,14 @@ class NetworkVisualization implements Visualization {
 		binaryClassify: {
 			bg: ["#f88", "#8f8"],
 			fg: ["#f00", "#0f0"],
+			weightVector: ["#800", "#080"],
 			gradient: (val: number) => "rgb(" +
 				[(((1 - val) * (256 - 60)) | 0) + 60, ((val * (256 - 60)) | 0) + 60, 60] + ")"
 		},
 		autoencoder: {
 			input: '#2188e0',
 			output: '#ff931f',
-			bias: '#008'
+			bias: '#aaa'
 		},
 		multiClass: {
 			fg: ['#7cb5ec', '#434348', '#90ed7d', '#f7a35c', '#8085e9', '#f15c80', '#e4d354', '#2b908f', '#f45b5b', '#91e8e1'],
@@ -151,68 +152,34 @@ class NetworkVisualization implements Visualization {
 		this.ctx.lineWidth = 2;
 		const al = 8;
 		const aw = 4;
-		const ww = this.sim.net.connections.map(c => c.weight);
-		const oldww = this.sim.lastWeights;
-		if (oldww === undefined) return;
+		const steps = this.sim.lastWeights;
+		if (steps === undefined || steps.length < 2) return;
 		const scale = {
 			x:(x:number) => this.trafo.toCanvas.x(x*this.sim.state.arrowScale),
 			y:(y:number) => this.trafo.toCanvas.y(y*this.sim.state.arrowScale)
 		}
-		if(ww.length !== 3) throw Error("arrows only work with 2d data");
 		if(this.sim.state.inputLayer.neuronCount !== 2
 			|| this.sim.state.outputLayer.neuronCount !== 1
 			|| this.sim.state.hiddenLayers.length !== 0)
 			throw Error("conf not valid for arrows");
-		if(ww.length !== oldww.length) throw Error("size changed");
-		const wasPointWrong = (p:TrainingData) => +(oldww[0] * p.input[0] + oldww[1] * p.input[1] + oldww[2] >= 0) !== p.output[0];
-		const wasVectorWrong = (dp:TrainingData[]) => dp.some(p => wasPointWrong(p));
-		if (ww.some((x, i) => x !== oldww[i])) {
-			let oldX = 0, oldY = 0, newX = 0, newY = 0;
-			if(wasVectorWrong(this.sim.state.data)) {
-	
-				newX = oldww[0];
-				newY = oldww[1];
-	
-				this.ctx.strokeStyle = this.ctx.fillStyle = "#808080";
-				Util.drawArrow(this.ctx, {x:scale.x(oldX), y:scale.y(oldY)},
-						{x:scale.x(newX), y:scale.y(newY)}, al, aw);
-				
-				let points = this.sim.state.data;
-				// single training point
-				if(this.sim.currentTrainingDataPoint >= 0)
-					points = [points[this.sim.currentTrainingDataPoint]];
-				for (const p of points) {
-					if (wasPointWrong(p)) {
-						oldX = newX;
-						oldY = newY;
-	
-						if (p.output[0] == 1) {
-							newX += p.input[0] * this.sim.net.learnRate;
-							newY += p.input[1] * this.sim.net.learnRate;
-							this.ctx.strokeStyle = this.ctx.fillStyle = "#008800";
-						} else {
-							newX -= p.input[0] * this.sim.net.learnRate;
-							newY -= p.input[1] * this.sim.net.learnRate;
-							this.ctx.strokeStyle = this.ctx.fillStyle = "#880000";
-	
-						}
-						Util.drawArrow(this.ctx, {x:scale.x(oldX), y:scale.y(oldY)}, {x:scale.x(newX), y:scale.y(newY)},
-								al, aw);
-	
-						this.ctx.strokeStyle = this.ctx.fillStyle = "#808080";
-						this.ctx.arc(scale.x(p.input[0]), scale.y(p.input[1]), 8, 0, 2*Math.PI);
-	
-					}
-				}
-			}
-			oldX = 0;
-			oldY = 0;
-			newX = ww[0];
-			newY = ww[1];
+			
+		const weightVector = (weights: number[]) => ({x:scale.x(weights[0]), y:scale.y(weights[1])});
+		if (steps[steps.length-1].weights.some((x, i) => x !== steps[0].weights[i])) {
+			let oldWeights = steps[0].weights.map(x => 0);
+			
+			for (const {weights,dataPoint} of steps) {
+				this.ctx.strokeStyle = this.ctx.fillStyle = dataPoint ?
+					NetworkVisualization.colors.binaryClassify.weightVector[dataPoint.output[0]]
+					: "#888";
+				Util.drawArrow(this.ctx, weightVector(oldWeights), weightVector(weights), al, aw);
 
+				this.ctx.strokeStyle = this.ctx.fillStyle = "#808080";
+				// this.ctx.arc(scale.x(p.input[0]), scale.y(p.input[1]), 8, 0, 2*Math.PI);
+				oldWeights = weights;
+			}
 			this.ctx.strokeStyle = this.ctx.fillStyle = "#000000";
-			Util.drawArrow(this.ctx, {x:scale.x(oldX), y:scale.y(oldY)},
-					{x:scale.x(newX), y:scale.y(newY)}, al, aw);
+			Util.drawArrow(this.ctx, {x:scale.x(0), y:scale.y(0)},
+					weightVector(steps[steps.length-1].weights), al, aw);
 		}
 	}
 	
