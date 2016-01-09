@@ -1,4 +1,5 @@
 /java
 .vscode/
 bower_components/
-*/lib/typings/
+lib/typings/
+bin/
