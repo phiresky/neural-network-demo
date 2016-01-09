@@ -1,6 +1,6 @@
 all: bin bin/index.html bin/icon.png bin/libs.css bin/program.js bin/libs.js
 
-bin/%: %
+bin/%: src/%
 	cp $< $@
 
 bin/program.js:
