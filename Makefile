@@ -20,4 +20,10 @@ bin/libs.js: lib/bower_components/jquery/dist/jquery.min.js lib/bower_components
 	paste -d '\n' -s $^ > bin/libs.js
 
 bin:
-	[ -d bin ] || echo "bin not setup. see readme" && exit 1
+	[ -f bin/.git ] || (echo "bin not setup. see readme" && exit 1)
+
+gh-pages: bin
+	cd bin; git add -A; git commit -m'update binaries'; git push
+
+.PHONY: gh-pages
+
