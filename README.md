@@ -4,6 +4,10 @@ This repository contains various demonstrations for the lecture “Kognitive Sys
 
 ## Building
 
+This project is written in [TypeScript](http://www.typescriptlang.org/), a statically typed superset of JavaScript.
+
+It uses [React](https://facebook.github.io/react/) with [JSX](https://facebook.github.io/jsx/) for GUI state handling.
+
 The compiled files are included in `*/bin/`
 
 ```bash

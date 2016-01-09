@@ -1,18 +1,28 @@
+/**
+ * this class handles the linear transformations used to offset and scale the drawing in a 2d canvas
+ * @see [[#toReal]] and [[#toCanvas]]
+ */
 class TransformNavigation {
-	scalex = 200;
-	scaley = -200;
-	offsetx = 0;
-	offsety = 0;
-	mousedown: boolean = false;
-	mousestart = { x: 0, y: 0 };
-	toReal = {
+	public scalex = 200; public scaley = -200;
+	offsetx = 0; offsety = 0;
+
+	/** converts screen space coordinates to real coordinates */
+	public toReal = {
 		x: (x: double) => (x - this.offsetx) / this.scalex,
 		y: (y: double) => (y - this.offsety) / this.scaley
 	}
-	toCanvas = {
+	/** converts real coordinates to screen space coordinates */
+	public toCanvas = {
 		x: (c: double) => c * this.scalex + this.offsetx,
 		y: (c: double) => c * this.scaley + this.offsety
 	}
+	
+	/** position where the mouse press started (for dragging) */
+	private mousestart: { x: number, y: number } = null;
+	/**
+	 * @param transformActive function that returns if the mouse transform should act on mouse dragging / scrolling events currently
+	 * @param transformChanged callback when the transform has changed (e.g. to redraw)
+	 */
 	constructor(canvas: HTMLCanvasElement, transformActive: () => boolean, transformChanged: () => void) {
 		this.offsetx = canvas.width / 4;
 		this.offsety = 3 * canvas.height / 4;
@@ -20,10 +30,10 @@ class TransformNavigation {
 			if (e.deltaY === 0) return;
 			if (!transformActive()) return;
 			var delta = e.deltaY / Math.abs(e.deltaY);
-			const beforeTransform = {x:this.toReal.x(e.offsetX),y:this.toReal.y(e.offsetY)};
+			const beforeTransform = { x: this.toReal.x(e.offsetX), y: this.toReal.y(e.offsetY) };
 			this.scalex *= 1 - delta / 10;
 			this.scaley *= 1 - delta / 10;
-			const afterTransform = {x:this.toReal.x(e.offsetX),y:this.toReal.y(e.offsetY)};
+			const afterTransform = { x: this.toReal.x(e.offsetX), y: this.toReal.y(e.offsetY) };
 			this.offsetx += (afterTransform.x - beforeTransform.x) * this.scalex;
 			this.offsety += (afterTransform.y - beforeTransform.y) * this.scaley;
 			transformChanged();
@@ -31,14 +41,12 @@ class TransformNavigation {
 		});
 		canvas.addEventListener('mousedown', e => {
 			if (!transformActive()) return;
-			this.mousedown = true;
-			this.mousestart.x = e.pageX;
-			this.mousestart.y = e.pageY;
+			this.mousestart = { x: e.pageX, y: e.pageY };
 			Util.stopEvent(e);
 		});
 		window.addEventListener('mousemove', e => {
 			if (!transformActive()) return;
-			if (!this.mousedown) return;
+			if (!this.mousestart) return;
 			this.offsetx += e.pageX - this.mousestart.x;
 			this.offsety += e.pageY - this.mousestart.y;
 			this.mousestart.x = e.pageX;
@@ -47,8 +55,8 @@ class TransformNavigation {
 			Util.stopEvent(e);
 		});
 		window.addEventListener('mouseup', e => {
-			if(this.mousedown) {
-				this.mousedown = false;
+			if (this.mousestart) {
+				this.mousestart = null;
 				Util.stopEvent(e);
 			}
 		});

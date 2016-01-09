@@ -146,7 +146,7 @@ var Net;
             this.setInputsAndCalculate(inputVals);
             return this.outputs.map(function (output) { return output.output; });
         };
-        // get root-mean-square error
+        /** get root-mean-square error */
         NeuralNet.prototype.getLoss = function (expectedOutput) {
             var sum = 0;
             for (var i = 0; i < this.outputs.length; i++) {
@@ -675,12 +675,17 @@ var ExportModal = (function (_super) {
             exportWeights: "0",
             errors: []
         };
+        $("body").on("shown.bs.modal", "#exportModal", function () { return sim.exportModal.forceUpdate(); });
     }
     ExportModal.prototype.render = function () {
         var _this = this;
-        return (React.createElement("div", {className: "modal fade", id: "exportModal"}, React.createElement("div", {className: "modal-dialog"}, React.createElement("div", {className: "modal-content"}, React.createElement("div", {className: "modal-header"}, React.createElement("button", {type: "button", className: "close", "data-dismiss": "modal"}, "×"), React.createElement("h3", {className: "modal-title"}, "Import / Export")), React.createElement("div", {className: "modal-body"}, React.createElement("h4", {className: "modal-title"}, "Export to URL"), React.createElement("select", {className: "exportWeights", onChange: function (t) { return _this.setState({ exportWeights: t.target.value }); }, value: this.state.exportWeights}, React.createElement("option", {value: "0"}, "Don't include weights"), React.createElement("option", {value: "1"}, "Include current weights"), React.createElement("option", {value: "2"}, "Include start weights")), React.createElement("p", null, "Copy this URL:", React.createElement("input", {className: "url-export", onClick: function (e) { return e.target.select(); }, readOnly: true, value: this.props.sim.serializeToUrl(+this.state.exportWeights)})), React.createElement("hr", null), React.createElement("h4", {className: "modal-title"}, "Export to file"), React.createElement("button", {className: "btn btn-default", onClick: function () { return _this.exportJSON(_this.props.sim.state); }}, "Export configuration and data as json"), React.createElement("button", {className: "btn btn-default", onClick: function () { return _this.exportCSV(_this.props.sim.state); }}, "Export training data as CSV"), React.createElement("hr", null), React.createElement("h4", {className: "modal-title"}, "Import"), React.createElement("span", {className: "btn btn-default btn-file"}, "Import JSON file ", React.createElement("input", {type: "file", className: "importJSON", onChange: this.importJSON.bind(this)})), React.createElement("span", {className: "btn btn-default btn-file"}, "Import CSV file ", React.createElement("input", {type: "file", className: "importCSV", onChange: this.importCSV.bind(this)})), this.state.errors.map(function (error, i) {
+        var ele = $("#exportModal")[0];
+        var visible = true;
+        if (ele && getComputedStyle(ele).display == "none")
+            visible = false;
+        return (React.createElement("div", {className: "modal fade", id: "exportModal"}, React.createElement("div", {className: "modal-dialog"}, React.createElement("div", {className: "modal-content"}, React.createElement("div", {className: "modal-header"}, React.createElement("button", {type: "button", className: "close", "data-dismiss": "modal"}, "×"), React.createElement("h3", {className: "modal-title"}, "Import / Export")), visible ? React.createElement("div", {className: "modal-body"}, React.createElement("h4", {className: "modal-title"}, "Export to URL"), React.createElement("select", {className: "exportWeights", onChange: function (t) { return _this.setState({ exportWeights: t.target.value }); }, value: this.state.exportWeights}, React.createElement("option", {value: "0"}, "Don't include weights"), React.createElement("option", {value: "1"}, "Include current weights"), React.createElement("option", {value: "2"}, "Include start weights")), React.createElement("p", null, "Copy this URL:", React.createElement("input", {className: "url-export", onClick: function (e) { return e.target.select(); }, readOnly: true, value: this.props.sim.serializeToUrl(+this.state.exportWeights)})), React.createElement("hr", null), React.createElement("h4", {className: "modal-title"}, "Export to file"), React.createElement("button", {className: "btn btn-default", onClick: function () { return _this.exportJSON(_this.props.sim.state); }}, "Export configuration and data as json"), React.createElement("button", {className: "btn btn-default", onClick: function () { return _this.exportCSV(_this.props.sim.state); }}, "Export training data as CSV"), React.createElement("hr", null), React.createElement("h4", {className: "modal-title"}, "Import"), React.createElement("span", {className: "btn btn-default btn-file"}, "Import JSON file ", React.createElement("input", {type: "file", className: "importJSON", onChange: this.importJSON.bind(this)})), React.createElement("span", {className: "btn btn-default btn-file"}, "Import CSV file ", React.createElement("input", {type: "file", className: "importCSV", onChange: this.importCSV.bind(this)})), this.state.errors.map(function (error, i) {
             return React.createElement("div", {key: i, className: "alert alert-danger"}, error, React.createElement("button", {type: "button", className: "close", "data-dismiss": "alert"}, "×"));
-        }))))));
+        })) : "Loading..."))));
     };
     ExportModal.prototype.exportJSON = function (conf) {
         Util.download(JSON.stringify(conf, null, '\t'), conf.name + ".json");
@@ -765,6 +770,11 @@ var ExportModal = (function (_super) {
     };
     return ExportModal;
 }(React.Component));
+/**
+ * the interface between the GUI and the Simulation / Neural network
+ *
+ * handles buttons, animation and configuration updates
+ */
 var Simulation = (function (_super) {
     __extends(Simulation, _super);
     function Simulation(props) {
@@ -772,10 +782,21 @@ var Simulation = (function (_super) {
         _super.call(this, props);
         /** training steps that should be done by now (used for animation) */
         this.stepsWanted = 0;
+        /**
+         * training steps that have been done since #initializeNet()
+         * single training steps or batch training steps both count as 1 step
+         */
         this.stepsCurrent = 0;
+        /**
+         * global frame counter
+         * used to limit computationally expensive functions to frameNum modulo n (see NetworkGraph#onFrame)
+         */
         this.frameNum = 0;
+        /** animation is currently running */
         this.running = false;
+        /** the current requestAnimationFrame ID */
         this.runningId = -1;
+        /** the setTimeout ID for restarting the simulation after some time (see Configuration#autoRestartTime) */
         this.restartTimeout = -1;
         this.lastTimestamp = 0;
         this.averageError = 1;
@@ -852,12 +873,15 @@ var Simulation = (function (_super) {
                 this.currentTrainingDataPoint++;
                 this.forwardPassEles = this.netgraph.forwardPass(this.state.data[this.currentTrainingDataPoint]);
                 this.netgraph.applyUpdate(this.forwardPassEles.shift());
+                // redraw for highlighted data point
                 this.netviz.onFrame();
             }
             else {
                 // end
                 this.currentTrainingDataPoint = -1;
+                // this clears the forward pass step
                 this.netgraph.onFrame(0);
+                // clear highlighted data point
                 this.netviz.onFrame();
             }
         }
@@ -1026,6 +1050,7 @@ var Simulation = (function (_super) {
     Simulation.prototype.serializeToUrl = function (exportWeights) {
         if (exportWeights === void 0) { exportWeights = 0; }
         var url = location.protocol + '//' + location.host + location.pathname + "?";
+        console.log("serializing to url");
         var params = {};
         if (this.state.custom || exportWeights > 0) {
             params.config = Util.cloneConfig(this.state);
@@ -1067,7 +1092,7 @@ var Simulation = (function (_super) {
                 return [React.createElement("li", {className: "divider"}), React.createElement("li", {className: "dropdown-header"}, "Perceptron"), ele];
             else
                 return ele;
-        }))), React.createElement("h1", null, pageTitle, React.createElement("small", null, presetName))), React.createElement(LRVis, {sim: this, ref: function (e) { return _this.lrVis = e; }, leftVis: [this.netgraph, this.errorGraph, this.weightsGraph], rightVis: [this.netviz, this.table]}), React.createElement("div", {className: "panel panel-default"}, React.createElement("div", {className: "panel-heading"}, React.createElement("h3", {className: "panel-title"}, React.createElement("a", {"data-toggle": "collapse", "data-target": ".panel-body"}, "Configuration"))), React.createElement("div", {className: "panel-body collapse in"}, React.createElement(ConfigurationGui, React.__spread({}, this.state)))), React.createElement("footer", {className: "small"}, React.createElement("a", {href: "https://github.com/phiresky/kogsys-demos/"}, "Source on GitHub"))), React.createElement(ExportModal, {sim: this})));
+        }))), React.createElement("h1", null, pageTitle, React.createElement("small", null, presetName))), React.createElement(LRVis, {sim: this, ref: function (e) { return _this.lrVis = e; }, leftVis: [this.netgraph, this.errorGraph, this.weightsGraph], rightVis: [this.netviz, this.table]}), React.createElement("div", {className: "panel panel-default"}, React.createElement("div", {className: "panel-heading"}, React.createElement("h3", {className: "panel-title"}, React.createElement("a", {"data-toggle": "collapse", "data-target": ".panel-body"}, "Configuration"))), React.createElement("div", {className: "panel-body collapse in"}, React.createElement(ConfigurationGui, React.__spread({}, this.state)))), React.createElement("footer", {className: "small"}, React.createElement("a", {href: "https://github.com/phiresky/kogsys-demos/"}, "Source on GitHub"))), React.createElement(ExportModal, {sim: this, ref: function (e) { return _this.exportModal = e; }})));
     };
     Simulation.trainingMethods = {
         "nn": {
@@ -1082,23 +1107,33 @@ var Simulation = (function (_super) {
     };
     return Simulation;
 }(React.Component));
+/**
+ * this class handles the linear transformations used to offset and scale the drawing in a 2d canvas
+ * @see #toReal and #toCanvas
+ */
 var TransformNavigation = (function () {
+    /**
+     * @param transformActive function that returns if the mouse transform should act on mouse dragging / scrolling events currently
+     * @param transformChanged callback when the transform has changed (e.g. to redraw)
+     */
     function TransformNavigation(canvas, transformActive, transformChanged) {
         var _this = this;
         this.scalex = 200;
         this.scaley = -200;
         this.offsetx = 0;
         this.offsety = 0;
-        this.mousedown = false;
-        this.mousestart = { x: 0, y: 0 };
+        /** converts screen space coordinates to real coordinates */
         this.toReal = {
             x: function (x) { return (x - _this.offsetx) / _this.scalex; },
             y: function (y) { return (y - _this.offsety) / _this.scaley; }
         };
+        /** converts real coordinates to screen space coordinates */
         this.toCanvas = {
             x: function (c) { return c * _this.scalex + _this.offsetx; },
             y: function (c) { return c * _this.scaley + _this.offsety; }
         };
+        /** position where the mouse press started (for dragging) */
+        this.mousestart = null;
         this.offsetx = canvas.width / 4;
         this.offsety = 3 * canvas.height / 4;
         canvas.addEventListener('wheel', function (e) {
@@ -1119,15 +1154,13 @@ var TransformNavigation = (function () {
         canvas.addEventListener('mousedown', function (e) {
             if (!transformActive())
                 return;
-            _this.mousedown = true;
-            _this.mousestart.x = e.pageX;
-            _this.mousestart.y = e.pageY;
+            _this.mousestart = { x: e.pageX, y: e.pageY };
             Util.stopEvent(e);
         });
         window.addEventListener('mousemove', function (e) {
             if (!transformActive())
                 return;
-            if (!_this.mousedown)
+            if (!_this.mousestart)
                 return;
             _this.offsetx += e.pageX - _this.mousestart.x;
             _this.offsety += e.pageY - _this.mousestart.y;
@@ -1137,8 +1170,8 @@ var TransformNavigation = (function () {
             Util.stopEvent(e);
         });
         window.addEventListener('mouseup', function (e) {
-            if (_this.mousedown) {
-                _this.mousedown = false;
+            if (_this.mousestart) {
+                _this.mousestart = null;
                 Util.stopEvent(e);
             }
         });
@@ -1147,6 +1180,10 @@ var TransformNavigation = (function () {
 }());
 var Util;
 (function (Util) {
+    /**
+     * return array index that has maximum value
+     * ≈ argmax function
+     */
     function getMaxIndex(vals) {
         var max = vals[0], maxi = 0;
         for (var i = 1; i < vals.length; i++) {
@@ -1158,6 +1195,9 @@ var Util;
         return maxi;
     }
     Util.getMaxIndex = getMaxIndex;
+    /**
+     * get an array that has a one at the specified position and zero everywhere else
+     */
     function arrayWithOneAt(length, onePosition) {
         var output = new Array(length);
         for (var i = 0; i < length; i++) {
@@ -1166,6 +1206,9 @@ var Util;
         return output;
     }
     Util.arrayWithOneAt = arrayWithOneAt;
+    /**
+     * get AABB of a set of points in the form of 2d-TrainingData
+     */
     function bounds2dTrainingsInput(data) {
         return {
             minx: Math.min.apply(Math, data.map(function (d) { return d.input[0]; })),
@@ -1176,6 +1219,7 @@ var Util;
     }
     Util.bounds2dTrainingsInput = bounds2dTrainingsInput;
     var _nextGaussian;
+    /** port of https://docs.oracle.com/javase/7/docs/api/java/util/Random.html#nextGaussian() */
     function randomGaussian(mean, standardDeviation) {
         if (mean === void 0) { mean = 0; }
         if (standardDeviation === void 0) { standardDeviation = 1; }
@@ -1198,16 +1242,16 @@ var Util;
     }
     Util.randomGaussian = randomGaussian;
     ;
+    /**
+     * deep clone a configuration object
+     */
     function cloneConfig(config) {
         return $.extend(true, {}, config);
     }
     Util.cloneConfig = cloneConfig;
-    function benchmark(fun) {
-        var bef = Date.now();
-        var r = fun();
-        return Date.now() - bef;
-    }
-    Util.benchmark = benchmark;
+    /**
+     * parse hex color (#ff0000) to number array
+     */
     function parseColor(input) {
         var m = input.match(/^#([0-9a-f]{6})$/i)[1];
         if (m) {
@@ -1219,11 +1263,17 @@ var Util;
         }
     }
     Util.parseColor = parseColor;
+    /**
+     * convert three numbers to hex color string
+     */
     function printColor(c) {
         c = c.map(function (x) { return x < 0 ? 0 : x > 255 ? 255 : x; });
         return '#' + ("000000" + (c[0] << 16 | c[1] << 8 | c[2]).toString(16)).slice(-6);
     }
     Util.printColor = printColor;
+    /**
+     * parse url query parameters (...?a=b&x=y) to js object ({a:"b",x:"y"})
+     */
     function parseUrlParameters() {
         if (!location.search)
             return {};
@@ -1236,17 +1286,27 @@ var Util;
         return query;
     }
     Util.parseUrlParameters = parseUrlParameters;
+    /** normalize 2d point in the given bounds to [0,1]×[0,1] */
     function normalize(i, x, y) {
         return [(x - i.minx) / (i.maxx - i.minx), (y - i.miny) / (i.maxy - i.miny)];
     }
     Util.normalize = normalize;
+    /** normalize x and y training data of given configuration into [0,1] */
     function normalizeInputs(conf) {
+        if (conf.inputLayer.neuronCount !== 2)
+            throw Error("can only normalize 2d data");
         var data = conf.data;
         var i = Util.bounds2dTrainingsInput(data);
         data.forEach(function (data) { return data.input = normalize(i, data.input[0], data.input[1]); });
         conf.originalBounds = i;
     }
     Util.normalizeInputs = normalizeInputs;
+    /**
+     * download some text
+     * @param text file content
+     * @param name file name
+     * @param type mime type
+     */
     function download(text, name, type) {
         if (type === void 0) { type = 'text/plain'; }
         var a = document.createElement("a");
@@ -1256,6 +1316,7 @@ var Util;
         a.click();
     }
     Util.download = download;
+    /** sanitize string for output to CSV */
     function csvSanitize(s) {
         s = s.replace(/"/g, '""');
         if (s.search(/("|,|\n)/g) >= 0)
@@ -1264,32 +1325,23 @@ var Util;
             return s;
     }
     Util.csvSanitize = csvSanitize;
+    /** interpret n as a logarithmic scale */
     function logScale(n) {
         return Math.log(n * 9 + 1) / Math.LN10;
     }
     Util.logScale = logScale;
+    /** interpret n as a exponential scale */
     function expScale(n) {
         return (Math.pow(10, n) - 1) / 9;
     }
     Util.expScale = expScale;
-    function binarySearch(boolFn, min, max, epsilon) {
-        if (epsilon === void 0) { epsilon = 0; }
-        var mid = ((max + min) / 2) | 0;
-        if (Math.abs(mid - min) < epsilon)
-            return mid;
-        if (boolFn(mid))
-            return binarySearch(boolFn, mid, max);
-        else
-            return binarySearch(boolFn, min, mid);
-    }
-    Util.binarySearch = binarySearch;
     function stopEvent(e) {
         e.preventDefault();
         e.stopPropagation();
     }
     Util.stopEvent = stopEvent;
     /**
-     * Draws a line with an arrow head at its end.
+     * Draws a line with a filled arrow head at its end.
      *
      * FOUND ON USENET
      * @param al Arrowhead length
@@ -1317,12 +1369,13 @@ var Util;
         g.fill();
     }
     Util.drawArrow = drawArrow;
+    /** convert perceptron weights to a linear function */
     function toLinearFunction(_a, threshold) {
         var wx = _a[0], wy = _a[1], wbias = _a[2];
         if (threshold === void 0) { threshold = 0; }
-        // w1*x + w2*y + w3 = thres
-        // w2*y = thres - w3 - w1*x
-        // y = (thres - w3 - w1*x) / w2
+        //   w1*x + w2*y + w3 = thres
+        // ⇒ w2*y = thres - w3 - w1*x
+        // ⇒ y = (thres - w3 - w1*x) / w2
         if (wy === 0)
             wy = 0.00001;
         return function (x) { return (threshold - wbias - wx * x) / wy; };

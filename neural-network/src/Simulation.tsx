@@ -1,3 +1,10 @@
+/**
+ * the interface between the GUI and the Simulation / Neural network
+ * 
+ * handles buttons, animation and configuration updates
+ * 
+ * the [[#state]] of this object contains the [[Configuration]]
+ */
 class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 	netviz: NetworkVisualization;
 	netgraph: NetworkGraph;
@@ -6,23 +13,38 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 	weightsGraph: WeightsGraph;
 
 	/** training steps that should be done by now (used for animation) */
-	stepsWanted = 0;
+	private stepsWanted = 0;
+	/**
+	 * training steps that have been done since [[#initializeNet]]
+	 * single training steps or batch training steps both count as 1 step
+	 */
 	stepsCurrent = 0;
-	frameNum = 0;
-	running = false; runningId = -1;
-	restartTimeout = -1;
-	lastTimestamp = 0;
+	/**
+	 * global frame counter
+	 * used to limit computationally expensive functions to frameNum modulo n (see NetworkGraph#onFrame)
+	 */
+	private frameNum = 0;
+	/** animation is currently running */
+	private running = false; 
+	/** the current requestAnimationFrame ID */
+	private runningId = -1;
+	/** the setTimeout ID for restarting the simulation after some time (see Configuration#autoRestartTime) */
+	private restartTimeout = -1;
+	private lastTimestamp = 0;
+	/** current average error (see Net.NeuralNet#getLoss) */
 	averageError = 1;
 
 	net: Net.NeuralNet;
 	lrVis: LRVis;
 	exportModal: ExportModal;
 
+	/** list of [stepNum, averageError] elements */
 	errorHistory: [number, number][];
 	
 	/** data of the last training steps. first entry has .dataPoint set to undefined and contains the previous weights */
 	lastWeights: Net.WeightsStep[];
 	
+	/** list of training methods for every Configuration#type */
 	static trainingMethods:{[type:string]: {[name:string]: (net:Net.NeuralNet, data:TrainingData[]) => Net.WeightsStep[]}} = {
 		"nn": {
 			"Batch Training": (net,data) => net.trainAll(data, false, false),
@@ -34,6 +56,7 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 			"Averaged Perceptron": (net,data) => net.trainAllAveraged(data, true)
 		}
 	}
+	/** current training method (one of Simulation.trainingMethods) */
 	trainingMethod: (data:TrainingData[]) => void;
 	
 
@@ -47,6 +70,7 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 		this.state = this.deserializeFromUrl();
 	}
 
+	/** initialize a new random network */
 	initializeNet() {
 		if (this.net) this.stop();
 		console.log("initializeNet()");
@@ -58,8 +82,8 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 		this.lrVis.rightVis.onNetworkLoaded(this.net);
 		this.onFrame(true);
 	}
-	statusIterEle = document.getElementById('statusIteration');
-	statusCorrectEle = document.getElementById('statusCorrect');
+	
+	/** train all data points according to [[#trainingMethod]] */
 	trainAll() {
 		this.currentTrainingDataPoint = -1;
 		this.stepsCurrent++;
@@ -69,6 +93,7 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 		this.lastWeights = this.lastWeights.concat(steps);
 	}
 	
+	/** handle Train All button press */
 	trainAllButton() {
 		this.stop();
 		for (var i = 0; i < this.state.iterationsPerClick; i++)
@@ -77,6 +102,7 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 		this.onFrame(true);
 	}
 	
+	/** handle Train Single button press */
 	trainNextButton() {
 		this.stop();
 		this.trainNext();
@@ -84,7 +110,9 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 		this.onFrame(true);
 	}
 	
+	/** -1 when not training single data points, otherwise index into [[Configuration#data]] */
 	currentTrainingDataPoint = -1;
+	/** train the next single data point */
 	trainNext() {
 		this.currentTrainingDataPoint++;
 		if(this.state.saveLastWeights)
@@ -97,8 +125,9 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 		if(this.state.saveLastWeights) this.lastWeights.push(newWeights);
 	}
 	
-
+	/** cache for all the steps that the [[NetGraph]] will go through for a single forward pass step */
 	forwardPassEles:NetGraphUpdate[] = [];
+	/** do a single forward pass step, start the stepthrough if not already running */
 	forwardPassStep() {
 		if(!this.netgraph.currentlyDisplayingForwardPass) {
 			this.forwardPassEles = [];
@@ -114,16 +143,20 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 				this.currentTrainingDataPoint++;
 				this.forwardPassEles = this.netgraph.forwardPass(this.state.data[this.currentTrainingDataPoint]);
 				this.netgraph.applyUpdate(this.forwardPassEles.shift());
+				// redraw for highlighted data point
 				this.netviz.onFrame();
 			} else {
 				// end
 				this.currentTrainingDataPoint = -1;
+				// this clears the forward pass step
 				this.netgraph.onFrame(0);
+				// clear highlighted data point
 				this.netviz.onFrame();
 			}
 		}
 	}
 
+	/** handle animation frame */
 	onFrame(forceDraw: boolean) {
 		this.frameNum++;
 		this.calculateAverageError();
@@ -131,6 +164,7 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 		this.updateStatusLine();
 	}
 
+	/** begin animation */
 	run() {
 		if (this.running) return;
 		this.running = true;
@@ -139,6 +173,7 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 		requestAnimationFrame(this.aniFrameCallback);
 	}
 
+	/** stop animation */
 	stop() {
 		clearTimeout(this.restartTimeout);
 		this.restartTimeout = -1;
@@ -147,24 +182,16 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 		cancelAnimationFrame(this.runningId);
 	}
 
+	/** stop animation and reset the network */
 	reset() {
 		this.stop();
 		this.initializeNet();
 		this.onFrame(true);
 	}
 
+	/** calculate the average error ([[#averageError]]) */
 	calculateAverageError() {
 		this.averageError = 0;
-		/*for (let val of this.config.data) {
-			let res = this.net.getOutput(val.input);
-			let sum1 = 0;
-			for (let i = 0; i < this.net.outputs.length; i++) {
-				let dist = res[i] - val.output[i];
-				sum1 += dist * dist;
-			}
-			this.averageError += Math.sqrt(sum1);
-		}
-		this.averageError /= this.config.data.length;*/
 		for (const val of this.state.data) {
 			this.net.setInputsAndCalculate(val.input);
 			this.averageError += this.net.getLoss(val.output);
@@ -173,6 +200,7 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 		this.errorHistory.push([this.stepsCurrent, this.averageError]);
 	}
 
+	/** update the information in the status line ([[#averageError]] / correct count and [[#stepNum]]) */
 	updateStatusLine() {
 		let correct = 0;
 		if (this.state.outputLayer.neuronCount === 1) {
@@ -203,6 +231,7 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 	}
 
 	aniFrameCallback = this.animationStep.bind(this);
+	/** do a single step in the animation, called by [[window.requestAnimationFrame]] */
 	animationStep(timestamp: number) {
 		let delta = timestamp - this.lastTimestamp;
 		this.lastTimestamp = timestamp;
@@ -216,6 +245,7 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 		if (this.running) this.runningId = requestAnimationFrame(this.aniFrameCallback);
 	}
 	
+	/** called by React when configuration ([[#state]]) is about to change */
 	componentWillUpdate(nextProps: any, newConfig: Configuration) {
 		if(this.state.hiddenLayers.length !== newConfig.hiddenLayers.length && newConfig.custom) {
 			if (this.state.custom/* && !forceNeuronRename*/) return;
@@ -227,6 +257,7 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 		}
 	}
 	
+	/** called by React after the configuration changed; updates the gui components not handled by react accordingly */
 	componentDidUpdate(prevProps: any, oldConfig: Configuration) {
 		const co = oldConfig, cn = this.state;
 		if (!cn.autoRestart) clearTimeout(this.restartTimeout);
@@ -254,12 +285,14 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 				this.onFrame(false);
 		}
 	}
+	/** called once after the GUI has been added to the DOM */
 	componentDidMount() {
 		this.initializeNet();
 		this.onFrame(true);
 		if (this.props.autoRun) this.run();
 	}
 
+	/** parse the [[ConfigurationGui]] contents into [[#state]] */
 	loadConfig() { // from gui
 		const config = $.extend(true, {}, this.state);
 		for (const conf in config) {
@@ -279,7 +312,10 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 		else this.run();
 	}
 
-	// 0 = no weights, 1 = current weights, 2 = start weights
+	/**
+	 * serialize the current configuration into the url (query string)
+	 * @param exportWeights 0 = no weights, 1 = current weights, 2 = start weights
+	 */
 	serializeToUrl(exportWeights = 0) {
 		const url = location.protocol + '//' + location.host + location.pathname + "?";
 		console.log("serializing to url");
@@ -295,6 +331,9 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 		if(params.config) params.config = LZString.compressToEncodedURIComponent(JSON.stringify(params.config));
 		return url + $.param(params);
 	}
+	/**
+	 * parse the configuration from the url created by [[#serializeToUrl]]
+	 */
 	deserializeFromUrl(): Configuration {
 		const urlParams = Util.parseUrlParameters();
 		const preset = urlParams["preset"], config = urlParams["config"];
@@ -306,10 +345,14 @@ class Simulation extends React.Component<{autoRun: boolean}, Configuration> {
 		} else
 			return Presets.get("Binary Classifier for XOR");
 	}
-	shouldComponentUpdate() {
-		return true;
-	}
+	/**
+	 * (this should be default in newer React versions?)
+	 */
+	shouldComponentUpdate() { return true; }
 	
+	/**
+	 * called by React to render the GUI
+	 */
 	render() {
 		const pageTitle = this.state.type === "perceptron" ?"Perceptron demo":"Neural Network demo";
 		const presetName = this.state.custom?" Custom Network":" Preset: "+this.state.name;

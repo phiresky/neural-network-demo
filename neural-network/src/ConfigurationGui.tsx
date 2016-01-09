@@ -1,3 +1,4 @@
+/** small wrapper for bootstrap form groups */
 class BSFormGroup extends React.Component<{
 		label: string, children?: any, id:string, isStatic?:boolean
 	}, {}> {
@@ -8,7 +9,7 @@ class BSFormGroup extends React.Component<{
 		</div>;
 	}
 }
-
+/** small wrapper for bootstrap form checkboxes */
 class BSCheckbox extends React.Component<{conf: Configuration, label: string, id:string}, {}> {
 	render() {
 		return (
@@ -19,6 +20,7 @@ class BSCheckbox extends React.Component<{conf: Configuration, label: string, id
 	}
 }
 
+/** GUI for displaying and modifying [[Configuration]] */
 class ConfigurationGui extends React.Component<Configuration, {}> {
 	render() {
 		const conf = this.props;
