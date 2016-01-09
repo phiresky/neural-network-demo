@@ -16,6 +16,9 @@ An alternative is [Atom](https://atom.io/) + [atom-typescript](https://atom.io/p
 
 The compiled files are included in `*/bin/`
 
+
+**Setup**
+
 ```bash
 sudo npm -g install typescript bower tsd
 (cd lib
@@ -24,12 +27,11 @@ sudo npm -g install typescript bower tsd
 )
 ```
 
-
 Then build via `make`.
 
 Use 
 
-```
+```bash
 python3 -m http.server &
 tsc --watch &
 ```
