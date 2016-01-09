@@ -94,7 +94,7 @@ class Simulation extends React.Component<{ autoRun: boolean }, Configuration> {
 		if (this.state.drawArrows)
 			this.lastWeights = [{ dataPoint: null, weights: this.net.connections.map(c => c.weight) }];
 		const steps = Simulation.trainingMethods[this.state.type][this.state.trainingMethod](this.net, this.state.data);
-		this.lastWeights = this.lastWeights.concat(steps);
+		if (this.state.drawArrows) this.lastWeights.push(...steps);
 	}
 
 	/** handle Train All button press */
