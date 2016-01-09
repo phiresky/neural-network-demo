@@ -1,4 +1,7 @@
-all: bin/libs.css bin/program.js bin/libs.js
+all: bin bin/index.html bin/icon.png bin/libs.css bin/program.js bin/libs.js
+
+bin/%: %
+	cp $< $@
 
 bin/program.js:
 	tsc
@@ -15,3 +18,6 @@ bin/libs.js: lib/bower_components/jquery/dist/jquery.min.js lib/bower_components
 		lib/bower_components/react/react.min.js \
 		lib/bower_components/react/react-dom.min.js
 	paste -d '\n' -s $^ > bin/libs.js
+
+bin:
+	[ -d bin ] || echo "bin not setup. see readme" && exit 1
