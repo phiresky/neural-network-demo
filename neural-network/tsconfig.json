@@ -5,6 +5,7 @@
 		"watch": false,
 		"sourceMap": true,
 		"noImplicitAny": true,
+		"suppressImplicitAnyIndexErrors": true,
 		"jsx": "react"
 	},
 	"files": [

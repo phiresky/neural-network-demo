@@ -1,29 +1,39 @@
+/** type of the demonstration. Can change GUI and valid options */
 type ConfigurationType = "perceptron"|"nn";
+
 /** Configuration interface. Default preset must contain values for all these properties! */
 interface Configuration {
-	[property: string]: any;
 	name: string;
-	parent?: string; // inherit from
+	/** inherit all properties from the preset with this name */
+	parent?: string;
 	data?: TrainingData[];
+	/** is a custom configuration or a preset */
 	custom?: boolean;
 	inputLayer?: InputLayerConfig;
 	outputLayer?: OutputLayerConfig;
 	hiddenLayers?: LayerConfig[];
+	/** learning rate factor (gamma) between 0 and 1*/
 	learningRate?: number;
+	/** show the bias nodes */
 	bias?: boolean;
+	/** automatically restart when all data is correct */
 	autoRestart?: boolean;
+	/** restart after x ms */
 	autoRestartTime?: int;
+	/** number of steps to run per secon when animating */
 	stepsPerSecond?: int;
 	iterationsPerClick?: int;
+	/** show the class for every pixel in the background as a gradient instead of thresholded */
 	showGradient?: boolean;
-	originalBounds?: Util.Bounds;
+	/** preset start weights (random if not defined) */
 	weights?: double[];
+	/** training method (one of [[Simulation.trainingMethods]]) */
 	trainingMethod?: string;
-	saveLastWeights?: boolean;
-	drawArrows?: boolean;
 	drawCoordinateSystem?: boolean;
+	/** draw weight arrows (only possible when single perceptron) */
+	drawArrows?: boolean;
     arrowScale?: int;
-	showTrainNextButton?: boolean;
+	/** when animating, step through all data points on their own */
 	animationTrainSinglePoints?: boolean;
 	type?: ConfigurationType;
 }

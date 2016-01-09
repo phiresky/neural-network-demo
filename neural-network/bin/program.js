@@ -396,13 +396,10 @@ var Presets;
             hiddenLayers: [
                 { neuronCount: 2, activation: "sigmoid" },
             ],
-            saveLastWeights: false,
             drawArrows: false,
             arrowScale: 0.3,
-            originalBounds: null,
             weights: null,
             drawCoordinateSystem: true,
-            showTrainNextButton: false,
             animationTrainSinglePoints: false,
             type: "nn"
         },
@@ -514,7 +511,7 @@ var Presets;
         {
             name: "Auto-Encoder for x^2",
             parent: "Auto-Encoder for circular data",
-            netLayers: [
+            hiddenLayers: [
                 {
                     "activation": "sigmoid",
                     "neuronCount": 2
@@ -594,7 +591,7 @@ var Presets;
                 { input: [0.95, -0.39], output: [0.95, -0.39] },
                 { input: [0.86, -0.53], output: [0.86, -0.53] }]
         },
-        { "name": "Bit Position Auto Encoder", "learningRate": 0.05, "data": [{ "input": [1, 0, 0, 0], "output": [1, 0, 0, 0] }, { "input": [0, 1, 0, 0], "output": [0, 1, 0, 0] }, { "input": [0, 0, 1, 0], "output": [0, 0, 1, 0] }, { "input": [0, 0, 0, 1], "output": [0, 0, 0, 1] }], "inputLayer": { "neuronCount": 4, "names": ["in1", "in2", "in3", "in4"] }, "outputLayer": { "neuronCount": 4, "activation": "sigmoid", "names": ["out1", "out2", "out3", "out4"] }, "hiddenLayers": [{ "neuronCount": 2, "activation": "sigmoid" }], "netLayers": [{ "activation": "sigmoid", "neuronCount": 2 }, { "activation": "linear", "neuronCount": 1 }, { "neuronCount": 2, "activation": "sigmoid" }] },
+        { "name": "Bit Position Auto Encoder", "learningRate": 0.05, "data": [{ "input": [1, 0, 0, 0], "output": [1, 0, 0, 0] }, { "input": [0, 1, 0, 0], "output": [0, 1, 0, 0] }, { "input": [0, 0, 1, 0], "output": [0, 0, 1, 0] }, { "input": [0, 0, 0, 1], "output": [0, 0, 0, 1] }], "inputLayer": { "neuronCount": 4, "names": ["in1", "in2", "in3", "in4"] }, "outputLayer": { "neuronCount": 4, "activation": "sigmoid", "names": ["out1", "out2", "out3", "out4"] }, "hiddenLayers": [{ "neuronCount": 2, "activation": "sigmoid" }] },
         {
             "name": "Rosenblatt Perceptron",
             stepsPerSecond: 2,
@@ -604,8 +601,6 @@ var Presets;
             "autoRestartTime": 5000,
             "autoRestart": false,
             trainingMethod: "Online Training",
-            saveLastWeights: true,
-            showTrainNextButton: true,
             drawArrows: true,
             drawCoordinateSystem: false,
             animationTrainSinglePoints: true,
@@ -846,7 +841,7 @@ var Simulation = (function (_super) {
     Simulation.prototype.trainAll = function () {
         this.currentTrainingDataPoint = -1;
         this.stepsCurrent++;
-        if (this.state.saveLastWeights)
+        if (this.state.drawArrows)
             this.lastWeights = [{ dataPoint: null, weights: this.net.connections.map(function (c) { return c.weight; }) }];
         var steps = Simulation.trainingMethods[this.state.type][this.state.trainingMethod](this.net, this.state.data);
         this.lastWeights = this.lastWeights.concat(steps);
@@ -869,14 +864,14 @@ var Simulation = (function (_super) {
     /** train the next single data point */
     Simulation.prototype.trainNext = function () {
         this.currentTrainingDataPoint++;
-        if (this.state.saveLastWeights)
+        if (this.state.drawArrows)
             this.lastWeights = [{ dataPoint: null, weights: this.net.connections.map(function (c) { return c.weight; }) }];
         this.stepsCurrent++;
         if (this.currentTrainingDataPoint >= this.state.data.length) {
             this.currentTrainingDataPoint -= this.state.data.length;
         }
-        var newWeights = this.net.train(this.state.data[this.currentTrainingDataPoint], true, this.state.saveLastWeights);
-        if (this.state.saveLastWeights)
+        var newWeights = this.net.train(this.state.data[this.currentTrainingDataPoint], true, this.state.drawArrows);
+        if (this.state.drawArrows)
             this.lastWeights.push(newWeights);
     };
     /** do a single forward pass step, start the stepthrough if not already running */
@@ -1344,7 +1339,6 @@ var Util;
         var data = conf.data;
         var i = Util.bounds2dTrainingsInput(data);
         data.forEach(function (data) { return data.input = normalize(i, data.input[0], data.input[1]); });
-        conf.originalBounds = i;
     }
     Util.normalizeInputs = normalizeInputs;
     /**
@@ -1468,6 +1462,7 @@ var ConfigurationGui = (function (_super) {
     };
     return ConfigurationGui;
 }(React.Component));
+/** GUI for displaying the configuration of a single neuron layer */
 var NeuronLayer = (function (_super) {
     __extends(NeuronLayer, _super);
     function NeuronLayer() {
@@ -1481,6 +1476,7 @@ var NeuronLayer = (function (_super) {
     };
     return NeuronLayer;
 }(React.Component));
+/** GUI for configuring the neuron layers */
 var NeuronGui = (function (_super) {
     __extends(NeuronGui, _super);
     function NeuronGui() {
@@ -2329,7 +2325,7 @@ var ControlButtonBar = (function (_super) {
     }
     ControlButtonBar.prototype.render = function () {
         var sim = this.props.sim;
-        return React.createElement("div", {className: "h3"}, React.createElement("button", {className: this.props.running ? "btn btn-danger" : "btn btn-primary", onClick: sim.runtoggle.bind(sim)}, this.props.running ? "Stop" : "Animate"), " ", React.createElement("button", {className: "btn btn-warning", onClick: sim.reset.bind(sim)}, "Reset"), " ", React.createElement("button", {className: "btn btn-default", onClick: sim.trainAllButton.bind(sim)}, sim.state.showTrainNextButton ? "Train All" : "Train"), " ", sim.state.showTrainNextButton ?
+        return React.createElement("div", {className: "h3"}, React.createElement("button", {className: this.props.running ? "btn btn-danger" : "btn btn-primary", onClick: sim.runtoggle.bind(sim)}, this.props.running ? "Stop" : "Animate"), " ", React.createElement("button", {className: "btn btn-warning", onClick: sim.reset.bind(sim)}, "Reset"), " ", React.createElement("button", {className: "btn btn-default", onClick: sim.trainAllButton.bind(sim)}, sim.state.type === "perceptron" ? "Train All" : "Train"), " ", sim.state.type === "perceptron" ?
             React.createElement("button", {className: "btn btn-default", onClick: sim.trainNextButton.bind(sim)}, "Train Single")
             :
                 React.createElement("button", {className: "btn btn-default", onClick: sim.forwardPassStep.bind(sim)}, "Forward Pass Step"));
@@ -2342,7 +2338,7 @@ var StatusBar = (function (_super) {
         _super.apply(this, arguments);
     }
     StatusBar.prototype.render = function () {
-        return React.createElement("h2", null, this.props.correct, " — Iteration: ", this.props.iteration);
+        return React.createElement("h2", null, this.props.correct, " —  Iteration:   ", this.props.iteration);
     };
     return StatusBar;
 }(React.Component));

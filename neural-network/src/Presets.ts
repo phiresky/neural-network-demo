@@ -81,13 +81,10 @@ module Presets {
 			hiddenLayers: [
 				{ neuronCount: 2, activation: "sigmoid" },
 			],
-			saveLastWeights: false,
 			drawArrows: false,
 			arrowScale: 0.3,
-			originalBounds: null,
 			weights: null,
 			drawCoordinateSystem: true,
-			showTrainNextButton: false,
 			animationTrainSinglePoints: false,
 			type: "nn"
 		},
@@ -201,7 +198,7 @@ module Presets {
 		{
 			name: "Auto-Encoder for x^2",
 			parent: "Auto-Encoder for circular data",
-			netLayers: [
+			hiddenLayers: [
 				{
 					"activation": "sigmoid",
 					"neuronCount": 2
@@ -281,7 +278,7 @@ module Presets {
 				{ input: [0.95, -0.39], output: [0.95, -0.39] },
 				{ input: [0.86, -0.53], output: [0.86, -0.53] }]
 		},
-		{ "name": "Bit Position Auto Encoder", "learningRate": 0.05, "data": [{ "input": [1, 0, 0, 0], "output": [1, 0, 0, 0] }, { "input": [0, 1, 0, 0], "output": [0, 1, 0, 0] }, { "input": [0, 0, 1, 0], "output": [0, 0, 1, 0] }, { "input": [0, 0, 0, 1], "output": [0, 0, 0, 1] }], "inputLayer": { "neuronCount": 4, "names": ["in1", "in2", "in3", "in4"] }, "outputLayer": { "neuronCount": 4, "activation": "sigmoid", "names": ["out1", "out2", "out3", "out4"] }, "hiddenLayers": [{ "neuronCount": 2, "activation": "sigmoid" }], "netLayers": [{ "activation": "sigmoid", "neuronCount": 2 }, { "activation": "linear", "neuronCount": 1 }, { "neuronCount": 2, "activation": "sigmoid" }] },
+		{ "name": "Bit Position Auto Encoder", "learningRate": 0.05, "data": [{ "input": [1, 0, 0, 0], "output": [1, 0, 0, 0] }, { "input": [0, 1, 0, 0], "output": [0, 1, 0, 0] }, { "input": [0, 0, 1, 0], "output": [0, 0, 1, 0] }, { "input": [0, 0, 0, 1], "output": [0, 0, 0, 1] }], "inputLayer": { "neuronCount": 4, "names": ["in1", "in2", "in3", "in4"] }, "outputLayer": { "neuronCount": 4, "activation": "sigmoid", "names": ["out1", "out2", "out3", "out4"] }, "hiddenLayers": [{ "neuronCount": 2, "activation": "sigmoid" }] },
 		{
 			"name": "Rosenblatt Perceptron",
 			stepsPerSecond: 2,
@@ -291,8 +288,6 @@ module Presets {
 			"autoRestartTime": 5000,
 			"autoRestart": false,
 			trainingMethod: "Online Training",
-			saveLastWeights: true,
-			showTrainNextButton: true,
 			drawArrows: true,
 			drawCoordinateSystem: false,
 			animationTrainSinglePoints: true,

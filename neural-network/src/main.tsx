@@ -1,5 +1,6 @@
 // type aliases for my sanity
-type double = number; type int = number;
+/** floating point number */ type double = number;
+/** whole number */ type int = number;
 
 $(document).ready(() => {
 	Presets.loadPetersonBarney();

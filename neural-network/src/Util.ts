@@ -115,7 +115,6 @@ module Util {
 		const data = conf.data;
 		const i = Util.bounds2dTrainingsInput(data);
 		data.forEach(data => data.input = normalize(i, data.input[0], data.input[1]));
-		conf.originalBounds = i;
 	}
 	/** 
 	 * download some text

@@ -90,7 +90,7 @@ class Simulation extends React.Component<{ autoRun: boolean }, Configuration> {
 	trainAll() {
 		this.currentTrainingDataPoint = -1;
 		this.stepsCurrent++;
-		if (this.state.saveLastWeights)
+		if (this.state.drawArrows)
 			this.lastWeights = [{ dataPoint: null, weights: this.net.connections.map(c => c.weight) }];
 		const steps = Simulation.trainingMethods[this.state.type][this.state.trainingMethod](this.net, this.state.data);
 		this.lastWeights = this.lastWeights.concat(steps);
@@ -118,14 +118,14 @@ class Simulation extends React.Component<{ autoRun: boolean }, Configuration> {
 	/** train the next single data point */
 	trainNext() {
 		this.currentTrainingDataPoint++;
-		if (this.state.saveLastWeights)
+		if (this.state.drawArrows)
 			this.lastWeights = [{ dataPoint: null, weights: this.net.connections.map(c => c.weight) }];
 		this.stepsCurrent++;
 		if (this.currentTrainingDataPoint >= this.state.data.length) {
 			this.currentTrainingDataPoint -= this.state.data.length;
 		}
-		const newWeights = this.net.train(this.state.data[this.currentTrainingDataPoint], true, this.state.saveLastWeights);
-		if (this.state.saveLastWeights) this.lastWeights.push(newWeights);
+		const newWeights = this.net.train(this.state.data[this.currentTrainingDataPoint], true, this.state.drawArrows);
+		if (this.state.drawArrows) this.lastWeights.push(newWeights);
 	}
 
 	/** cache for all the steps that the [[NetGraph]] will go through for a single forward pass step */

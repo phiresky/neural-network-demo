@@ -71,6 +71,7 @@ class ConfigurationGui extends React.Component<Configuration, {}> {
 	}
 }
 
+/** GUI for displaying the configuration of a single neuron layer */
 class NeuronLayer extends React.Component<{
 		layer: {neuronCount: number, activation?: string},
 		name: string,
@@ -94,6 +95,7 @@ class NeuronLayer extends React.Component<{
 	}
 }
 
+/** GUI for configuring the neuron layers */
 class NeuronGui extends React.Component<Configuration, {}> {
 	addLayer() {
 		const hiddenLayers = this.props.hiddenLayers.slice();
