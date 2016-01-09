@@ -846,7 +846,9 @@ var Simulation = (function (_super) {
         if (this.state.drawArrows)
             this.lastWeights = [{ dataPoint: null, weights: this.net.connections.map(function (c) { return c.weight; }) }];
         var steps = Simulation.trainingMethods[this.state.type][this.state.trainingMethod](this.net, this.state.data);
-        this.lastWeights = this.lastWeights.concat(steps);
+        if (this.state.drawArrows)
+            (_a = this.lastWeights).push.apply(_a, steps);
+        var _a;
     };
     /** handle Train All button press */
     Simulation.prototype.trainAllButton = function () {
