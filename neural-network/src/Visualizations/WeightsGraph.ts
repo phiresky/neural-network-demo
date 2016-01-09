@@ -2,6 +2,9 @@ interface Point3d {
 	x: double; y: double; z: double;
 	style?: double;
 }
+/**
+ * Visualization that displays all the weights in the network as a black-white gradient
+ */
 class WeightsGraph implements Visualization {
 	actions = ["Weights"];
 	container = $("<div>");

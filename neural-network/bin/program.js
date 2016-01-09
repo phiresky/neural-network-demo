@@ -2426,6 +2426,9 @@ var TabSwitcher = (function (_super) {
     };
     return TabSwitcher;
 }(React.Component));
+/**
+ * Visualization that displays all the weights in the network as a black-white gradient
+ */
 var WeightsGraph = (function () {
     function WeightsGraph(sim) {
         var _this = this;
