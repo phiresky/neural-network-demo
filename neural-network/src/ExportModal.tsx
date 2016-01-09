@@ -5,7 +5,7 @@ class ExportModal extends React.Component<{sim:Simulation, ref:any},{exportWeigh
 			exportWeights: "0",
 			errors: []
 		}
-		$("body").on("shown.bs.modal", "#exportModal", () => sim.exportModal.forceUpdate());
+		$("body").on("shown.bs.modal", "#exportModal", () => Simulation.instance.exportModal.forceUpdate());
 	}
 	render() {
 		const ele = $("#exportModal")[0];

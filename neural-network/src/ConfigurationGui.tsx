@@ -10,11 +10,11 @@ class BSFormGroup extends React.Component<{
 	}
 }
 /** small wrapper for bootstrap form checkboxes */
-class BSCheckbox extends React.Component<{conf: Configuration, label: string, id:string}, {}> {
+class BSCheckbox extends React.Component<{conf: Configuration, label: string, id:string, onChange: () => void}, {}> {
 	render() {
 		return (
 			<BSFormGroup label={this.props.label} id={this.props.id} isStatic>
-				<input type="checkbox" checked={this.props.conf[this.props.id]} id={this.props.id} onChange={() => sim.loadConfig()} />
+				<input type="checkbox" checked={this.props.conf[this.props.id]} id={this.props.id} onChange={this.props.onChange} />
 			</BSFormGroup>
 		);
 	}
@@ -24,7 +24,7 @@ class BSCheckbox extends React.Component<{conf: Configuration, label: string, id
 class ConfigurationGui extends React.Component<Configuration, {}> {
 	render() {
 		const conf = this.props;
-		const loadConfig = () => sim.loadConfig();
+		const loadConfig = () => Simulation.instance.loadConfig();
 		return <div className="form-horizontal">
 				<div className="col-sm-6">
 					<h4>Display</h4>
@@ -34,11 +34,11 @@ class ConfigurationGui extends React.Component<Configuration, {}> {
 					<BSFormGroup label="Steps per Second" id="stepsPerSecond">
 						<input className="form-control" type="number" min={0.1} max={1000} id="stepsPerSecond" value={""+conf.stepsPerSecond} onChange={loadConfig} />
 					</BSFormGroup>
-					<BSCheckbox label="When correct, restart after 5 seconds" id="autoRestart" conf={conf} />
+					<BSCheckbox label="When correct, restart after 5 seconds" id="autoRestart" onChange={loadConfig} conf={conf} />
 					{conf.type !== "perceptron"?
-						<BSCheckbox label="Show class propabilities as gradient" id="showGradient" conf={conf}/>
+						<BSCheckbox label="Show class propabilities as gradient" id="showGradient" onChange={loadConfig} conf={conf}/>
 					:""}
-					<BSCheckbox label="Show bias input" id="bias" conf={conf} />
+					<BSCheckbox label="Show bias input" id="bias" onChange={loadConfig} conf={conf} />
 					<button className="btn btn-default" data-toggle="modal" data-target="#exportModal">Import / Export</button>
 				</div>
 				<div className="col-sm-6">
@@ -56,9 +56,9 @@ class ConfigurationGui extends React.Component<Configuration, {}> {
 					</BSFormGroup>
 					{conf.type === "perceptron"?
 						<div>
-							<BSCheckbox label="Animate single data points" id="animationTrainSinglePoints" conf={conf} />
-							<BSCheckbox label="Draw Arrows" id="drawArrows" conf={conf} />
-							<BSCheckbox label="Draw coordinate system" id="drawCoordinateSystem" conf={conf} />
+							<BSCheckbox label="Animate single data points" id="animationTrainSinglePoints" onChange={loadConfig} conf={conf} />
+							<BSCheckbox label="Draw Arrows" id="drawArrows" onChange={loadConfig} conf={conf} />
+							<BSCheckbox label="Draw coordinate system" id="drawCoordinateSystem" onChange={loadConfig} conf={conf} />
 						</div>
 					:
 						<div>
@@ -98,13 +98,13 @@ class NeuronGui extends React.Component<Configuration, {}> {
 	addLayer() {
 		const hiddenLayers = this.props.hiddenLayers.slice();
 		hiddenLayers.unshift({ activation: 'sigmoid', neuronCount: 2 });
-		sim.setState({hiddenLayers, custom:true});
+		Simulation.instance.setState({hiddenLayers, custom:true});
 	}
 	removeLayer() {
 		if (this.props.hiddenLayers.length == 0) return;
 		const hiddenLayers = this.props.hiddenLayers.slice();
 		hiddenLayers.shift();
-		sim.setState({hiddenLayers, custom:true});
+		Simulation.instance.setState({hiddenLayers, custom:true});
 	}
 	activationChanged(i:number, a:string) {
 		const newConf = Util.cloneConfig(this.props);
@@ -112,7 +112,7 @@ class NeuronGui extends React.Component<Configuration, {}> {
 			newConf.outputLayer.activation = a;
 		else newConf.hiddenLayers[i].activation = a;
 		newConf.custom = true;
-		sim.setState(newConf);
+		Simulation.instance.setState(newConf);
 	}
 	countChanged(i:number, inc:number) {
 		const newState = Util.cloneConfig(this.props);
@@ -135,7 +135,7 @@ class NeuronGui extends React.Component<Configuration, {}> {
 		targetLayer.neuronCount = newval;
 		if(ioDimensionChanged) newState.data = [];
 		newState.custom = true;
-		sim.setState(newState);
+		Simulation.instance.setState(newState);
 	}
 	render() {
 		const conf = this.props;

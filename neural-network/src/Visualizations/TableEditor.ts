@@ -20,7 +20,7 @@ class TableEditor implements Visualization {
 		$("<div>").addClass("btn btn-default")
 			.css({ position: "absolute", right: "2em", bottom: "2em" })
 			.text("Remove all")
-			.click(e => sim.setState({data: []}, () => this.loadData()))
+			.click(e => this.sim.setState({data: []}, () => this.loadData()))
 			.appendTo(this.container);
 		const headerRenderer = function firstRowRenderer(instance: any, td: HTMLTableCellElement) {
 			Handsontable.renderers.TextRenderer.apply(this, arguments);

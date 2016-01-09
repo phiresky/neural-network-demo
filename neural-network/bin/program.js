@@ -1,10 +1,10 @@
-var sim;
 $(document).ready(function () {
     Presets.loadPetersonBarney();
-    sim = ReactDOM.render(React.createElement(Simulation, {autoRun: false}), document.getElementById("mainContainer"));
+    Simulation.instance = ReactDOM.render(React.createElement(Simulation, {autoRun: false}), document.getElementById("mainContainer"));
 });
+/** check for regressions in net algorithm */
 function checkSanity() {
-    // test if network still works like ages ago
+    var sim = Simulation.instance;
     sim.setState(Presets.get("Binary Classifier for XOR"));
     var out = [-0.3180095069079748, -0.2749093166215802, -0.038532753589859546, 0.09576201205465842, -0.3460678329225116,
         0.23218797637289554, -0.33191669283980774, 0.5140297481331861, -0.1518989898989732];
@@ -22,18 +22,19 @@ function checkSanity() {
         throw "insanity!";
     return "ok";
 }
-function enableDev() {
-    localStorage.setItem("dev", "true");
-    location.reload();
-}
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
-// this neural network uses stochastic gradient descent with the squared error as the loss function
+/**
+ * Simple implementation of a neural network (multilayer perceptron)
+ *
+ * Uses stochastic gradient descent with squared error as the loss function
+ */
 var Net;
 (function (Net) {
+    /** tangens hyperbolicus polyfill */
     var tanh = function (x) {
         if (x === Infinity) {
             return 1;
@@ -46,6 +47,7 @@ var Net;
             return (y - 1) / (y + 1);
         }
     };
+    /** list of known activation functions */
     Net.NonLinearities = {
         sigmoid: {
             f: function (x) { return 1 / (1 + Math.exp(-x)); },
@@ -69,16 +71,6 @@ var Net;
             df: function (x) { return 1; }
         }
     };
-    var Util;
-    (function (Util) {
-        function makeArray(len, supplier) {
-            var arr = new Array(len);
-            for (var i = 0; i < len; i++)
-                arr[i] = supplier(i);
-            return arr;
-        }
-        Util.makeArray = makeArray;
-    })(Util = Net.Util || (Net.Util = {}));
     /**
      * intermediate result of a single data point training step and the resulting weights vector
      *
@@ -90,15 +82,20 @@ var Net;
         return WeightsStep;
     }());
     Net.WeightsStep = WeightsStep;
-    // back propagation code adapted from https://de.wikipedia.org/wiki/Backpropagation
+    /**
+     * back propagation code adapted from https://de.wikipedia.org/wiki/Backpropagation
+     */
     var NeuralNet = (function () {
         function NeuralNet(input, hidden, output, learnRate, startWeight, startWeights) {
             var _this = this;
             if (startWeight === void 0) { startWeight = function () { return Math.random() - 0.5; }; }
             this.learnRate = learnRate;
             this.startWeights = startWeights;
+            /** layers including input, hidden, and output */
             this.layers = [];
+            /** bias input neurons */
             this.biases = [];
+            /** a flat list of all the neuron connections */
             this.connections = [];
             var nid = 0;
             this.inputs = Util.makeArray(input.neuronCount, function (i) { return new InputNeuron(nid++, i, input.names[i]); });
@@ -233,12 +230,14 @@ var Net;
         return NeuralNet;
     }());
     Net.NeuralNet = NeuralNet;
+    /** a weighted connection between two neurons */
     var NeuronConnection = (function () {
         function NeuronConnection(inp, out) {
             this.inp = inp;
             this.out = out;
-            this.deltaWeight = NaN;
             this.weight = 0;
+            /** cached delta weight for training */
+            this.deltaWeight = NaN;
         }
         NeuronConnection.prototype.zeroDeltaWeight = function () {
             this.deltaWeight = 0;
@@ -253,6 +252,7 @@ var Net;
         return NeuronConnection;
     }());
     Net.NeuronConnection = NeuronConnection;
+    /** a single Neuron / Perceptron */
     var Neuron = (function () {
         function Neuron(activation, id, layerIndex) {
             this.activation = activation;
@@ -260,6 +260,7 @@ var Net;
             this.layerIndex = layerIndex;
             this.inputs = [];
             this.outputs = [];
+            /** weighted sum of inputs without activation function */
             this.weightedInputs = 0;
             this.output = 0;
             this.error = 0;
@@ -286,6 +287,7 @@ var Net;
         return Neuron;
     }());
     Net.Neuron = Neuron;
+    /** an input neuron (no inputs, fixed output value, can't be trained) */
     var InputNeuron = (function (_super) {
         __extends(InputNeuron, _super);
         function InputNeuron(id, layerIndex, name, constantOutput) {
@@ -297,12 +299,13 @@ var Net;
                 this.constant = true;
             }
         }
-        InputNeuron.prototype.calculateOutput = function () { };
-        InputNeuron.prototype.calculateWeightedInputs = function () { };
-        InputNeuron.prototype.calculateError = function () { };
+        InputNeuron.prototype.calculateOutput = function () { throw Error("input neuron"); };
+        InputNeuron.prototype.calculateWeightedInputs = function () { throw Error("input neuron"); };
+        InputNeuron.prototype.calculateError = function () { throw Error("input neuron"); };
         return InputNeuron;
     }(Neuron));
     Net.InputNeuron = InputNeuron;
+    /** an output neuron (error calculated via target output */
     var OutputNeuron = (function (_super) {
         __extends(OutputNeuron, _super);
         function OutputNeuron(activation, id, layerIndex, name) {
@@ -317,8 +320,59 @@ var Net;
     }(Neuron));
     Net.OutputNeuron = OutputNeuron;
 })(Net || (Net = {}));
+/**
+ * A preset is a hardcoded [[Configuration]].
+ * It can also have a parent from which it inherits all properties.
+ * This module handles loading of presets
+ */
 var Presets;
 (function (Presets) {
+    /** get a list of all the preset names */
+    function getNames() {
+        return Presets.presets.map(function (p) { return p.name; }).filter(function (c) { return c !== "Default"; });
+    }
+    Presets.getNames = getNames;
+    /** check if a preset of the given name exists */
+    function exists(name) {
+        return Presets.presets.filter(function (p) { return p.name === name; })[0] !== undefined;
+    }
+    Presets.exists = exists;
+    /** get the preset of the given name */
+    function get(name) {
+        var chain = [];
+        var preset = Presets.presets.filter(function (p) { return p.name === name; })[0];
+        chain.unshift(preset);
+        while (true) {
+            var parentName = preset.parent || "Default";
+            preset = Presets.presets.filter(function (p) { return p.name === parentName; })[0];
+            chain.unshift(preset);
+            if (parentName === "Default")
+                break;
+        }
+        chain.unshift({});
+        console.log("loading preset chain: " + chain.map(function (c) { return c.name; }));
+        return JSON.parse(JSON.stringify($.extend.apply($, chain)));
+    }
+    Presets.get = get;
+    function printPreset(sim, parentName) {
+        if (parentName === void 0) { parentName = "Default"; }
+        var parent = get(parentName);
+        var outconf = {};
+        for (var prop in sim.state) {
+            if (sim.state[prop] !== parent[prop])
+                outconf[prop] = sim.state[prop];
+        }
+        /*outconf.data = config.data.map(
+            e => '{input:[' + e.input.map(x=> x.toFixed(2))
+                + '], output:[' +
+                (config["simType"] == SimulationType.BinaryClassification
+                    ? e.output
+                    : e.input.map(x=> x.toFixed(2)))
+                + ']},').join("\n");*/
+        return outconf;
+    }
+    Presets.printPreset = printPreset;
+    /** all the hardcoded presets */
     Presets.presets = [
         {
             name: "Default",
@@ -581,48 +635,6 @@ var Presets;
             animationTrainSinglePoints: false
         }
     ];
-    function getNames() {
-        return Presets.presets.map(function (p) { return p.name; }).filter(function (c) { return c !== "Default"; });
-    }
-    Presets.getNames = getNames;
-    function exists(name) {
-        return Presets.presets.filter(function (p) { return p.name === name; })[0] !== undefined;
-    }
-    Presets.exists = exists;
-    function get(name) {
-        var chain = [];
-        var preset = Presets.presets.filter(function (p) { return p.name === name; })[0];
-        chain.unshift(preset);
-        while (true) {
-            var parentName = preset.parent || "Default";
-            preset = Presets.presets.filter(function (p) { return p.name === parentName; })[0];
-            chain.unshift(preset);
-            if (parentName === "Default")
-                break;
-        }
-        chain.unshift({});
-        console.log("loading preset chain: " + chain.map(function (c) { return c.name; }));
-        return JSON.parse(JSON.stringify($.extend.apply($, chain)));
-    }
-    Presets.get = get;
-    function printPreset(sim, parentName) {
-        if (parentName === void 0) { parentName = "Default"; }
-        var parent = get(parentName);
-        var outconf = {};
-        for (var prop in sim.state) {
-            if (sim.state[prop] !== parent[prop])
-                outconf[prop] = sim.state[prop];
-        }
-        /*outconf.data = config.data.map(
-            e => '{input:[' + e.input.map(x=> x.toFixed(2))
-                + '], output:[' +
-                (config["simType"] == SimulationType.BinaryClassification
-                    ? e.output
-                    : e.input.map(x=> x.toFixed(2)))
-                + ']},').join("\n");*/
-        return outconf;
-    }
-    Presets.printPreset = printPreset;
     function parseBarney(data) {
         // _cache = LZString.compressToBase64(JSON.stringify(data));
         var relevantData = data
@@ -637,7 +649,7 @@ var Presets;
         //presets.forEach(preset => preset.data && normalizeInputs(preset.data));
     }
     function loadPetersonBarney() {
-        // include peterson_barney_data for faster page load
+        // include lib/peterson_barney_data for faster page load
         var dataStr = "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";
         parseBarney(JSON.parse(LZString.decompressFromBase64(dataStr)));
         return;
@@ -675,7 +687,7 @@ var ExportModal = (function (_super) {
             exportWeights: "0",
             errors: []
         };
-        $("body").on("shown.bs.modal", "#exportModal", function () { return sim.exportModal.forceUpdate(); });
+        $("body").on("shown.bs.modal", "#exportModal", function () { return Simulation.instance.exportModal.forceUpdate(); });
     }
     ExportModal.prototype.render = function () {
         var _this = this;
@@ -773,7 +785,9 @@ var ExportModal = (function (_super) {
 /**
  * the interface between the GUI and the Simulation / Neural network
  *
- * handles buttons, animation and configuration updates
+ * handles buttons, animation and configuration updates with the help of React
+ *
+ * the [[#state]] of this object contains the [[Configuration]]
  */
 var Simulation = (function (_super) {
     __extends(Simulation, _super);
@@ -783,7 +797,7 @@ var Simulation = (function (_super) {
         /** training steps that should be done by now (used for animation) */
         this.stepsWanted = 0;
         /**
-         * training steps that have been done since #initializeNet()
+         * training steps that have been done since [[#initializeNet]]
          * single training steps or batch training steps both count as 1 step
          */
         this.stepsCurrent = 0;
@@ -799,12 +813,15 @@ var Simulation = (function (_super) {
         /** the setTimeout ID for restarting the simulation after some time (see Configuration#autoRestartTime) */
         this.restartTimeout = -1;
         this.lastTimestamp = 0;
+        /** current average error (see Net.NeuralNet#getLoss) */
         this.averageError = 1;
-        this.statusIterEle = document.getElementById('statusIteration');
-        this.statusCorrectEle = document.getElementById('statusCorrect');
+        /** -1 when not training single data points, otherwise index into [[Configuration#data]] */
         this.currentTrainingDataPoint = -1;
+        /** cache for all the steps that the [[NetGraph]] will go through for a single forward pass step */
         this.forwardPassEles = [];
         this.aniFrameCallback = this.animationStep.bind(this);
+        if (Simulation.instance)
+            throw Error("Already instantiated");
         this.netviz = new NetworkVisualization(this, function (p) { return p === _this.state.data[_this.currentTrainingDataPoint]; });
         this.netgraph = new NetworkGraph(this);
         this.errorGraph = new ErrorGraph(this);
@@ -812,6 +829,7 @@ var Simulation = (function (_super) {
         this.weightsGraph = new WeightsGraph(this);
         this.state = this.deserializeFromUrl();
     }
+    /** initialize a new random network */
     Simulation.prototype.initializeNet = function () {
         if (this.net)
             this.stop();
@@ -824,6 +842,7 @@ var Simulation = (function (_super) {
         this.lrVis.rightVis.onNetworkLoaded(this.net);
         this.onFrame(true);
     };
+    /** train all data points according to [[#trainingMethod]] */
     Simulation.prototype.trainAll = function () {
         this.currentTrainingDataPoint = -1;
         this.stepsCurrent++;
@@ -832,6 +851,7 @@ var Simulation = (function (_super) {
         var steps = Simulation.trainingMethods[this.state.type][this.state.trainingMethod](this.net, this.state.data);
         this.lastWeights = this.lastWeights.concat(steps);
     };
+    /** handle Train All button press */
     Simulation.prototype.trainAllButton = function () {
         this.stop();
         for (var i = 0; i < this.state.iterationsPerClick; i++)
@@ -839,12 +859,14 @@ var Simulation = (function (_super) {
         this.stepsWanted = this.stepsCurrent;
         this.onFrame(true);
     };
+    /** handle Train Single button press */
     Simulation.prototype.trainNextButton = function () {
         this.stop();
         this.trainNext();
         this.stepsWanted = this.stepsCurrent;
         this.onFrame(true);
     };
+    /** train the next single data point */
     Simulation.prototype.trainNext = function () {
         this.currentTrainingDataPoint++;
         if (this.state.saveLastWeights)
@@ -857,6 +879,7 @@ var Simulation = (function (_super) {
         if (this.state.saveLastWeights)
             this.lastWeights.push(newWeights);
     };
+    /** do a single forward pass step, start the stepthrough if not already running */
     Simulation.prototype.forwardPassStep = function () {
         if (!this.netgraph.currentlyDisplayingForwardPass) {
             this.forwardPassEles = [];
@@ -886,12 +909,14 @@ var Simulation = (function (_super) {
             }
         }
     };
+    /** handle animation frame */
     Simulation.prototype.onFrame = function (forceDraw) {
         this.frameNum++;
         this.calculateAverageError();
         this.lrVis.onFrame(forceDraw ? 0 : this.frameNum);
         this.updateStatusLine();
     };
+    /** begin animation */
     Simulation.prototype.run = function () {
         if (this.running)
             return;
@@ -900,6 +925,7 @@ var Simulation = (function (_super) {
         this.lastTimestamp = performance.now();
         requestAnimationFrame(this.aniFrameCallback);
     };
+    /** stop animation */
     Simulation.prototype.stop = function () {
         clearTimeout(this.restartTimeout);
         this.restartTimeout = -1;
@@ -907,23 +933,15 @@ var Simulation = (function (_super) {
         this.lrVis.setState({ running: false });
         cancelAnimationFrame(this.runningId);
     };
+    /** stop animation and reset the network */
     Simulation.prototype.reset = function () {
         this.stop();
         this.initializeNet();
         this.onFrame(true);
     };
+    /** calculate the average error ([[#averageError]]) */
     Simulation.prototype.calculateAverageError = function () {
         this.averageError = 0;
-        /*for (let val of this.config.data) {
-            let res = this.net.getOutput(val.input);
-            let sum1 = 0;
-            for (let i = 0; i < this.net.outputs.length; i++) {
-                let dist = res[i] - val.output[i];
-                sum1 += dist * dist;
-            }
-            this.averageError += Math.sqrt(sum1);
-        }
-        this.averageError /= this.config.data.length;*/
         for (var _i = 0, _a = this.state.data; _i < _a.length; _i++) {
             var val = _a[_i];
             this.net.setInputsAndCalculate(val.input);
@@ -932,6 +950,7 @@ var Simulation = (function (_super) {
         this.averageError /= this.state.data.length;
         this.errorHistory.push([this.stepsCurrent, this.averageError]);
     };
+    /** update the information in the status line ([[#averageError]] / correct count and [[#stepNum]]) */
     Simulation.prototype.updateStatusLine = function () {
         var _this = this;
         var correct = 0;
@@ -964,6 +983,7 @@ var Simulation = (function (_super) {
             }
         }
     };
+    /** do a single step in the animation, called by [[window.requestAnimationFrame]] */
     Simulation.prototype.animationStep = function (timestamp) {
         var delta = timestamp - this.lastTimestamp;
         this.lastTimestamp = timestamp;
@@ -978,6 +998,7 @@ var Simulation = (function (_super) {
         if (this.running)
             this.runningId = requestAnimationFrame(this.aniFrameCallback);
     };
+    /** called by React when configuration ([[#state]]) is about to change */
     Simulation.prototype.componentWillUpdate = function (nextProps, newConfig) {
         if (this.state.hiddenLayers.length !== newConfig.hiddenLayers.length && newConfig.custom) {
             if (this.state.custom /* && !forceNeuronRename*/)
@@ -985,10 +1006,11 @@ var Simulation = (function (_super) {
             var inN = newConfig.inputLayer.neuronCount;
             var outN = newConfig.outputLayer.neuronCount;
             newConfig.name = "Custom Network";
-            newConfig.inputLayer = { names: Net.Util.makeArray(inN, function (i) { return ("in" + (i + 1)); }), neuronCount: inN };
-            newConfig.outputLayer = { names: Net.Util.makeArray(outN, function (i) { return ("out" + (i + 1)); }), activation: newConfig.outputLayer.activation, neuronCount: outN };
+            newConfig.inputLayer = { names: Util.makeArray(inN, function (i) { return ("in" + (i + 1)); }), neuronCount: inN };
+            newConfig.outputLayer = { names: Util.makeArray(outN, function (i) { return ("out" + (i + 1)); }), activation: newConfig.outputLayer.activation, neuronCount: outN };
         }
     };
+    /** called by React after the configuration changed; updates the gui components not handled by react accordingly */
     Simulation.prototype.componentDidUpdate = function (prevProps, oldConfig) {
         var co = oldConfig, cn = this.state;
         if (!cn.autoRestart)
@@ -1018,12 +1040,14 @@ var Simulation = (function (_super) {
                 this.onFrame(false);
         }
     };
+    /** called once after the GUI has been added to the DOM */
     Simulation.prototype.componentDidMount = function () {
         this.initializeNet();
         this.onFrame(true);
         if (this.props.autoRun)
             this.run();
     };
+    /** parse the [[ConfigurationGui]] contents into [[#state]] */
     Simulation.prototype.loadConfig = function () {
         var config = $.extend(true, {}, this.state);
         for (var conf in config) {
@@ -1046,7 +1070,10 @@ var Simulation = (function (_super) {
         else
             this.run();
     };
-    // 0 = no weights, 1 = current weights, 2 = start weights
+    /**
+     * serialize the current configuration into the url (query string)
+     * @param exportWeights 0 = no weights, 1 = current weights, 2 = start weights
+     */
     Simulation.prototype.serializeToUrl = function (exportWeights) {
         if (exportWeights === void 0) { exportWeights = 0; }
         var url = location.protocol + '//' + location.host + location.pathname + "?";
@@ -1066,6 +1093,9 @@ var Simulation = (function (_super) {
             params.config = LZString.compressToEncodedURIComponent(JSON.stringify(params.config));
         return url + $.param(params);
     };
+    /**
+     * parse the configuration from the url created by [[#serializeToUrl]]
+     */
     Simulation.prototype.deserializeFromUrl = function () {
         var urlParams = Util.parseUrlParameters();
         var preset = urlParams["preset"], config = urlParams["config"];
@@ -1078,22 +1108,27 @@ var Simulation = (function (_super) {
         else
             return Presets.get("Binary Classifier for XOR");
     };
-    Simulation.prototype.shouldComponentUpdate = function () {
-        return true;
-    };
+    /**
+     * (this should be default in newer React versions?)
+     */
+    Simulation.prototype.shouldComponentUpdate = function () { return true; };
+    /**
+     * called by React to render the GUI
+     */
     Simulation.prototype.render = function () {
         var _this = this;
         var pageTitle = this.state.type === "perceptron" ? "Perceptron demo" : "Neural Network demo";
         var presetName = this.state.custom ? " Custom Network" : " Preset: " + this.state.name;
         document.title = pageTitle + " \u2014 " + presetName;
         return (React.createElement("div", null, React.createElement("div", {className: "container"}, React.createElement("div", {className: "page-header"}, React.createElement("div", {className: "btn-toolbar pull-right dropdown", style: { marginTop: "5px" }}, React.createElement("button", {className: "btn btn-info dropdown-toggle", "data-toggle": "dropdown"}, "Load Preset ", React.createElement("span", {className: "caret"})), React.createElement("ul", {className: "dropdown-menu"}, React.createElement("li", {className: "dropdown-header"}, "Neural Network"), Presets.getNames().map(function (name) {
-            var ele = React.createElement("li", {key: name}, React.createElement("a", {onClick: function (e) { return sim.setState(Presets.get(name)); }}, name));
+            var ele = React.createElement("li", {key: name}, React.createElement("a", {onClick: function (e) { return _this.setState(Presets.get(name)); }}, name));
             if (name === "Rosenblatt Perceptron")
                 return [React.createElement("li", {className: "divider"}), React.createElement("li", {className: "dropdown-header"}, "Perceptron"), ele];
             else
                 return ele;
         }))), React.createElement("h1", null, pageTitle, React.createElement("small", null, presetName))), React.createElement(LRVis, {sim: this, ref: function (e) { return _this.lrVis = e; }, leftVis: [this.netgraph, this.errorGraph, this.weightsGraph], rightVis: [this.netviz, this.table]}), React.createElement("div", {className: "panel panel-default"}, React.createElement("div", {className: "panel-heading"}, React.createElement("h3", {className: "panel-title"}, React.createElement("a", {"data-toggle": "collapse", "data-target": ".panel-body"}, "Configuration"))), React.createElement("div", {className: "panel-body collapse in"}, React.createElement(ConfigurationGui, React.__spread({}, this.state)))), React.createElement("footer", {className: "small"}, React.createElement("a", {href: "https://github.com/phiresky/kogsys-demos/"}, "Source on GitHub"))), React.createElement(ExportModal, {sim: this, ref: function (e) { return _this.exportModal = e; }})));
     };
+    /** list of training methods for every Configuration#type */
     Simulation.trainingMethods = {
         "nn": {
             "Batch Training": function (net, data) { return net.trainAll(data, false, false); },
@@ -1109,7 +1144,7 @@ var Simulation = (function (_super) {
 }(React.Component));
 /**
  * this class handles the linear transformations used to offset and scale the drawing in a 2d canvas
- * @see #toReal and #toCanvas
+ * @see [[#toReal]] and [[#toCanvas]]
  */
 var TransformNavigation = (function () {
     /**
@@ -1180,6 +1215,17 @@ var TransformNavigation = (function () {
 }());
 var Util;
 (function (Util) {
+    /**
+     * @param len array length
+     * @param supplier map from index to array element
+     */
+    function makeArray(len, supplier) {
+        var arr = new Array(len);
+        for (var i = 0; i < len; i++)
+            arr[i] = supplier(i);
+        return arr;
+    }
+    Util.makeArray = makeArray;
     /**
      * return array index that has maximum value
      * ≈ argmax function
@@ -1382,6 +1428,7 @@ var Util;
     }
     Util.toLinearFunction = toLinearFunction;
 })(Util || (Util = {}));
+/** small wrapper for bootstrap form groups */
 var BSFormGroup = (function (_super) {
     __extends(BSFormGroup, _super);
     function BSFormGroup() {
@@ -1392,16 +1439,18 @@ var BSFormGroup = (function (_super) {
     };
     return BSFormGroup;
 }(React.Component));
+/** small wrapper for bootstrap form checkboxes */
 var BSCheckbox = (function (_super) {
     __extends(BSCheckbox, _super);
     function BSCheckbox() {
         _super.apply(this, arguments);
     }
     BSCheckbox.prototype.render = function () {
-        return (React.createElement(BSFormGroup, {label: this.props.label, id: this.props.id, isStatic: true}, React.createElement("input", {type: "checkbox", checked: this.props.conf[this.props.id], id: this.props.id, onChange: function () { return sim.loadConfig(); }})));
+        return (React.createElement(BSFormGroup, {label: this.props.label, id: this.props.id, isStatic: true}, React.createElement("input", {type: "checkbox", checked: this.props.conf[this.props.id], id: this.props.id, onChange: this.props.onChange})));
     };
     return BSCheckbox;
 }(React.Component));
+/** GUI for displaying and modifying [[Configuration]] */
 var ConfigurationGui = (function (_super) {
     __extends(ConfigurationGui, _super);
     function ConfigurationGui() {
@@ -1409,11 +1458,11 @@ var ConfigurationGui = (function (_super) {
     }
     ConfigurationGui.prototype.render = function () {
         var conf = this.props;
-        var loadConfig = function () { return sim.loadConfig(); };
-        return React.createElement("div", {className: "form-horizontal"}, React.createElement("div", {className: "col-sm-6"}, React.createElement("h4", null, "Display"), React.createElement(BSFormGroup, {label: "Iterations per click on 'Train'", id: "iterationsPerClick"}, React.createElement("input", {className: "form-control", type: "number", min: 0, max: 10000, id: "iterationsPerClick", value: "" + conf.iterationsPerClick, onChange: loadConfig})), React.createElement(BSFormGroup, {label: "Steps per Second", id: "stepsPerSecond"}, React.createElement("input", {className: "form-control", type: "number", min: 0.1, max: 1000, id: "stepsPerSecond", value: "" + conf.stepsPerSecond, onChange: loadConfig})), React.createElement(BSCheckbox, {label: "When correct, restart after 5 seconds", id: "autoRestart", conf: conf}), conf.type !== "perceptron" ?
-            React.createElement(BSCheckbox, {label: "Show class propabilities as gradient", id: "showGradient", conf: conf})
-            : "", React.createElement(BSCheckbox, {label: "Show bias input", id: "bias", conf: conf}), React.createElement("button", {className: "btn btn-default", "data-toggle": "modal", "data-target": "#exportModal"}, "Import / Export")), React.createElement("div", {className: "col-sm-6"}, React.createElement("h4", null, conf.type === "perceptron" ? "Perceptron" : "Net"), React.createElement(BSFormGroup, {id: "learningRate", label: "Learning Rate", isStatic: true}, React.createElement("span", {id: "learningRateVal", style: { marginRight: '1em' }}, conf.learningRate.toFixed(3)), React.createElement("input", {type: "range", min: 0.005, max: 1, step: 0.005, id: "learningRate", value: Util.logScale(conf.learningRate) + "", onChange: loadConfig})), React.createElement(BSFormGroup, {id: "trainingMethod", label: "Training Method"}, React.createElement("select", {id: "trainingMethod", className: "btn btn-default", onChange: loadConfig, value: conf.trainingMethod}, Object.keys(Simulation.trainingMethods[conf.type]).map(function (name) { return React.createElement("option", {key: name, value: name}, name); }))), conf.type === "perceptron" ?
-            React.createElement("div", null, React.createElement(BSCheckbox, {label: "Animate single data points", id: "animationTrainSinglePoints", conf: conf}), React.createElement(BSCheckbox, {label: "Draw Arrows", id: "drawArrows", conf: conf}), React.createElement(BSCheckbox, {label: "Draw coordinate system", id: "drawCoordinateSystem", conf: conf}))
+        var loadConfig = function () { return Simulation.instance.loadConfig(); };
+        return React.createElement("div", {className: "form-horizontal"}, React.createElement("div", {className: "col-sm-6"}, React.createElement("h4", null, "Display"), React.createElement(BSFormGroup, {label: "Iterations per click on 'Train'", id: "iterationsPerClick"}, React.createElement("input", {className: "form-control", type: "number", min: 0, max: 10000, id: "iterationsPerClick", value: "" + conf.iterationsPerClick, onChange: loadConfig})), React.createElement(BSFormGroup, {label: "Steps per Second", id: "stepsPerSecond"}, React.createElement("input", {className: "form-control", type: "number", min: 0.1, max: 1000, id: "stepsPerSecond", value: "" + conf.stepsPerSecond, onChange: loadConfig})), React.createElement(BSCheckbox, {label: "When correct, restart after 5 seconds", id: "autoRestart", onChange: loadConfig, conf: conf}), conf.type !== "perceptron" ?
+            React.createElement(BSCheckbox, {label: "Show class propabilities as gradient", id: "showGradient", onChange: loadConfig, conf: conf})
+            : "", React.createElement(BSCheckbox, {label: "Show bias input", id: "bias", onChange: loadConfig, conf: conf}), React.createElement("button", {className: "btn btn-default", "data-toggle": "modal", "data-target": "#exportModal"}, "Import / Export")), React.createElement("div", {className: "col-sm-6"}, React.createElement("h4", null, conf.type === "perceptron" ? "Perceptron" : "Net"), React.createElement(BSFormGroup, {id: "learningRate", label: "Learning Rate", isStatic: true}, React.createElement("span", {id: "learningRateVal", style: { marginRight: '1em' }}, conf.learningRate.toFixed(3)), React.createElement("input", {type: "range", min: 0.005, max: 1, step: 0.005, id: "learningRate", value: Util.logScale(conf.learningRate) + "", onChange: loadConfig})), React.createElement(BSFormGroup, {id: "trainingMethod", label: "Training Method"}, React.createElement("select", {id: "trainingMethod", className: "btn btn-default", onChange: loadConfig, value: conf.trainingMethod}, Object.keys(Simulation.trainingMethods[conf.type]).map(function (name) { return React.createElement("option", {key: name, value: name}, name); }))), conf.type === "perceptron" ?
+            React.createElement("div", null, React.createElement(BSCheckbox, {label: "Animate single data points", id: "animationTrainSinglePoints", onChange: loadConfig, conf: conf}), React.createElement(BSCheckbox, {label: "Draw Arrows", id: "drawArrows", onChange: loadConfig, conf: conf}), React.createElement(BSCheckbox, {label: "Draw coordinate system", id: "drawCoordinateSystem", onChange: loadConfig, conf: conf}))
             :
                 React.createElement("div", null, React.createElement(NeuronGui, React.__spread({}, this.props)))));
     };
@@ -1440,14 +1489,14 @@ var NeuronGui = (function (_super) {
     NeuronGui.prototype.addLayer = function () {
         var hiddenLayers = this.props.hiddenLayers.slice();
         hiddenLayers.unshift({ activation: 'sigmoid', neuronCount: 2 });
-        sim.setState({ hiddenLayers: hiddenLayers, custom: true });
+        Simulation.instance.setState({ hiddenLayers: hiddenLayers, custom: true });
     };
     NeuronGui.prototype.removeLayer = function () {
         if (this.props.hiddenLayers.length == 0)
             return;
         var hiddenLayers = this.props.hiddenLayers.slice();
         hiddenLayers.shift();
-        sim.setState({ hiddenLayers: hiddenLayers, custom: true });
+        Simulation.instance.setState({ hiddenLayers: hiddenLayers, custom: true });
     };
     NeuronGui.prototype.activationChanged = function (i, a) {
         var newConf = Util.cloneConfig(this.props);
@@ -1456,7 +1505,7 @@ var NeuronGui = (function (_super) {
         else
             newConf.hiddenLayers[i].activation = a;
         newConf.custom = true;
-        sim.setState(newConf);
+        Simulation.instance.setState(newConf);
     };
     NeuronGui.prototype.countChanged = function (i, inc) {
         var newState = Util.cloneConfig(this.props);
@@ -1484,7 +1533,7 @@ var NeuronGui = (function (_super) {
         if (ioDimensionChanged)
             newState.data = [];
         newState.custom = true;
-        sim.setState(newState);
+        Simulation.instance.setState(newState);
     };
     NeuronGui.prototype.render = function () {
         var _this = this;
@@ -2125,7 +2174,7 @@ var TableEditor = (function () {
         $("<div>").addClass("btn btn-default")
             .css({ position: "absolute", right: "2em", bottom: "2em" })
             .text("Remove all")
-            .click(function (e) { return sim.setState({ data: [] }, function () { return _this.loadData(); }); })
+            .click(function (e) { return _this.sim.setState({ data: [] }, function () { return _this.loadData(); }); })
             .appendTo(this.container);
         var headerRenderer = function firstRowRenderer(instance, td) {
             Handsontable.renderers.TextRenderer.apply(this, arguments);

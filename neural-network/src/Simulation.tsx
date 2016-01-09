@@ -1,11 +1,13 @@
 /**
  * the interface between the GUI and the Simulation / Neural network
  * 
- * handles buttons, animation and configuration updates
+ * handles buttons, animation and configuration updates with the help of React
  * 
  * the [[#state]] of this object contains the [[Configuration]]
  */
 class Simulation extends React.Component<{ autoRun: boolean }, Configuration> {
+	static instance: Simulation;
+	
 	netviz: NetworkVisualization;
 	netgraph: NetworkGraph;
 	table: TableEditor;
@@ -62,6 +64,7 @@ class Simulation extends React.Component<{ autoRun: boolean }, Configuration> {
 
 	constructor(props: { autoRun: boolean }) {
 		super(props);
+		if(Simulation.instance) throw Error("Already instantiated");
 		this.netviz = new NetworkVisualization(this, p => p === this.state.data[this.currentTrainingDataPoint]);
 		this.netgraph = new NetworkGraph(this);
 		this.errorGraph = new ErrorGraph(this);
@@ -252,8 +255,8 @@ class Simulation extends React.Component<{ autoRun: boolean }, Configuration> {
 			const inN = newConfig.inputLayer.neuronCount;
 			const outN = newConfig.outputLayer.neuronCount;
 			newConfig.name = "Custom Network";
-			newConfig.inputLayer = { names: Net.Util.makeArray(inN, i => `in${i + 1}`), neuronCount: inN };
-			newConfig.outputLayer = { names: Net.Util.makeArray(outN, i => `out${i + 1}`), activation: newConfig.outputLayer.activation, neuronCount: outN };
+			newConfig.inputLayer = { names: Util.makeArray(inN, i => `in${i + 1}`), neuronCount: inN };
+			newConfig.outputLayer = { names: Util.makeArray(outN, i => `out${i + 1}`), activation: newConfig.outputLayer.activation, neuronCount: outN };
 		}
 	}
 
@@ -368,7 +371,7 @@ class Simulation extends React.Component<{ autoRun: boolean }, Configuration> {
 							<ul className="dropdown-menu">
 								<li className="dropdown-header">Neural Network</li>
 								{Presets.getNames().map(name => {
-									const ele = <li key={name}><a onClick={e => sim.setState(Presets.get(name)) }>{name}</a></li>;
+									const ele = <li key={name}><a onClick={e => this.setState(Presets.get(name)) }>{name}</a></li>;
 									if (name === "Rosenblatt Perceptron")
 										return [<li className="divider" />, <li className="dropdown-header">Perceptron</li>, ele];
 									else return ele;

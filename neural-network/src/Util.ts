@@ -1,5 +1,14 @@
 module Util {
 	/**
+	 * @param len array length
+	 * @param supplier map from index to array element
+	 */
+	export function makeArray<T>(len: int, supplier: (i: int) => T): T[] {
+		var arr = new Array<T>(len);
+		for (let i = 0; i < len; i++) arr[i] = supplier(i);
+		return arr;
+	}
+	/**
 	 * return array index that has maximum value
 	 * ≈ argmax function
 	 */

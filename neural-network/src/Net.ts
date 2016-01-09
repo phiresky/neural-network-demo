@@ -1,6 +1,11 @@
-// this neural network uses stochastic gradient descent with the squared error as the loss function
+/**
+ * Simple implementation of a neural network (multilayer perceptron)
+ * 
+ * Uses stochastic gradient descent with squared error as the loss function
+ */
 module Net {
-	var tanh = function(x: double) {
+	/** tangens hyperbolicus polyfill */
+	const tanh = function(x: double) {
 		if (x === Infinity) {
 			return 1;
 		} else if (x === -Infinity) {
@@ -10,10 +15,12 @@ module Net {
 			return (y - 1) / (y + 1);
 		}
 	}
+	/** an activation function (non-linearity) and its derivative */
 	interface ActivationFunction {
 		f: (x: double) => double,
 		df: (x: double) => double
 	}
+	/** list of known activation functions */
 	export var NonLinearities: { [name: string]: ActivationFunction } = {
 		sigmoid: {
 			f: x => 1 / (1 + Math.exp(-x)),
@@ -38,14 +45,6 @@ module Net {
 		}
 	}
 
-	export module Util {
-		export function makeArray<T>(len: int, supplier: (i: int) => T): T[] {
-			var arr = new Array<T>(len);
-			for (let i = 0; i < len; i++) arr[i] = supplier(i);
-			return arr;
-		}
-	}
-
 	/** 
 	 * intermediate result of a single data point training step and the resulting weights vector
 	 * 
@@ -56,12 +55,18 @@ module Net {
 		weights: number[];
 	}
 
-	// back propagation code adapted from https://de.wikipedia.org/wiki/Backpropagation
+	/**
+	 * back propagation code adapted from https://de.wikipedia.org/wiki/Backpropagation
+	 */
 	export class NeuralNet {
+		/** layers including input, hidden, and output */
 		layers: Neuron[][] = [];
+		/** bias input neurons */
+		biases: InputNeuron[] = [];
+		/** actual input neurons */
 		inputs: InputNeuron[];
 		outputs: OutputNeuron[];
-		biases: InputNeuron[] = [];
+		/** a flat list of all the neuron connections */
 		connections: NeuronConnection[] = [];
 		constructor(input: InputLayerConfig, hidden: LayerConfig[], output: OutputLayerConfig, public learnRate: number,
 			startWeight = () => Math.random() - 0.5, public startWeights?: double[]) {
@@ -162,11 +167,12 @@ module Net {
 		}
 	}
 
+	/** a weighted connection between two neurons */
 	export class NeuronConnection {
-		deltaWeight = NaN; public weight = 0;
-		constructor(public inp: Neuron, public out: Neuron) {
-
-		}
+		public weight = 0;
+		/** cached delta weight for training */
+		deltaWeight = NaN;
+		constructor(public inp: Neuron, public out: Neuron) { }
 		zeroDeltaWeight() {
 			this.deltaWeight = 0;
 		}
@@ -178,14 +184,15 @@ module Net {
 			this.deltaWeight = NaN; // set to NaN to prevent flushing bugs
 		}
 	}
+	/** a single Neuron / Perceptron */
 	export class Neuron {
 		public inputs: NeuronConnection[] = [];
 		public outputs: NeuronConnection[] = [];
+		/** weighted sum of inputs without activation function */
 		public weightedInputs = 0;
 		public output = 0;
 		public error = 0;
 		constructor(public activation: string, public id: int, public layerIndex: int) { }
-
 		calculateWeightedInputs() {
 			this.weightedInputs = 0;
 			for (const conn of this.inputs) {
@@ -196,7 +203,6 @@ module Net {
 			this.calculateWeightedInputs();
 			this.output = NonLinearities[this.activation].f(this.weightedInputs);
 		}
-
 		calculateError() {
 			var δ = 0;
 			for (const output of this.outputs) {
@@ -205,6 +211,7 @@ module Net {
 			this.error = δ * NonLinearities[this.activation].df(this.weightedInputs);
 		}
 	}
+	/** an input neuron (no inputs, fixed output value, can't be trained) */
 	export class InputNeuron extends Neuron {
 		constant: boolean = false; // value won't change
 		constructor(id: int, layerIndex: int, public name: string, constantOutput?: number) {
@@ -214,10 +221,11 @@ module Net {
 				this.constant = true;
 			}
 		}
-		calculateOutput() { }
-		calculateWeightedInputs() { }
-		calculateError() { }
+		calculateOutput() { throw Error("input neuron") }
+		calculateWeightedInputs() { throw Error("input neuron") }
+		calculateError() { throw Error("input neuron") }
 	}
+	/** an output neuron (error calculated via target output */
 	export class OutputNeuron extends Neuron {
 		targetOutput: double;
 		constructor(public activation: string, id: int, layerIndex: int, public name: string) {

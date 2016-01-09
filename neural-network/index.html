@@ -51,11 +51,15 @@
 		display: block;
 	}
 </style>
-<div id="mainContainer"><!-- React will put body here --></div>
+<div id="mainContainer"><!-- React will put src/Simulation.tsx body here --></div>
 <script>
-	// load uncompressed libs if localStorage.setItem("dev", "1");
+	/** enable development mode (load non-minified libraries) */
+	function enableDev() {
+		localStorage.setItem("dev", "true");
+		location.reload();
+	}
 	var libs = ["bin/libs.js"];
-	if(localStorage["dev"]) {
+	if(localStorage.getItem("dev")) {
 		libs = "jquery/dist/jquery.min,bootstrap/dist/js/bootstrap,vis/dist/vis,handsontable/dist/handsontable.full,lz-string/libs/lz-string,highstock/highstock.src,react/react,react/react-dom".split(",")
 		.map(function(s) { return "lib/bower_components/"+s+".js"})
 	}
