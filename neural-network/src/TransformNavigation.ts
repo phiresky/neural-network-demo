@@ -16,7 +16,7 @@ class TransformNavigation {
 		x: (c: double) => c * this.scalex + this.offsetx,
 		y: (c: double) => c * this.scaley + this.offsety
 	}
-	
+
 	/** position where the mouse press started (for dragging) */
 	private mousestart: { x: number, y: number } = null;
 	/**
