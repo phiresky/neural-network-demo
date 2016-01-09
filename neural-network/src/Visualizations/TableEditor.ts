@@ -1,13 +1,16 @@
 declare var Handsontable: any, LZString: any;
+/**
+ * Edit training data and display network output using a table interface
+ */
 class TableEditor implements Visualization {
-	hot: any; // handsontable instance
+	/** handsontable instance */
+	hot: any;
 	actions = ["Table input"];
 	headerCount = 2;
 	lastUpdate = 0;
 	container: JQuery = $("<div>");
-	constructor(public sim: Simulation) {
-		this.sim = sim;
-	}
+	constructor(public sim: Simulation) { }
+	/** called by Handsontable after some data was changed in the table */
 	afterChange(changes: [number, number, number, number][], reason: string) {
 		if (reason === 'loadData') return;
 		this.reparseData();
@@ -67,6 +70,7 @@ class TableEditor implements Visualization {
 		this.hot = this.container.handsontable('getInstance');
 		this.loadData();
 	}
+	/** read data from table into the [[Configuration]] */
 	reparseData() {
 		const sim = this.sim;
 		const data: number[][] = this.hot.getData();
@@ -96,6 +100,7 @@ class TableEditor implements Visualization {
 		}
 		this.hot.setDataAtCell(vals, "loadData");
 	}
+	/** load data from [[Configuration]] into the table */
 	loadData() {
 		const sim = this.sim;
 		const data: (number|string)[][] = [[], sim.state.inputLayer.names.concat(sim.state.outputLayer.names).concat(sim.state.outputLayer.names)];

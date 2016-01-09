@@ -1,26 +1,42 @@
-interface TrainingData {
-	input: double[]; output: double[];
-}
-enum InputMode {
-	InputPrimary, InputSecondary, Remove, Move, Table
-}
 enum NetType {
-	BinaryClassify, AutoEncode, MultiClass, CantDraw
+	/** 2D-Input, Single Output (≤0.5 is class 0, otherwise class 1) */
+	BinaryClassify,
+	/** 2D Input, 2D output, input values = output values*/
+	AutoEncode,
+	/** 2D Input, ≥ 3 outputs (argmax(outputs) is the resulting class) */
+	MultiClass,
+	/** any other configuration */
+	CantDraw
 }
+/**
+ * Visualize the training data and network output in a 2d canvas
+ * 
+ * Only works for problems with 2-dimensional input
+ * 
+ * For classification problems, draw every data point with the input as the position
+ * and it's label/class as the color. Also fill the background with the current network output for that position.
+ * 
+ * For 2D auto encoding draw every target output point connected to the network output.
+ */
 class NetworkVisualization implements Visualization {
 	actions: (string|{name:string, color:string})[] = [];
 	canvas: HTMLCanvasElement;
 	ctx: CanvasRenderingContext2D;
-	inputMode: InputMode = 0;
+	/** [0] = Drag View; [length - 1] = Remove on click; [n] = Add data point of class (n-1) */
+	inputMode: int = 0;
 	trafo: TransformNavigation;
 	backgroundResolution = 15;
 	container = $("<div>");
 	netType: NetType = NetType.BinaryClassify;
 	static colors = {
 		binaryClassify: {
+			/** background color */
 			bg: ["#f88", "#8f8"],
+			/** data point color */
 			fg: ["#f00", "#0f0"],
+			/** color of weight arrows */
 			weightVector: ["#800", "#080"],
+			/** used when displaying the class in the background as a gradient*/
 			gradient: (val: number) => "rgb(" +
 				[(((1 - val) * (256 - 60)) | 0) + 60, ((val * (256 - 60)) | 0) + 60, 60] + ")"
 		},
@@ -31,6 +47,7 @@ class NetworkVisualization implements Visualization {
 		},
 		multiClass: {
 			fg: ['#7cb5ec', '#434348', '#90ed7d', '#f7a35c', '#8085e9', '#f15c80', '#e4d354', '#2b908f', '#f45b5b', '#91e8e1'],
+			/** filled in constructor by darkening fg colors */
 			bg: ['']
 		}
 	}
@@ -41,7 +58,7 @@ class NetworkVisualization implements Visualization {
 		this.canvas = <HTMLCanvasElement>$("<canvas class=fullsize>")[0];
 		this.canvas.width = 550;
 		this.canvas.height = 400;
-		this.trafo = new TransformNavigation(this.canvas, () => this.inputMode == 0 /* move view mode*/,
+		this.trafo = new TransformNavigation(this.canvas, () => this.inputMode === 0 /* move view mode */,
 			() => this.onFrame());
 		this.ctx = <CanvasRenderingContext2D>this.canvas.getContext('2d');
 		window.addEventListener('resize', this.canvasResized.bind(this));
@@ -89,7 +106,7 @@ class NetworkVisualization implements Visualization {
 			return;
 		}
 		const isSinglePerceptron = this.sim.state.type === "perceptron";
-		const separator:Util.Bounds = isSinglePerceptron && this.getSeparator(Util.toLinearFunction(this.sim.net.connections.map(i => i.weight) as any));
+		const separator = isSinglePerceptron && this.getSeparator(Util.toLinearFunction(this.sim.net.connections.map(i => i.weight) as any));
 		if(isSinglePerceptron)
 			this.drawPolyBackground(separator);
 		else this.drawBackground();
@@ -97,11 +114,12 @@ class NetworkVisualization implements Visualization {
 		if(this.sim.state.drawArrows) this.drawArrows();
 		this.drawDataPoints();
 		if(isSinglePerceptron) {
-			if(this.sim.state.drawArrows && this.sim.lastWeights !== undefined) {
-				const separator = this.getSeparator(Util.toLinearFunction(this.sim.lastWeights as any));
-				this.drawLine(separator.minx, separator.miny, separator.maxx, separator.maxy, "gray");
+			const tor = this.trafo.toReal;
+			if(this.sim.state.drawArrows && this.sim.lastWeights !== undefined && this.sim.lastWeights.length > 0) {
+				const separator = this.getSeparator(Util.toLinearFunction(this.sim.lastWeights[0].weights as any));
+				this.drawLine(tor.x(0), separator.min, tor.x(this.canvas.width), separator.max, "gray");
 			}
-			this.drawLine(separator.minx, separator.miny, separator.maxx, separator.maxy, "black");
+			this.drawLine(tor.x(0), separator.min, tor.x(this.canvas.width), separator.max, "black");
 		}
 	}
 
@@ -148,6 +166,7 @@ class NetworkVisualization implements Visualization {
 		this.ctx.stroke();
 	}
 	
+	/** draw the weight vector arrows according to [[Simulation#lastWeights]] */
 	drawArrows() {
 		this.ctx.lineWidth = 2;
 		const al = 8;
@@ -183,14 +202,15 @@ class NetworkVisualization implements Visualization {
 		}
 	}
 	
-	getSeparator(lineFunction:(x:number) => number):Util.Bounds {
-		const minx = this.trafo.toReal.x(0);
-		const maxx = this.trafo.toReal.x(this.canvas.width);
-		const miny = lineFunction(minx);
-		const maxy = lineFunction(maxx);
-		return {minx, miny, maxx, maxy};
+	/** 
+	 * calculate the y position of the given function to the left and right of the canvas in actual/real coordinates
+	 */
+	getSeparator(lineFunction:(x:number) => number) {
+		return {
+			min: lineFunction(this.trafo.toReal.x(0)),
+			max: lineFunction(this.trafo.toReal.x(this.canvas.width))
+		};
 	}
-
 	drawLine(x: double, y: double, x2: double, y2: double, color: string) {
 		x = this.trafo.toCanvas.x(x); x2 = this.trafo.toCanvas.x(x2);
 		y = this.trafo.toCanvas.y(y); y2 = this.trafo.toCanvas.y(y2);
@@ -206,19 +226,20 @@ class NetworkVisualization implements Visualization {
 		this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 		return;
 	}
-	drawPolyBackground(sep: Util.Bounds) {
+	/** divide the canvas into two regions using the linear function run through [[getSeparator]] as the divider and color the regions */
+	drawPolyBackground({min, max}) {
 		const colors = NetworkVisualization.colors.binaryClassify.bg;
 		const ctx = this.ctx;
 		const c = this.trafo.toCanvas;
 		const tmp = (y:number) => {
 			ctx.beginPath();
-			ctx.moveTo(c.x(sep.minx), c.y(sep.miny));
-			ctx.lineTo(c.x(sep.minx), y);
-			ctx.lineTo(c.x(sep.maxx), y);
-			ctx.lineTo(c.x(sep.maxx), c.y(sep.maxy));
+			ctx.moveTo(0, c.y(min));
+			ctx.lineTo(0, y);
+			ctx.lineTo(this.canvas.width, y);
+			ctx.lineTo(this.canvas.width, c.y(max));
 			ctx.fill();
 		}
-		const upperIsClass1 = +(this.sim.net.getOutput([sep.minx, sep.miny - 1])[0] > 0.5);
+		const upperIsClass1 = +(this.sim.net.getOutput([this.trafo.toReal.x(0), min - 1])[0] > 0.5);
 		ctx.fillStyle = colors[1 - upperIsClass1];
 		tmp(0);
 		ctx.fillStyle = colors[upperIsClass1];

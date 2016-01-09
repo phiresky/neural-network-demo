@@ -1,15 +1,17 @@
 declare const vis:any; // vis.js library
+/** step for [[Simulation#forwardPass]] */
 interface NetGraphUpdate {
 	nodes: any[];
 	edges: any[];
 	highlightNodes?: number[];
 	highlightEdges?: number[];
 }
+/** show the network as a ordered left-to-right graph using arrow color, width and label to show weights */
 class NetworkGraph implements Visualization {
 	actions = ["Network Graph"];
-	graph:any; //vis.Network
+	graph:any; // vis.Network
 	nodes:any; // vis.DataSet
-	edges:any;
+	edges:any; // vis.DataSet
 	net:Net.NeuralNet;
 	container = $("<div>");
 	showbias: boolean;
@@ -58,6 +60,7 @@ class NetworkGraph implements Visualization {
 		this.net = net;
 		this.drawGraph();
 	}
+	/** initialize graph nodes and edges */
 	drawGraph() {
 		this.nodes.clear();
 		this.edges.clear();
@@ -103,6 +106,7 @@ class NetworkGraph implements Visualization {
 		this.graph.stabilize();
 		this.graph.fit();
 	}
+	/** calculate the visualization of the individual calculation steps for a single forward pass */
 	forwardPass(data:TrainingData): NetGraphUpdate[] {
 		if(this.currentlyDisplayingForwardPass) this.onFrame(0);
 		this.biasBeforeForwardPass = this.showbias;

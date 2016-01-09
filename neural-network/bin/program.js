@@ -1,6 +1,6 @@
 $(document).ready(function () {
     Presets.loadPetersonBarney();
-    Simulation.instance = ReactDOM.render(React.createElement(Simulation, {autoRun: false}), document.getElementById("mainContainer"));
+    ReactDOM.render(React.createElement(Simulation, {autoRun: false}), document.getElementById("mainContainer"));
 });
 /** check for regressions in net algorithm */
 function checkSanity() {
@@ -817,6 +817,8 @@ var Simulation = (function (_super) {
         this.aniFrameCallback = this.animationStep.bind(this);
         if (Simulation.instance)
             throw Error("Already instantiated");
+        else
+            Simulation.instance = this;
         this.netviz = new NetworkVisualization(this, function (p) { return p === _this.state.data[_this.currentTrainingDataPoint]; });
         this.netgraph = new NetworkGraph(this);
         this.errorGraph = new ErrorGraph(this);
@@ -1544,6 +1546,7 @@ var NeuronGui = (function (_super) {
     };
     return NeuronGui;
 }(React.Component));
+/** display the error history from [[Simulation#errorHistory]] as a line graph */
 var ErrorGraph = (function () {
     function ErrorGraph(sim) {
         this.sim = sim;
@@ -1572,10 +1575,10 @@ var ErrorGraph = (function () {
     ErrorGraph.prototype.onNetworkLoaded = function () {
         this.chart.series[0].setData([]);
     };
-    ErrorGraph.prototype.onHide = function () {
-    };
+    ErrorGraph.prototype.onHide = function () { };
     return ErrorGraph;
 }());
+/** show the network as a ordered left-to-right graph using arrow color, width and label to show weights */
 var NetworkGraph = (function () {
     function NetworkGraph(sim) {
         this.sim = sim;
@@ -1622,6 +1625,7 @@ var NetworkGraph = (function () {
         this.net = net;
         this.drawGraph();
     };
+    /** initialize graph nodes and edges */
     NetworkGraph.prototype.drawGraph = function () {
         this.nodes.clear();
         this.edges.clear();
@@ -1671,6 +1675,7 @@ var NetworkGraph = (function () {
         this.graph.stabilize();
         this.graph.fit();
     };
+    /** calculate the visualization of the individual calculation steps for a single forward pass */
     NetworkGraph.prototype.forwardPass = function (data) {
         var _this = this;
         if (this.currentlyDisplayingForwardPass)
@@ -1789,27 +1794,34 @@ var NetworkGraph = (function () {
     };
     return NetworkGraph;
 }());
-var InputMode;
-(function (InputMode) {
-    InputMode[InputMode["InputPrimary"] = 0] = "InputPrimary";
-    InputMode[InputMode["InputSecondary"] = 1] = "InputSecondary";
-    InputMode[InputMode["Remove"] = 2] = "Remove";
-    InputMode[InputMode["Move"] = 3] = "Move";
-    InputMode[InputMode["Table"] = 4] = "Table";
-})(InputMode || (InputMode = {}));
 var NetType;
 (function (NetType) {
+    /** 2D-Input, Single Output (≤0.5 is class 0, otherwise class 1) */
     NetType[NetType["BinaryClassify"] = 0] = "BinaryClassify";
+    /** 2D Input, 2D output, input values = output values*/
     NetType[NetType["AutoEncode"] = 1] = "AutoEncode";
+    /** 2D Input, ≥ 3 outputs (argmax(outputs) is the resulting class) */
     NetType[NetType["MultiClass"] = 2] = "MultiClass";
+    /** any other configuration */
     NetType[NetType["CantDraw"] = 3] = "CantDraw";
 })(NetType || (NetType = {}));
+/**
+ * Visualize the training data and network output in a 2d canvas
+ *
+ * Only works for problems with 2-dimensional input
+ *
+ * For classification problems, draw every data point with the input as the position
+ * and it's label/class as the color. Also fill the background with the current network output for that position.
+ *
+ * For 2D auto encoding draw every target output point connected to the network output.
+ */
 var NetworkVisualization = (function () {
     function NetworkVisualization(sim, dataPointIsHighlighted) {
         var _this = this;
         this.sim = sim;
         this.dataPointIsHighlighted = dataPointIsHighlighted;
         this.actions = [];
+        /** [0] = Drag View; [length - 1] = Remove on click; [n] = Add data point of class (n-1) */
         this.inputMode = 0;
         this.backgroundResolution = 15;
         this.container = $("<div>");
@@ -1819,7 +1831,7 @@ var NetworkVisualization = (function () {
         this.canvas = $("<canvas class=fullsize>")[0];
         this.canvas.width = 550;
         this.canvas.height = 400;
-        this.trafo = new TransformNavigation(this.canvas, function () { return _this.inputMode == 0; } /* move view mode*/ /* move view mode*/, function () { return _this.onFrame(); });
+        this.trafo = new TransformNavigation(this.canvas, function () { return _this.inputMode === 0; } /* move view mode */ /* move view mode */, function () { return _this.onFrame(); });
         this.ctx = this.canvas.getContext('2d');
         window.addEventListener('resize', this.canvasResized.bind(this));
         this.canvas.addEventListener("click", this.canvasClicked.bind(this));
@@ -1882,11 +1894,12 @@ var NetworkVisualization = (function () {
             this.drawArrows();
         this.drawDataPoints();
         if (isSinglePerceptron) {
-            if (this.sim.state.drawArrows && this.sim.lastWeights !== undefined) {
-                var separator_1 = this.getSeparator(Util.toLinearFunction(this.sim.lastWeights));
-                this.drawLine(separator_1.minx, separator_1.miny, separator_1.maxx, separator_1.maxy, "gray");
+            var tor = this.trafo.toReal;
+            if (this.sim.state.drawArrows && this.sim.lastWeights !== undefined && this.sim.lastWeights.length > 0) {
+                var separator_1 = this.getSeparator(Util.toLinearFunction(this.sim.lastWeights[0].weights));
+                this.drawLine(tor.x(0), separator_1.min, tor.x(this.canvas.width), separator_1.max, "gray");
             }
-            this.drawLine(separator.minx, separator.miny, separator.maxx, separator.maxy, "black");
+            this.drawLine(tor.x(0), separator.min, tor.x(this.canvas.width), separator.max, "black");
         }
     };
     NetworkVisualization.prototype.drawDataPoints = function () {
@@ -1933,6 +1946,7 @@ var NetworkVisualization = (function () {
         this.ctx.arc(x, y, highlight ? 7 : 5, 0, 2 * Math.PI);
         this.ctx.stroke();
     };
+    /** draw the weight vector arrows according to [[Simulation#lastWeights]] */
     NetworkVisualization.prototype.drawArrows = function () {
         var _this = this;
         this.ctx.lineWidth = 2;
@@ -1966,12 +1980,14 @@ var NetworkVisualization = (function () {
             Util.drawArrow(this.ctx, { x: scale.x(0), y: scale.y(0) }, weightVector(steps[steps.length - 1].weights), al, aw);
         }
     };
+    /**
+     * calculate the y position of the given function to the left and right of the canvas in actual/real coordinates
+     */
     NetworkVisualization.prototype.getSeparator = function (lineFunction) {
-        var minx = this.trafo.toReal.x(0);
-        var maxx = this.trafo.toReal.x(this.canvas.width);
-        var miny = lineFunction(minx);
-        var maxy = lineFunction(maxx);
-        return { minx: minx, miny: miny, maxx: maxx, maxy: maxy };
+        return {
+            min: lineFunction(this.trafo.toReal.x(0)),
+            max: lineFunction(this.trafo.toReal.x(this.canvas.width))
+        };
     };
     NetworkVisualization.prototype.drawLine = function (x, y, x2, y2, color) {
         x = this.trafo.toCanvas.x(x);
@@ -1990,19 +2006,22 @@ var NetworkVisualization = (function () {
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         return;
     };
-    NetworkVisualization.prototype.drawPolyBackground = function (sep) {
+    /** divide the canvas into two regions using the linear function run through [[getSeparator]] as the divider and color the regions */
+    NetworkVisualization.prototype.drawPolyBackground = function (_a) {
+        var _this = this;
+        var min = _a.min, max = _a.max;
         var colors = NetworkVisualization.colors.binaryClassify.bg;
         var ctx = this.ctx;
         var c = this.trafo.toCanvas;
         var tmp = function (y) {
             ctx.beginPath();
-            ctx.moveTo(c.x(sep.minx), c.y(sep.miny));
-            ctx.lineTo(c.x(sep.minx), y);
-            ctx.lineTo(c.x(sep.maxx), y);
-            ctx.lineTo(c.x(sep.maxx), c.y(sep.maxy));
+            ctx.moveTo(0, c.y(min));
+            ctx.lineTo(0, y);
+            ctx.lineTo(_this.canvas.width, y);
+            ctx.lineTo(_this.canvas.width, c.y(max));
             ctx.fill();
         };
-        var upperIsClass1 = +(this.sim.net.getOutput([sep.minx, sep.miny - 1])[0] > 0.5);
+        var upperIsClass1 = +(this.sim.net.getOutput([this.trafo.toReal.x(0), min - 1])[0] > 0.5);
         ctx.fillStyle = colors[1 - upperIsClass1];
         tmp(0);
         ctx.fillStyle = colors[upperIsClass1];
@@ -2127,9 +2146,13 @@ var NetworkVisualization = (function () {
     };
     NetworkVisualization.colors = {
         binaryClassify: {
+            /** background color */
             bg: ["#f88", "#8f8"],
+            /** data point color */
             fg: ["#f00", "#0f0"],
+            /** color of weight arrows */
             weightVector: ["#800", "#080"],
+            /** used when displaying the class in the background as a gradient*/
             gradient: function (val) { return "rgb(" +
                 [(((1 - val) * (256 - 60)) | 0) + 60, ((val * (256 - 60)) | 0) + 60, 60] + ")"; }
         },
@@ -2140,11 +2163,15 @@ var NetworkVisualization = (function () {
         },
         multiClass: {
             fg: ['#7cb5ec', '#434348', '#90ed7d', '#f7a35c', '#8085e9', '#f15c80', '#e4d354', '#2b908f', '#f45b5b', '#91e8e1'],
+            /** filled in constructor by darkening fg colors */
             bg: ['']
         }
     };
     return NetworkVisualization;
 }());
+/**
+ * Edit training data and display network output using a table interface
+ */
 var TableEditor = (function () {
     function TableEditor(sim) {
         this.sim = sim;
@@ -2152,8 +2179,8 @@ var TableEditor = (function () {
         this.headerCount = 2;
         this.lastUpdate = 0;
         this.container = $("<div>");
-        this.sim = sim;
     }
+    /** called by Handsontable after some data was changed in the table */
     TableEditor.prototype.afterChange = function (changes, reason) {
         if (reason === 'loadData')
             return;
@@ -2220,6 +2247,7 @@ var TableEditor = (function () {
         this.hot = this.container.handsontable('getInstance');
         this.loadData();
     };
+    /** read data from table into the [[Configuration]] */
     TableEditor.prototype.reparseData = function () {
         var sim = this.sim;
         var data = this.hot.getData();
@@ -2250,6 +2278,7 @@ var TableEditor = (function () {
         }
         this.hot.setDataAtCell(vals, "loadData");
     };
+    /** load data from [[Configuration]] into the table */
     TableEditor.prototype.loadData = function () {
         var sim = this.sim;
         var data = [[], sim.state.inputLayer.names.concat(sim.state.outputLayer.names).concat(sim.state.outputLayer.names)];
@@ -2283,6 +2312,7 @@ var TableEditor = (function () {
     };
     return TableEditor;
 }());
+/** display multiple Visualizations */
 var MultiVisDisplayer = (function (_super) {
     __extends(MultiVisDisplayer, _super);
     function MultiVisDisplayer(props) {
@@ -2342,6 +2372,7 @@ var StatusBar = (function (_super) {
     };
     return StatusBar;
 }(React.Component));
+/** Display two visualizations next to each other with tabbed navigation */
 var LRVis = (function (_super) {
     __extends(LRVis, _super);
     function LRVis(props) {
@@ -2357,6 +2388,7 @@ var LRVis = (function (_super) {
     };
     return LRVis;
 }(MultiVisDisplayer));
+/** switch between multiple visualizations using a tabbed interface */
 var TabSwitcher = (function (_super) {
     __extends(TabSwitcher, _super);
     function TabSwitcher(props) {
@@ -2412,6 +2444,7 @@ var TabSwitcher = (function (_super) {
             currentVisualization.onView(false, action.action);
         }
     };
+    /** network was loaded, check if the children actions have changed and update the tab bar accordingly */
     TabSwitcher.prototype.onNetworkLoaded = function (net) {
         var _this = this;
         //todo: ugly hack

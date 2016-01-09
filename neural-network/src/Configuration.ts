@@ -1,6 +1,9 @@
 /** type of the demonstration. Can change GUI and valid options */
 type ConfigurationType = "perceptron"|"nn";
 
+interface TrainingData {
+	input: double[]; output: double[];
+}
 /** Configuration interface. Default preset must contain values for all these properties! */
 interface Configuration {
 	name: string;

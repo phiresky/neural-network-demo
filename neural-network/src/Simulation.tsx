@@ -65,6 +65,7 @@ class Simulation extends React.Component<{ autoRun: boolean }, Configuration> {
 	constructor(props: { autoRun: boolean }) {
 		super(props);
 		if(Simulation.instance) throw Error("Already instantiated");
+		else Simulation.instance = this;
 		this.netviz = new NetworkVisualization(this, p => p === this.state.data[this.currentTrainingDataPoint]);
 		this.netgraph = new NetworkGraph(this);
 		this.errorGraph = new ErrorGraph(this);

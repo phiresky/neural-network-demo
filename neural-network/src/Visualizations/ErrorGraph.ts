@@ -1,3 +1,4 @@
+/** display the error history from [[Simulation#errorHistory]] as a line graph */
 class ErrorGraph implements Visualization {
 	chart: HighstockChartObject;
 	actions = ["Error History"];
@@ -26,7 +27,5 @@ class ErrorGraph implements Visualization {
 	onNetworkLoaded() {
 		this.chart.series[0].setData([]);
 	}
-	onHide() {
-		
-	}
+	onHide() { }
 }

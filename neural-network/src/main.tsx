@@ -4,7 +4,7 @@
 
 $(document).ready(() => {
 	Presets.loadPetersonBarney();
-	Simulation.instance = ReactDOM.render(<Simulation autoRun={false} />, document.getElementById("mainContainer")) as Simulation;
+	ReactDOM.render(<Simulation autoRun={false} />, document.getElementById("mainContainer"));
 });
 
 /** check for regressions in net algorithm */
