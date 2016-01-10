@@ -234,7 +234,10 @@ class Simulation extends React.Component<{ autoRun: boolean }, Configuration> {
 			delta = 1000 / 5;
 		}
 		this.stepsWanted += delta / 1000 * this.state.stepsPerSecond;
-		while (this.stepsCurrent < this.stepsWanted) this.state.animationTrainSinglePoints ? this.trainNext() : this.trainAll();
+		while (this.stepsCurrent < this.stepsWanted) {
+			if(this.state.animationTrainSinglePoints && this.trainingMethod.trainSingle) this.trainNext()
+			else this.trainAll();
+		}
 		this.onFrame(false);
 		if (this.running) this.runningId = requestAnimationFrame(this.aniFrameCallback);
 	}
