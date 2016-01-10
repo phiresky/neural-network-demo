@@ -84,7 +84,7 @@ class LRVis extends MultiVisDisplayer<{ leftVis: Visualization[], rightVis: Visu
 	render() {
 		const sim = this.props.sim;
 		const isPerceptron = this.props.sim.state.type === "perceptron";
-		const leftSize = isPerceptron ? 5 : 6;
+		const leftSize = isPerceptron ? 4 : 6;
 		const rightSize = 12 - leftSize;
 		return <div>
 			<div className="row">

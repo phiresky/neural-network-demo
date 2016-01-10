@@ -85,6 +85,8 @@ class WeightsGraph implements Visualization {
 		return data;
 	}
 	onNetworkLoaded(net: Net.NeuralNet) {
+		if(this.sim.state.type == "perceptron") this.actions = [];
+		else this.actions = ["Weights"];
 		this.graph.setData(this.parseData(net));
 	}
 	onFrame() {
