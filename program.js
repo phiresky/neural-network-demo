@@ -72,6 +72,7 @@ var Net;
             df: function (x) { return 1; }
         }
     };
+    ;
     /** list of training methods for every Configuration#type */
     Net.trainingMethods = {
         "nn": {
@@ -84,7 +85,7 @@ var Net;
                 trainSingle: function (net, data) { return net.train(data, true, false); }
             }
         },
-        /** Perceptron has only input with 3 neurons (incl. bias) and output layer with 1 neuron, no hidden layers */
+        /** Perceptron has an input layer with 3 neurons (incl. bias), an output layer with 1 neuron, and no hidden layers */
         "perceptron": {
             "Rosenblatt Perceptron": {
                 trainAll: function (net, data) {
@@ -178,7 +179,6 @@ var Net;
         return WeightsStep;
     }());
     Net.WeightsStep = WeightsStep;
-    ;
     /**
      * back propagation code adapted from https://de.wikipedia.org/wiki/Backpropagation
      */
@@ -2551,6 +2551,8 @@ var TabSwitcher = (function (_super) {
 }(React.Component));
 /**
  * Visualization that displays all the weights in the network as a black-white gradient
+ *
+ * hidden when in perceptron mode because then it's pretty boring
  */
 var WeightsGraph = (function () {
     function WeightsGraph(sim) {
@@ -2609,6 +2611,7 @@ var WeightsGraph = (function () {
     };
     WeightsGraph.prototype.onHide = function () {
     };
+    /** parse network layout into weights graph ordering */
     WeightsGraph.prototype.parseData = function (net) {
         this.xyToConnection = {};
         var data = [];
