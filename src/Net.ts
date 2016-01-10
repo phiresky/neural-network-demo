@@ -45,7 +45,20 @@ module Net {
 		}
 	}
 	
-	/** list of training methods for every Configuration#type */
+		
+	/**
+	 * A training method for a neural network.
+	 * 
+	 * optionally returns WeightsSteps for displaying of intermediate data in the NetworkVisualization
+	 * 
+	 * if trainSingle is null, only batch training is possible
+	 */
+	export interface TrainingMethod {
+		trainAll:(net: NeuralNet, data: TrainingData[]) => WeightsStep[];
+		trainSingle:(net: NeuralNet, data: TrainingData) => WeightsStep;
+	};
+	
+	/** list of training methods for each Configuration#type */
 	export const trainingMethods: { [type: string]: { [name: string]: TrainingMethod } } = {
 		"nn": {
 			"Batch Training": {
@@ -57,7 +70,7 @@ module Net {
 				trainSingle: (net, data) => net.train(data, true, false)
 			}
 		},
-		/** Perceptron has only input with 3 neurons (incl. bias) and output layer with 1 neuron, no hidden layers */
+		/** A Perceptron is a special type of NeuralNet that has an input layer with 3 neurons (incl. bias), an output layer with 1 neuron, and no hidden layers */
 		"perceptron": {
 			"Rosenblatt Perceptron": {
 				trainAll(net, data) { return data.map(val => this.trainSingle(net, val)) },
@@ -139,14 +152,6 @@ module Net {
 		weights: number[];
 	}
 	
-	/**
-	 * if trainSingle is null, only batch training is possible
-	 */
-	export interface TrainingMethod {
-		trainAll:(net: NeuralNet, data: TrainingData[]) => WeightsStep[];
-		trainSingle:(net: NeuralNet, data: TrainingData) => WeightsStep;
-	};
-
 	/**
 	 * back propagation code adapted from https://de.wikipedia.org/wiki/Backpropagation
 	 */

@@ -4,6 +4,8 @@ interface Point3d {
 }
 /**
  * Visualization that displays all the weights in the network as a black-white gradient
+ * 
+ * hidden when in perceptron mode because then it's pretty boring
  */
 class WeightsGraph implements Visualization {
 	actions = ["Weights"];
@@ -58,6 +60,7 @@ class WeightsGraph implements Visualization {
 	onHide() {
 
 	}
+	/** parse network layout into weights graph ordering */
 	parseData(net: Net.NeuralNet) {
 		this.xyToConnection = {};
 		const data: Point3d[] = [];
