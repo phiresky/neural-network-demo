@@ -2468,7 +2468,7 @@ var LRVis = (function (_super) {
         var _this = this;
         var sim = this.props.sim;
         var isPerceptron = this.props.sim.state.type === "perceptron";
-        var leftSize = isPerceptron ? 5 : 6;
+        var leftSize = isPerceptron ? 4 : 6;
         var rightSize = 12 - leftSize;
         return React.createElement("div", null, React.createElement("div", {className: "row"}, React.createElement("div", {className: "col-sm-" + leftSize}, React.createElement(TabSwitcher, {ref: function (c) { return _this.leftVis = c; }, things: this.props.leftVis, onChangeVisualization: function (vis, aft) { return _this.changeBody(0, vis, aft); }})), React.createElement("div", {className: "col-sm-" + rightSize}, React.createElement(TabSwitcher, {ref: function (c) { return _this.rightVis = c; }, things: this.props.rightVis, onChangeVisualization: function (vis, aft) { return _this.changeBody(1, vis, aft); }}))), React.createElement("div", {className: "row"}, React.createElement("div", {className: "col-sm-" + leftSize}, React.createElement("div", {className: "visbody", ref: function (b) { return _this.bodyDivs[0] = b; }}), React.createElement(ControlButtonBar, {running: this.state.running, sim: sim}), React.createElement("hr", null)), React.createElement("div", {className: "col-sm-" + rightSize}, React.createElement("div", {className: "visbody", ref: function (b) { return _this.bodyDivs[1] = b; }}), React.createElement("div", null, React.createElement(StatusBar, {correct: this.state.correct, iteration: this.state.stepNum})), React.createElement("hr", null))));
     };
@@ -2633,6 +2633,10 @@ var WeightsGraph = (function () {
         return data;
     };
     WeightsGraph.prototype.onNetworkLoaded = function (net) {
+        if (this.sim.state.type == "perceptron")
+            this.actions = [];
+        else
+            this.actions = ["Weights"];
         this.graph.setData(this.parseData(net));
     };
     WeightsGraph.prototype.onFrame = function () {
