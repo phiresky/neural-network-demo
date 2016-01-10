@@ -38,10 +38,94 @@ module Net {
 			f: x => Math.max(x, 0),
 			df: x => x <= 0 ? 0 : 1
 		},
-		// used for Rosenblatt Perceptron (fake df)
+		// used for Rosenblatt Perceptron (df is fake and unimportant)
 		"threshold (≥ 0)": {
 			f: x => (x >= 0) ? 1 : 0,
 			df: x => 1
+		}
+	}
+	
+	/** list of training methods for every Configuration#type */
+	export const trainingMethods: { [type: string]: { [name: string]: TrainingMethod } } = {
+		"nn": {
+			"Batch Training": {
+				trainAll: (net, data) => net.trainAll(data, false, false),
+				trainSingle: null
+			},
+			"Online Training": {
+				trainAll: (net, data) => net.trainAll(data, true, false),
+				trainSingle: (net, data) => net.train(data, true, false)
+			}
+		},
+		/** Perceptron has only input with 3 neurons (incl. bias) and output layer with 1 neuron, no hidden layers */
+		"perceptron": {
+			"Rosenblatt Perceptron": {
+				trainAll(net, data) { return data.map(val => this.trainSingle(net, val)) },
+				trainSingle: (net, val) => {
+					// this algorithm is equivalent to what the neural network would do via net.train(data, true, true)
+					// (when the output neuron has this activation function:
+					//   {f: x => (x >= 0) ? 1 : 0, df: x => 1})
+					net.setInputsAndCalculate(val.input);
+					const outp = net.outputs[0];
+					outp.targetOutput = val.output[0];
+					const err = (outp.targetOutput - outp.output);
+					for (const conn of outp.inputs) {
+						conn.weight += net.learnRate * err * conn.inp.output;
+					}
+					var weights = net.connections.map(conn => conn.weight);
+					return { weights, dataPoint: val };
+				}
+			},
+			"Batch Perceptron": {
+				trainAll: (net, data) => net.trainAll(data, false, true),
+				trainSingle: null
+			},
+			/** averaged perceptron (from http://ciml.info/dl/v0_8/ciml-v0_8-ch03.pdf , p.48) */
+			"Averaged Perceptron": {
+				trainAll: (net, data) => {
+					const storeWeightSteps = true; // false for optimizing (but then can't Configuration#drawArrows)
+					if (net.layers.length !== 2 || net.outputs.length !== 1 || net.outputs[0].activation !== "threshold (≥ 0)")
+						throw Error("can only be used for single perceptron");
+					if (storeWeightSteps) var weights: WeightsStep[] = [];
+					let u = net.connections.map(w => 0);
+					let c = 1;
+					for (const val of data) {
+						net.train(val, true, storeWeightSteps);
+						if (net.outputs[0].error !== 0) {
+							const y = val.output[0] === 1 ? -1 : 1;
+							u = net.connections.map((conn, i) => u[i] + y * c * conn.inp.output);
+							if (storeWeightSteps) weights.push({ dataPoint: val, weights: net.connections.map((conn, i) => conn.weight - u[i] / c) });
+						}
+						++c;
+					}
+					net.connections.forEach((conn, i) => conn.weight -= u[i] / c);
+					return weights;
+				},
+				trainSingle: null
+			},
+			/** from http://www.jmlr.org/papers/volume3/crammer03a/crammer03a.pdf , page 965 
+			 * equivalent to Rosenblatt Perceptron except for how G is defined (see pdf)
+			 */
+			"Binary MIRA": {
+				trainAll(net, data) {
+					return data.map(d => this.trainSingle(net, d));
+				},
+				trainSingle: (net, val) => {
+					net.setInputsAndCalculate(val.input);
+					const outp = net.outputs[0];
+					const x = val.input;
+					const y = val.output[0] == 1 ? 1 : -1;
+					const yGot = net.outputs[0].output == 1 ? 1 : -1;
+					//const err = (outp.targetOutput - outp.output);
+					const G = (x:double) => Math.min(Math.max(0, x), 1);
+					const err = G(-y * net.outputs[0].weightedInputs / x.reduce((a,b) => a + b*b, 0));
+					for (const conn of outp.inputs) {
+						conn.weight += net.learnRate * err * y * conn.inp.output;
+					}
+					var weights = net.connections.map(conn => conn.weight);
+					return { weights, dataPoint: val };
+				}
+			}
 		}
 	}
 
@@ -54,6 +138,14 @@ module Net {
 		dataPoint: TrainingData;
 		weights: number[];
 	}
+	
+	/**
+	 * if trainSingle is null, only batch training is possible
+	 */
+	export interface TrainingMethod {
+		trainAll:(net: NeuralNet, data: TrainingData[]) => WeightsStep[];
+		trainSingle:(net: NeuralNet, data: TrainingData) => WeightsStep;
+	};
 
 	/**
 	 * back propagation code adapted from https://de.wikipedia.org/wiki/Backpropagation
@@ -127,30 +219,10 @@ module Net {
 			return weights;
 		}
 
-		/** averaged perceptron (from http://ciml.info/dl/v0_8/ciml-v0_8-ch03.pdf , p.48) */
-		trainAllAveraged(data: TrainingData[], storeWeightSteps: boolean) {
-			if (this.layers.length !== 2 || this.outputs.length !== 1 || this.outputs[0].activation !== "threshold (≥ 0)")
-				throw Error("can only be used for single perceptron");
-			if (storeWeightSteps) var weights: WeightsStep[] = [];
-			let u = this.connections.map(w => 0);
-			let c = 1;
-			for (const val of data) {
-				this.train(val, true, storeWeightSteps);
-				if (this.outputs[0].error !== 0) {
-					const y = val.output[0] === 1 ? -1 : 1;
-					u = this.connections.map((conn, i) => u[i] + y * c * conn.inp.output);
-					if (storeWeightSteps) weights.push({ dataPoint: val, weights: this.connections.map((conn, i) => conn.weight - u[i] / c) });
-				}
-				++c;
-			}
-			this.connections.forEach((conn, i) => conn.weight -= u[i] / c);
-			return weights;
-		}
-
 		/** if flush is false, only calculate deltas but don't reset or add them */
 		train(val: TrainingData, flush = true, storeWeightSteps: boolean) {
 			this.setInputsAndCalculate(val.input);
-			for (var i = 0; i < this.outputs.length; i++)
+			for (let i = 0; i < this.outputs.length; i++)
 				this.outputs[i].targetOutput = val.output[i];
 			for (let i = this.layers.length - 1; i > 0; i--) {
 				for (const neuron of this.layers[i]) {
@@ -234,6 +306,11 @@ module Net {
 
 		calculateError() {
 			this.error = NonLinearities[this.activation].df(this.weightedInputs) * (this.targetOutput - this.output);
+			// ⇔ for perceptron: (this.targetOutput - this.output)
+			// ⇔  1 if (sign(w*x) =  1 and y = -1);
+			//   -1 if (sign(w*x) = -1 and y =  1);
+			//    0 if (sign(w*x) = y)
+			//    where x = input vector, w = weight vector, y = output label (-1 or +1)
 		}
 	}
 }

@@ -25,6 +25,7 @@ class ConfigurationGui extends React.Component<Configuration, {}> {
 	render() {
 		const conf = this.props;
 		const loadConfig = () => Simulation.instance.loadConfig();
+		const trainingMethods = Net.trainingMethods[conf.type];
 		return <div className="form-horizontal">
 				<div className="col-sm-6">
 					<h4>Display</h4>
@@ -51,12 +52,15 @@ class ConfigurationGui extends React.Component<Configuration, {}> {
 						<select id="trainingMethod" className="btn btn-default"
 								onChange={loadConfig} 
 								value={conf.trainingMethod}>
-							{Object.keys(Simulation.trainingMethods[conf.type]).map(name => <option key={name} value={name}>{name}</option>)}
+							{Object.keys(trainingMethods).map(name => <option key={name} value={name}>{name}</option>)}
 						</select>
 					</BSFormGroup>
 					{conf.type === "perceptron"?
 						<div>
-							<BSCheckbox label="Animate single data points" id="animationTrainSinglePoints" onChange={loadConfig} conf={conf} />
+							{trainingMethods[conf.trainingMethod].trainSingle?
+								<BSCheckbox label="Animate single data points" id="animationTrainSinglePoints" onChange={loadConfig} conf={conf} />
+								:""
+							}
 							<BSCheckbox label="Draw Arrows" id="drawArrows" onChange={loadConfig} conf={conf} />
 							<BSCheckbox label="Draw coordinate system" id="drawCoordinateSystem" onChange={loadConfig} conf={conf} />
 						</div>

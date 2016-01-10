@@ -46,20 +46,10 @@ class Simulation extends React.Component<{ autoRun: boolean }, Configuration> {
 	/** data of the last training steps. first entry has .dataPoint set to undefined and contains the previous weights */
 	lastWeights: Net.WeightsStep[];
 
-	/** list of training methods for every Configuration#type */
-	static trainingMethods: { [type: string]: { [name: string]: (net: Net.NeuralNet, data: TrainingData[]) => Net.WeightsStep[] } } = {
-		"nn": {
-			"Batch Training": (net, data) => net.trainAll(data, false, false),
-			"Online Training": (net, data) => net.trainAll(data, true, false)
-		},
-		"perceptron": {
-			"Batch Training": (net, data) => net.trainAll(data, false, true),
-			"Online Training": (net, data) => net.trainAll(data, true, true),
-			"Averaged Perceptron": (net, data) => net.trainAllAveraged(data, true)
-		}
+	/** current training method (one of Net.trainingMethods) */
+	get trainingMethod(): Net.TrainingMethod {
+		return Net.trainingMethods[this.state.type][this.state.trainingMethod];
 	}
-	/** current training method (one of Simulation.trainingMethods) */
-	trainingMethod: (data: TrainingData[]) => void;
 
 
 	constructor(props: { autoRun: boolean }) {
@@ -93,7 +83,7 @@ class Simulation extends React.Component<{ autoRun: boolean }, Configuration> {
 		this.stepsCurrent++;
 		if (this.state.drawArrows)
 			this.lastWeights = [{ dataPoint: null, weights: this.net.connections.map(c => c.weight) }];
-		const steps = Simulation.trainingMethods[this.state.type][this.state.trainingMethod](this.net, this.state.data);
+		const steps = this.trainingMethod.trainAll(this.net, this.state.data);
 		if (this.state.drawArrows) this.lastWeights.push(...steps);
 	}
 
@@ -125,7 +115,7 @@ class Simulation extends React.Component<{ autoRun: boolean }, Configuration> {
 		if (this.currentTrainingDataPoint >= this.state.data.length) {
 			this.currentTrainingDataPoint -= this.state.data.length;
 		}
-		const newWeights = this.net.train(this.state.data[this.currentTrainingDataPoint], true, this.state.drawArrows);
+		const newWeights = this.trainingMethod.trainSingle(this.net, this.state.data[this.currentTrainingDataPoint]);
 		if (this.state.drawArrows) this.lastWeights.push(newWeights);
 	}
 

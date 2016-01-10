@@ -57,11 +57,13 @@ class ControlButtonBar extends React.Component<{ running: boolean, sim: Simulati
 			<button className={this.props.running ? "btn btn-danger" : "btn btn-primary"} onClick={sim.runtoggle.bind(sim) }>{this.props.running ? "Stop" : "Animate"}</button>&nbsp;
 			<button className="btn btn-warning" onClick={sim.reset.bind(sim) }>Reset</button>&nbsp;
 			<button className="btn btn-default" onClick={sim.trainAllButton.bind(sim) }>{sim.state.type === "perceptron" ? "Train All" : "Train"}</button>&nbsp;
-			{sim.state.type === "perceptron" ?
-				<button className="btn btn-default" onClick={sim.trainNextButton.bind(sim) }>Train Single</button>
-				:
-				<button className="btn btn-default" onClick={sim.forwardPassStep.bind(sim) }>Forward Pass Step</button>
-			}
+			{(() => {
+				if(sim.state.type === "perceptron" && sim.trainingMethod.trainSingle)
+					return <button className="btn btn-default" onClick={sim.trainNextButton.bind(sim) }>Train Single</button>;
+				if(sim.state.type === "nn")
+					return <button className="btn btn-default" onClick={sim.forwardPassStep.bind(sim) }>Forward Pass Step</button>;
+				return null;
+			})()}
 		</div>;
 	}
 }

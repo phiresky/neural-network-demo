@@ -287,10 +287,10 @@ module Presets {
 			bias: true,
 			"autoRestartTime": 5000,
 			"autoRestart": false,
-			trainingMethod: "Online Training",
+			trainingMethod: "Rosenblatt Perceptron",
 			drawArrows: true,
 			drawCoordinateSystem: false,
-			animationTrainSinglePoints: true,
+			animationTrainSinglePoints: false,
 			type: "perceptron",
 			"iterationsPerClick": 1,
 			"data":[{"input":[0.2101231155778894,0.4947319932998326],"output":[0]},{"input":[0.07838107202680059,0.42886097152428815],"output":[0]},{"input":[0.027711055276381822,0.9000921273031828],"output":[0]},{"input":[0.5344112227805695,0.5910050251256282],"output":[0]},{"input":[0.5445452261306533,0.11977386934673367],"output":[0]},{"input":[0.4482721943048576,-0.07783919597989952],"output":[0]},{"input":[0.7725603015075377,-0.305854271356784],"output":[0]},{"input":[0.5445452261306533,-0.3210552763819096],"output":[0]},{"input":[-0.028025963149078823,0.20084589614740372],"output":[1]},{"input":[0.2506591289782244,-0.36159128978224464],"output":[1]},{"input":[-0.22057202680067015,-0.04237018425460638],"output":[1]},{"input":[-0.3573810720268008,0.2819179229480737],"output":[1]},{"input":[-0.5549941373534341,0.2211139028475712],"output":[1]},{"input":[0.05304606365159121,-0.3109212730318259],"output":[1]},{"input":[-0.4485871021775546,-0.31598827470686774],"output":[1]}],
@@ -314,6 +314,12 @@ module Presets {
 			"name": "Averaged Perceptron",
 			parent: "Rosenblatt Perceptron",
 			trainingMethod: "Averaged Perceptron",
+			animationTrainSinglePoints: false
+		},
+		{
+			"name": "Binary MIRA",
+			parent: "Rosenblatt Perceptron",
+			trainingMethod: "Binary MIRA",
 			animationTrainSinglePoints: false
 		}
 	];
