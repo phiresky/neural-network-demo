@@ -73,7 +73,7 @@ var Net;
         }
     };
     ;
-    /** list of training methods for every Configuration#type */
+    /** list of training methods for each Configuration#type */
     Net.trainingMethods = {
         "nn": {
             "Batch Training": {
@@ -85,7 +85,7 @@ var Net;
                 trainSingle: function (net, data) { return net.train(data, true, false); }
             }
         },
-        /** Perceptron has an input layer with 3 neurons (incl. bias), an output layer with 1 neuron, and no hidden layers */
+        /** A Perceptron is a special type of NeuralNet that has an input layer with 3 neurons (incl. bias), an output layer with 1 neuron, and no hidden layers */
         "perceptron": {
             "Rosenblatt Perceptron": {
                 trainAll: function (net, data) {
