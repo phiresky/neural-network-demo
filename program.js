@@ -115,28 +115,32 @@ var Net;
             /** averaged perceptron (from http://ciml.info/dl/v0_8/ciml-v0_8-ch03.pdf , p.48) */
             "Averaged Perceptron": {
                 trainAll: function (net, data) {
-                    var storeWeightSteps = true; // false for optimizing (but then can't Configuration#drawArrows)
+                    if (!net.tmpStore)
+                        net.tmpStore = { c: 1, w: net.connections.map(function (c) { return c.weight; }), u: net.connections.map(function (c) { return 0; }) };
+                    var vars = net.tmpStore;
+                    var storeWeightSteps = true; // false for optimizing (but then can't use Configuration#drawArrows)
                     if (net.layers.length !== 2 || net.outputs.length !== 1 || net.outputs[0].activation !== "threshold (≥ 0)")
                         throw Error("can only be used for single perceptron");
                     if (storeWeightSteps)
                         var weights = [];
-                    var u = net.connections.map(function (w) { return 0; });
-                    var c = 1;
-                    var _loop_1 = function(val) {
-                        net.train(val, true, storeWeightSteps);
-                        if (net.outputs[0].error !== 0) {
-                            var y = val.output[0] === 1 ? -1 : 1;
-                            u = net.connections.map(function (conn, i) { return u[i] + y * c * conn.inp.output; });
-                            if (storeWeightSteps)
-                                weights.push({ dataPoint: val, weights: net.connections.map(function (conn, i) { return conn.weight - u[i] / c; }) });
-                        }
-                        ++c;
-                    };
                     for (var _i = 0, data_1 = data; _i < data_1.length; _i++) {
                         var val = data_1[_i];
-                        _loop_1(val);
+                        var y = val.output[0] ? 1 : -1;
+                        var x = val.input.concat([1]);
+                        var yReal = 0;
+                        for (var i = 0; i < x.length; i++)
+                            yReal += x[i] * vars.w[i];
+                        if (y * yReal <= 0) {
+                            for (var i = 0; i < x.length; i++) {
+                                vars.w[i] += net.learnRate * y * x[i];
+                                vars.u[i] += net.learnRate * y * vars.c * x[i];
+                            }
+                            if (storeWeightSteps)
+                                weights.push({ dataPoint: val, weights: x.map(function (x, i) { return vars.w[i] - vars.u[i] / vars.c; }) });
+                        }
+                        ++vars.c;
                     }
-                    net.connections.forEach(function (conn, i) { return conn.weight -= u[i] / c; });
+                    net.connections.forEach(function (conn, i) { return conn.weight = vars.w[i] - vars.u[i] / vars.c; });
                     return weights;
                 },
                 trainSingle: null
@@ -1128,6 +1132,8 @@ var Simulation = (function (_super) {
                 // gui layout may change, trigger resize
                 window.dispatchEvent(new Event('resize'));
             }
+            if (co.trainingMethod != cn.trainingMethod)
+                delete this.net.tmpStore;
             this.net.learnRate = cn.learningRate;
             if (cn.showGradient != co.showGradient || cn.drawCoordinateSystem != co.drawCoordinateSystem || cn.drawArrows != co.drawArrows)
                 this.onFrame(false);
