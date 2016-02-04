@@ -279,8 +279,7 @@ class Simulation extends React.Component<{ autoRun: boolean }, Configuration> {
 			}
 			if (co.trainingMethod != cn.trainingMethod) delete (this.net as any).tmpStore;
 			this.net.learnRate = cn.learningRate;
-			if (cn.showGradient != co.showGradient || cn.drawCoordinateSystem != co.drawCoordinateSystem || cn.drawArrows != co.drawArrows)
-				this.onFrame(false);
+			this.onFrame(false);
 		}
 	}
 	/** called once after the GUI has been added to the DOM */
