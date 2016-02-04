@@ -96,22 +96,27 @@ module Net {
 			/** averaged perceptron (from http://ciml.info/dl/v0_8/ciml-v0_8-ch03.pdf , p.48) */
 			"Averaged Perceptron": {
 				trainAll: (net, data) => {
-					const storeWeightSteps = true; // false for optimizing (but then can't Configuration#drawArrows)
+					if(!(net as any).tmpStore) (net as any).tmpStore = {c:1, w:net.connections.map(c=>c.weight), u:net.connections.map(c=>0)};
+					const vars = (net as any).tmpStore;
+					const storeWeightSteps = true; // false for optimizing (but then can't use Configuration#drawArrows)
 					if (net.layers.length !== 2 || net.outputs.length !== 1 || net.outputs[0].activation !== "threshold (≥ 0)")
 						throw Error("can only be used for single perceptron");
 					if (storeWeightSteps) var weights: WeightsStep[] = [];
-					let u = net.connections.map(w => 0);
-					let c = 1;
 					for (const val of data) {
-						net.train(val, true, storeWeightSteps);
-						if (net.outputs[0].error !== 0) {
-							const y = val.output[0] === 1 ? -1 : 1;
-							u = net.connections.map((conn, i) => u[i] + y * c * conn.inp.output);
-							if (storeWeightSteps) weights.push({ dataPoint: val, weights: net.connections.map((conn, i) => conn.weight - u[i] / c) });
+						const y = val.output[0] ? 1 : -1;
+						const x = val.input.concat([1]);
+						let yReal = 0;
+						for (let i = 0; i < x.length; i++) yReal += x[i] * vars.w[i];
+						if (y * yReal <= 0) {
+							for (let i = 0; i < x.length; i++) {
+								vars.w[i] += net.learnRate * y * x[i];
+								vars.u[i] += net.learnRate * y * vars.c * x[i];
+							}
+							if (storeWeightSteps) weights.push({ dataPoint: val, weights: x.map((x, i) => vars.w[i] - vars.u[i] / vars.c) });
 						}
-						++c;
+						++vars.c;
 					}
-					net.connections.forEach((conn, i) => conn.weight -= u[i] / c);
+					net.connections.forEach((conn, i) => conn.weight = vars.w[i] - vars.u[i] / vars.c);
 					return weights;
 				},
 				trainSingle: null
