@@ -1,8 +1,6 @@
 # Kogsys-Demos
 
-This repository contains various demonstrations for the lecture “Kognitive Systeme” at the [Interactive Systems Lab (ISL)](http://isl.anthropomatik.kit.edu/english/) at the [Karlsruhe Institute of Technology](https://kit.edu).
-
-Currently there is only the Neural Network demonstration and the Perceptron demonstration, both contained as a single webpage in [neural-network/](neural-network/).
+This repository contains the neural network and perceptron demonstration program for the lecture “Kognitive Systeme” at the [Interactive Systems Lab (ISL)](http://isl.anthropomatik.kit.edu/english/) at the [Karlsruhe Institute of Technology](https://kit.edu).
 
 ## Development
 
