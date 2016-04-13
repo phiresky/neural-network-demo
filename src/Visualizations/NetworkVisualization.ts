@@ -227,7 +227,7 @@ class NetworkVisualization implements Visualization {
 		return;
 	}
 	/** divide the canvas into two regions using the linear function run through [[getSeparator]] as the divider and color the regions */
-	drawPolyBackground({min, max}) {
+	drawPolyBackground({min, max}: {min: number, max: number}) {
 		const colors = NetworkVisualization.colors.binaryClassify.bg;
 		const ctx = this.ctx;
 		const c = this.trafo.toCanvas;

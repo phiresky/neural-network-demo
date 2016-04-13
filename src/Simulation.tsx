@@ -391,7 +391,7 @@ class Simulation extends React.Component<{ autoRun: boolean }, Configuration> {
 						</div>
 					</div>
 					<footer className="small">
-						<a href="https://github.com/phiresky/kogsys-demos/">Source on GitHub</a>
+						<a href="https://github.com/phiresky/neural-network-demo/">Source on GitHub</a>
 					</footer>
 				</div>
 				<ExportModal sim={this} ref={(e: ExportModal) => this.exportModal = e}/>

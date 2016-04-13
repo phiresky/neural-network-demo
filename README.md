@@ -22,9 +22,9 @@ The compiled files are included in the `gh-pages` branch
 
 ```bash
 git worktree add bin gh-pages
-sudo npm -g install typescript bower tsd
+sudo npm -g install typescript bower typings
 (cd lib
-	tsd install
+	typings install
 	bower install
 )
 ```

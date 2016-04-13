@@ -2,6 +2,8 @@
 /** floating point number */ type double = number;
 /** whole number */ type int = number;
 
+declare var React: typeof __React, ReactDOM: typeof __React.__DOM;
+
 $(document).ready(() => {
 	Presets.loadPetersonBarney();
 	ReactDOM.render(<Simulation autoRun={false} />, document.getElementById("mainContainer"));

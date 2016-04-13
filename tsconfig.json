@@ -10,7 +10,7 @@
 		"experimentalDecorators": true
 	},
 	"files": [
-		"./lib/typings/tsd.d.ts",
+		"./lib/typings/browser.d.ts",
 		"./src/main.tsx",
 		"./src/Net.ts",
 		"./src/Presets.ts",
