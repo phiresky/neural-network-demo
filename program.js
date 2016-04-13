@@ -1,3 +1,16 @@
+var __extends = (this && this.__extends) || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+};
+var __assign = (this && this.__assign) || Object.assign || function(t) {
+    for (var s, i = 1, n = arguments.length; i < n; i++) {
+        s = arguments[i];
+        for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+            t[p] = s[p];
+    }
+    return t;
+};
 $(document).ready(function () {
     Presets.loadPetersonBarney();
     ReactDOM.render(React.createElement(Simulation, {autoRun: false}), document.getElementById("mainContainer"));
@@ -23,11 +36,6 @@ function checkSanity() {
         throw "insanity!";
     return "ok";
 }
-var __extends = (this && this.__extends) || function (d, b) {
-    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
-    function __() { this.constructor = d; }
-    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-};
 /**
  * Simple implementation of a neural network (multilayer perceptron)
  *
@@ -854,9 +862,40 @@ var ExportModal = (function (_super) {
         var visible = true;
         if (ele && getComputedStyle(ele).display == "none")
             visible = false;
-        return (React.createElement("div", {className: "modal fade", id: "exportModal"}, React.createElement("div", {className: "modal-dialog"}, React.createElement("div", {className: "modal-content"}, React.createElement("div", {className: "modal-header"}, React.createElement("button", {type: "button", className: "close", "data-dismiss": "modal"}, "×"), React.createElement("h3", {className: "modal-title"}, "Import / Export")), visible ? React.createElement("div", {className: "modal-body"}, React.createElement("h4", {className: "modal-title"}, "Export to URL"), React.createElement("select", {className: "exportWeights", onChange: function (t) { return _this.setState({ exportWeights: t.target.value }); }, value: this.state.exportWeights}, React.createElement("option", {value: "0"}, "Don't include weights"), React.createElement("option", {value: "1"}, "Include current weights"), React.createElement("option", {value: "2"}, "Include start weights")), React.createElement("p", null, "Copy this URL:", React.createElement("input", {className: "url-export", onClick: function (e) { return e.target.select(); }, readOnly: true, value: this.props.sim.serializeToUrl(+this.state.exportWeights)})), React.createElement("hr", null), React.createElement("h4", {className: "modal-title"}, "Export to file"), React.createElement("button", {className: "btn btn-default", onClick: function () { return _this.exportJSON(_this.props.sim.state); }}, "Export configuration and data as json"), React.createElement("button", {className: "btn btn-default", onClick: function () { return _this.exportCSV(_this.props.sim.state); }}, "Export training data as CSV"), React.createElement("hr", null), React.createElement("h4", {className: "modal-title"}, "Import"), React.createElement("span", {className: "btn btn-default btn-file"}, "Import JSON file ", React.createElement("input", {type: "file", className: "importJSON", onChange: this.importJSON.bind(this)})), React.createElement("span", {className: "btn btn-default btn-file"}, "Import CSV file ", React.createElement("input", {type: "file", className: "importCSV", onChange: this.importCSV.bind(this)})), this.state.errors.map(function (error, i) {
-            return React.createElement("div", {key: i, className: "alert alert-danger"}, error, React.createElement("button", {type: "button", className: "close", "data-dismiss": "alert"}, "×"));
-        })) : "Loading..."))));
+        return (React.createElement("div", {className: "modal fade", id: "exportModal"}, 
+            React.createElement("div", {className: "modal-dialog"}, 
+                React.createElement("div", {className: "modal-content"}, 
+                    React.createElement("div", {className: "modal-header"}, 
+                        React.createElement("button", {type: "button", className: "close", "data-dismiss": "modal"}, "×"), 
+                        React.createElement("h3", {className: "modal-title"}, "Import / Export")), 
+                    visible ? React.createElement("div", {className: "modal-body"}, 
+                        React.createElement("h4", {className: "modal-title"}, "Export to URL"), 
+                        React.createElement("select", {className: "exportWeights", onChange: function (t) { return _this.setState({ exportWeights: t.target.value }); }, value: this.state.exportWeights}, 
+                            React.createElement("option", {value: "0"}, "Don't include weights"), 
+                            React.createElement("option", {value: "1"}, "Include current weights"), 
+                            React.createElement("option", {value: "2"}, "Include start weights")), 
+                        React.createElement("p", null, 
+                            "Copy this URL:", 
+                            React.createElement("input", {className: "url-export", onClick: function (e) { return e.target.select(); }, readOnly: true, value: this.props.sim.serializeToUrl(+this.state.exportWeights)})), 
+                        React.createElement("hr", null), 
+                        React.createElement("h4", {className: "modal-title"}, "Export to file"), 
+                        React.createElement("button", {className: "btn btn-default", onClick: function () { return _this.exportJSON(_this.props.sim.state); }}, "Export configuration and data as json"), 
+                        React.createElement("button", {className: "btn btn-default", onClick: function () { return _this.exportCSV(_this.props.sim.state); }}, "Export training data as CSV"), 
+                        React.createElement("hr", null), 
+                        React.createElement("h4", {className: "modal-title"}, "Import"), 
+                        React.createElement("span", {className: "btn btn-default btn-file"}, 
+                            "Import JSON file ", 
+                            React.createElement("input", {type: "file", className: "importJSON", onChange: this.importJSON.bind(this)})), 
+                        React.createElement("span", {className: "btn btn-default btn-file"}, 
+                            "Import CSV file ", 
+                            React.createElement("input", {type: "file", className: "importCSV", onChange: this.importCSV.bind(this)})), 
+                        this.state.errors.map(function (error, i) {
+                            return React.createElement("div", {key: i, className: "alert alert-danger"}, 
+                                error, 
+                                React.createElement("button", {type: "button", className: "close", "data-dismiss": "alert"}, "×"));
+                        })) : "Loading...")
+            )
+        ));
     };
     ExportModal.prototype.exportJSON = function (conf) {
         Util.download(JSON.stringify(conf, null, '\t'), conf.name + ".json");
@@ -1296,13 +1335,41 @@ var Simulation = (function (_super) {
         var pageTitle = this.state.type === "perceptron" ? "Perceptron demo" : "Neural Network demo";
         var presetName = this.state.custom ? " Custom Network" : " Preset: " + this.state.name;
         document.title = pageTitle + " \u2014 " + presetName;
-        return (React.createElement("div", null, React.createElement("div", {className: "container"}, React.createElement("div", {className: "page-header"}, React.createElement("div", {className: "btn-toolbar pull-right dropdown", style: { marginTop: "5px" }}, React.createElement("button", {className: "btn btn-info dropdown-toggle", "data-toggle": "dropdown"}, "Load Preset ", React.createElement("span", {className: "caret"})), React.createElement("ul", {className: "dropdown-menu"}, React.createElement("li", {className: "dropdown-header"}, "Neural Network"), Presets.getNames().map(function (name) {
-            var ele = React.createElement("li", {key: name}, React.createElement("a", {onClick: function (e) { return _this.setState(Presets.get(name)); }}, name));
-            if (name === "Rosenblatt Perceptron")
-                return [React.createElement("li", {className: "divider"}), React.createElement("li", {className: "dropdown-header"}, "Perceptron"), ele];
-            else
-                return ele;
-        }))), React.createElement("h1", null, pageTitle, React.createElement("small", null, presetName))), React.createElement(LRVis, {sim: this, ref: function (e) { return _this.lrVis = e; }, leftVis: [this.netgraph, this.errorGraph, this.weightsGraph], rightVis: [this.netviz, this.table]}), React.createElement("div", {className: "panel panel-default"}, React.createElement("div", {className: "panel-heading"}, React.createElement("h3", {className: "panel-title"}, React.createElement("a", {"data-toggle": "collapse", "data-target": ".panel-body"}, "Configuration"))), React.createElement("div", {className: "panel-body collapse in"}, React.createElement(ConfigurationGui, React.__spread({}, this.state)))), React.createElement("footer", {className: "small"}, React.createElement("a", {href: "https://github.com/phiresky/kogsys-demos/"}, "Source on GitHub"))), React.createElement(ExportModal, {sim: this, ref: function (e) { return _this.exportModal = e; }})));
+        return (React.createElement("div", null, 
+            React.createElement("div", {className: "container"}, 
+                React.createElement("div", {className: "page-header"}, 
+                    React.createElement("div", {className: "btn-toolbar pull-right dropdown", style: { marginTop: "5px" }}, 
+                        React.createElement("button", {className: "btn btn-info dropdown-toggle", "data-toggle": "dropdown"}, 
+                            "Load Preset ", 
+                            React.createElement("span", {className: "caret"})), 
+                        React.createElement("ul", {className: "dropdown-menu"}, 
+                            React.createElement("li", {className: "dropdown-header"}, "Neural Network"), 
+                            Presets.getNames().map(function (name) {
+                                var ele = React.createElement("li", {key: name}, 
+                                    React.createElement("a", {onClick: function (e) { return _this.setState(Presets.get(name)); }}, name)
+                                );
+                                if (name === "Rosenblatt Perceptron")
+                                    return [React.createElement("li", {className: "divider"}), React.createElement("li", {className: "dropdown-header"}, "Perceptron"), ele];
+                                else
+                                    return ele;
+                            }))), 
+                    React.createElement("h1", null, 
+                        pageTitle, 
+                        React.createElement("small", null, presetName))), 
+                React.createElement(LRVis, {sim: this, ref: function (e) { return _this.lrVis = e; }, leftVis: [this.netgraph, this.errorGraph, this.weightsGraph], rightVis: [this.netviz, this.table]}), 
+                React.createElement("div", {className: "panel panel-default"}, 
+                    React.createElement("div", {className: "panel-heading"}, 
+                        React.createElement("h3", {className: "panel-title"}, 
+                            React.createElement("a", {"data-toggle": "collapse", "data-target": ".panel-body"}, "Configuration")
+                        )
+                    ), 
+                    React.createElement("div", {className: "panel-body collapse in"}, 
+                        React.createElement(ConfigurationGui, __assign({}, this.state))
+                    )), 
+                React.createElement("footer", {className: "small"}, 
+                    React.createElement("a", {href: "https://github.com/phiresky/neural-network-demo/"}, "Source on GitHub")
+                )), 
+            React.createElement(ExportModal, {sim: this, ref: function (e) { return _this.exportModal = e; }})));
     };
     return Simulation;
 }(React.Component));
@@ -1439,7 +1506,7 @@ var Util;
             return (nextGaussian * standardDeviation) + mean;
         }
         else {
-            var v1, v2, s, multiplier;
+            var v1 = void 0, v2 = void 0, s = void 0, multiplier = void 0;
             do {
                 v1 = 2 * Math.random() - 1; // between -1 and 1
                 v2 = 2 * Math.random() - 1; // between -1 and 1
@@ -1598,7 +1665,9 @@ var BSFormGroup = (function (_super) {
         _super.apply(this, arguments);
     }
     BSFormGroup.prototype.render = function () {
-        return React.createElement("div", {className: "form-group"}, React.createElement("label", {htmlFor: this.props.id, className: "col-sm-6 control-label"}, this.props.label), React.createElement("div", {className: "col-sm-6 " + (this.props.isStatic ? "form-control-static" : "")}, this.props.children));
+        return React.createElement("div", {className: "form-group"}, 
+            React.createElement("label", {htmlFor: this.props.id, className: "col-sm-6 control-label"}, this.props.label), 
+            React.createElement("div", {className: "col-sm-6 " + (this.props.isStatic ? "form-control-static" : "")}, this.props.children));
     };
     return BSFormGroup;
 }(React.Component));
@@ -1609,7 +1678,9 @@ var BSCheckbox = (function (_super) {
         _super.apply(this, arguments);
     }
     BSCheckbox.prototype.render = function () {
-        return (React.createElement(BSFormGroup, {label: this.props.label, id: this.props.id, isStatic: true}, React.createElement("input", {type: "checkbox", checked: this.props.conf[this.props.id], id: this.props.id, onChange: this.props.onChange})));
+        return (React.createElement(BSFormGroup, {label: this.props.label, id: this.props.id, isStatic: true}, 
+            React.createElement("input", {type: "checkbox", checked: this.props.conf[this.props.id], id: this.props.id, onChange: this.props.onChange})
+        ));
     };
     return BSCheckbox;
 }(React.Component));
@@ -1623,14 +1694,40 @@ var ConfigurationGui = (function (_super) {
         var conf = this.props;
         var loadConfig = function () { return Simulation.instance.loadConfig(); };
         var trainingMethods = Net.trainingMethods[conf.type];
-        return React.createElement("div", {className: "form-horizontal"}, React.createElement("div", {className: "col-sm-6"}, React.createElement("h4", null, "Display"), React.createElement(BSFormGroup, {label: "Iterations per click on 'Train'", id: "iterationsPerClick"}, React.createElement("input", {className: "form-control", type: "number", min: 0, max: 10000, id: "iterationsPerClick", value: "" + conf.iterationsPerClick, onChange: loadConfig})), React.createElement(BSFormGroup, {label: "Steps per Second", id: "stepsPerSecond"}, React.createElement("input", {className: "form-control", type: "number", min: 0.1, max: 1000, id: "stepsPerSecond", value: "" + conf.stepsPerSecond, onChange: loadConfig})), React.createElement(BSCheckbox, {label: "When correct, restart after 5 seconds", id: "autoRestart", onChange: loadConfig, conf: conf}), conf.type !== "perceptron" ?
-            React.createElement(BSCheckbox, {label: "Show class propabilities as gradient", id: "showGradient", onChange: loadConfig, conf: conf})
-            : "", React.createElement(BSCheckbox, {label: "Show bias input", id: "bias", onChange: loadConfig, conf: conf}), React.createElement("button", {className: "btn btn-default", "data-toggle": "modal", "data-target": "#exportModal"}, "Import / Export")), React.createElement("div", {className: "col-sm-6"}, React.createElement("h4", null, conf.type === "perceptron" ? "Perceptron" : "Net"), React.createElement(BSFormGroup, {id: "learningRate", label: "Learning Rate", isStatic: true}, React.createElement("span", {id: "learningRateVal", style: { marginRight: '1em' }}, conf.learningRate.toFixed(3)), React.createElement("input", {type: "range", min: 0.005, max: 1, step: 0.005, id: "learningRate", value: Util.logScale(conf.learningRate) + "", onChange: loadConfig})), React.createElement(BSFormGroup, {id: "trainingMethod", label: "Training Method"}, React.createElement("select", {id: "trainingMethod", className: "btn btn-default", onChange: loadConfig, value: conf.trainingMethod}, Object.keys(trainingMethods).map(function (name) { return React.createElement("option", {key: name, value: name}, name); }))), conf.type === "perceptron" ?
-            React.createElement("div", null, trainingMethods[conf.trainingMethod].trainSingle ?
-                React.createElement(BSCheckbox, {label: "Animate single data points", id: "animationTrainSinglePoints", onChange: loadConfig, conf: conf})
-                : "", React.createElement(BSCheckbox, {label: "Draw Arrows", id: "drawArrows", onChange: loadConfig, conf: conf}), React.createElement(BSCheckbox, {label: "Draw coordinate system", id: "drawCoordinateSystem", onChange: loadConfig, conf: conf}))
-            :
-                React.createElement("div", null, React.createElement(NeuronGui, React.__spread({}, this.props)))));
+        return React.createElement("div", {className: "form-horizontal"}, 
+            React.createElement("div", {className: "col-sm-6"}, 
+                React.createElement("h4", null, "Display"), 
+                React.createElement(BSFormGroup, {label: "Iterations per click on 'Train'", id: "iterationsPerClick"}, 
+                    React.createElement("input", {className: "form-control", type: "number", min: 0, max: 10000, id: "iterationsPerClick", value: "" + conf.iterationsPerClick, onChange: loadConfig})
+                ), 
+                React.createElement(BSFormGroup, {label: "Steps per Second", id: "stepsPerSecond"}, 
+                    React.createElement("input", {className: "form-control", type: "number", min: 0.1, max: 1000, id: "stepsPerSecond", value: "" + conf.stepsPerSecond, onChange: loadConfig})
+                ), 
+                React.createElement(BSCheckbox, {label: "When correct, restart after 5 seconds", id: "autoRestart", onChange: loadConfig, conf: conf}), 
+                conf.type !== "perceptron" ?
+                    React.createElement(BSCheckbox, {label: "Show class propabilities as gradient", id: "showGradient", onChange: loadConfig, conf: conf})
+                    : "", 
+                React.createElement(BSCheckbox, {label: "Show bias input", id: "bias", onChange: loadConfig, conf: conf}), 
+                React.createElement("button", {className: "btn btn-default", "data-toggle": "modal", "data-target": "#exportModal"}, "Import / Export")), 
+            React.createElement("div", {className: "col-sm-6"}, 
+                React.createElement("h4", null, conf.type === "perceptron" ? "Perceptron" : "Net"), 
+                React.createElement(BSFormGroup, {id: "learningRate", label: "Learning Rate", isStatic: true}, 
+                    React.createElement("span", {id: "learningRateVal", style: { marginRight: '1em' }}, conf.learningRate.toFixed(3)), 
+                    React.createElement("input", {type: "range", min: 0.005, max: 1, step: 0.005, id: "learningRate", value: Util.logScale(conf.learningRate) + "", onChange: loadConfig})), 
+                React.createElement(BSFormGroup, {id: "trainingMethod", label: "Training Method"}, 
+                    React.createElement("select", {id: "trainingMethod", className: "btn btn-default", onChange: loadConfig, value: conf.trainingMethod}, Object.keys(trainingMethods).map(function (name) { return React.createElement("option", {key: name, value: name}, name); }))
+                ), 
+                conf.type === "perceptron" ?
+                    React.createElement("div", null, 
+                        trainingMethods[conf.trainingMethod].trainSingle ?
+                            React.createElement(BSCheckbox, {label: "Animate single data points", id: "animationTrainSinglePoints", onChange: loadConfig, conf: conf})
+                            : "", 
+                        React.createElement(BSCheckbox, {label: "Draw Arrows", id: "drawArrows", onChange: loadConfig, conf: conf}), 
+                        React.createElement(BSCheckbox, {label: "Draw coordinate system", id: "drawCoordinateSystem", onChange: loadConfig, conf: conf}))
+                    :
+                        React.createElement("div", null, 
+                            React.createElement(NeuronGui, __assign({}, this.props))
+                        )));
     };
     return ConfigurationGui;
 }(React.Component));
@@ -1642,9 +1739,16 @@ var NeuronLayer = (function (_super) {
     }
     NeuronLayer.prototype.render = function () {
         var p = this.props;
-        return React.createElement("div", null, p.name, " layer: ", p.layer.neuronCount, " neurons ", React.createElement("button", {className: "btn btn-xs btn-default", onClick: function () { return p.countChanged(1); }}, "+"), React.createElement("button", {className: "btn btn-xs btn-default", onClick: function () { return p.countChanged(-1); }}, "-"), p.layer.activation ?
-            React.createElement("select", {className: "btn btn-xs btn-default activation", onChange: function (e) { return p.activationChanged(e.target.value); }, value: p.layer.activation}, Object.keys(Net.NonLinearities).map(function (name) { return React.createElement("option", {key: name, value: name}, name); }))
-            : "");
+        return React.createElement("div", null, 
+            p.name, 
+            " layer: ", 
+            p.layer.neuronCount, 
+            " neurons ", 
+            React.createElement("button", {className: "btn btn-xs btn-default", onClick: function () { return p.countChanged(1); }}, "+"), 
+            React.createElement("button", {className: "btn btn-xs btn-default", onClick: function () { return p.countChanged(-1); }}, "-"), 
+            p.layer.activation ?
+                React.createElement("select", {className: "btn btn-xs btn-default activation", onChange: function (e) { return p.activationChanged(e.target.value); }, value: p.layer.activation}, Object.keys(Net.NonLinearities).map(function (name) { return React.createElement("option", {key: name, value: name}, name); }))
+                : "");
     };
     return NeuronLayer;
 }(React.Component));
@@ -1710,9 +1814,15 @@ var NeuronGui = (function (_super) {
             activationChanged: function (a) { return _this.activationChanged(i, a); },
             countChanged: function (c) { return _this.countChanged(i, c); }
         }); };
-        return React.createElement("div", null, (conf.hiddenLayers.length + 2) + " layers ", React.createElement("button", {className: "btn btn-xs btn-default", onClick: function () { return _this.addLayer(); }}, "+"), React.createElement("button", {className: "btn btn-xs btn-default", onClick: function () { return _this.removeLayer(); }}, "-"), React.createElement(NeuronLayer, React.__spread({key: -1, layer: conf.inputLayer, name: "Input"}, neuronListeners(-1))), conf.hiddenLayers.map(function (layer, i) {
-            return React.createElement(NeuronLayer, React.__spread({key: i, layer: layer, name: "Hidden"}, neuronListeners(i)));
-        }), React.createElement(NeuronLayer, React.__spread({key: -2, layer: conf.outputLayer, name: "Output"}, neuronListeners(conf.hiddenLayers.length))));
+        return React.createElement("div", null, 
+            (conf.hiddenLayers.length + 2) + " layers ", 
+            React.createElement("button", {className: "btn btn-xs btn-default", onClick: function () { return _this.addLayer(); }}, "+"), 
+            React.createElement("button", {className: "btn btn-xs btn-default", onClick: function () { return _this.removeLayer(); }}, "-"), 
+            React.createElement(NeuronLayer, __assign({key: -1, layer: conf.inputLayer, name: "Input"}, neuronListeners(-1))), 
+            conf.hiddenLayers.map(function (layer, i) {
+                return React.createElement(NeuronLayer, __assign({key: i, layer: layer, name: "Hidden"}, neuronListeners(i)));
+            }), 
+            React.createElement(NeuronLayer, __assign({key: -2, layer: conf.outputLayer, name: "Output"}, neuronListeners(conf.hiddenLayers.length))));
     };
     return NeuronGui;
 }(React.Component));
@@ -2001,7 +2111,7 @@ var NetworkVisualization = (function () {
         this.canvas = $("<canvas class=fullsize>")[0];
         this.canvas.width = 550;
         this.canvas.height = 400;
-        this.trafo = new TransformNavigation(this.canvas, function () { return _this.inputMode === 0; } /* move view mode */ /* move view mode */, function () { return _this.onFrame(); });
+        this.trafo = new TransformNavigation(this.canvas, function () { return _this.inputMode === 0; } /* move view mode */, function () { return _this.onFrame(); });
         this.ctx = this.canvas.getContext('2d');
         window.addEventListener('resize', this.canvasResized.bind(this));
         this.canvas.addEventListener("click", this.canvasClicked.bind(this));
@@ -2525,13 +2635,20 @@ var ControlButtonBar = (function (_super) {
     }
     ControlButtonBar.prototype.render = function () {
         var sim = this.props.sim;
-        return React.createElement("div", {className: "h3"}, React.createElement("button", {className: this.props.running ? "btn btn-danger" : "btn btn-primary", onClick: sim.runtoggle.bind(sim)}, this.props.running ? "Stop" : "Animate"), " ", React.createElement("button", {className: "btn btn-warning", onClick: sim.reset.bind(sim)}, "Reset"), " ", React.createElement("button", {className: "btn btn-default", onClick: sim.trainAllButton.bind(sim)}, sim.state.type === "perceptron" ? "Train All" : "Train"), " ", (function () {
-            if (sim.state.type === "perceptron" && sim.trainingMethod.trainSingle)
-                return React.createElement("button", {className: "btn btn-default", onClick: sim.trainNextButton.bind(sim)}, "Train Single");
-            if (sim.state.type === "nn")
-                return React.createElement("button", {className: "btn btn-default", onClick: sim.forwardPassStep.bind(sim)}, "Forward Pass Step");
-            return null;
-        })());
+        return React.createElement("div", {className: "h3"}, 
+            React.createElement("button", {className: this.props.running ? "btn btn-danger" : "btn btn-primary", onClick: sim.runtoggle.bind(sim)}, this.props.running ? "Stop" : "Animate"), 
+            " ", 
+            React.createElement("button", {className: "btn btn-warning", onClick: sim.reset.bind(sim)}, "Reset"), 
+            " ", 
+            React.createElement("button", {className: "btn btn-default", onClick: sim.trainAllButton.bind(sim)}, sim.state.type === "perceptron" ? "Train All" : "Train"), 
+            " ", 
+            (function () {
+                if (sim.state.type === "perceptron" && sim.trainingMethod.trainSingle)
+                    return React.createElement("button", {className: "btn btn-default", onClick: sim.trainNextButton.bind(sim)}, "Train Single");
+                if (sim.state.type === "nn")
+                    return React.createElement("button", {className: "btn btn-default", onClick: sim.forwardPassStep.bind(sim)}, "Forward Pass Step");
+                return null;
+            })());
     };
     return ControlButtonBar;
 }(React.Component));
@@ -2541,7 +2658,10 @@ var StatusBar = (function (_super) {
         _super.apply(this, arguments);
     }
     StatusBar.prototype.render = function () {
-        return React.createElement("h2", null, this.props.correct, " —  Iteration:   ", this.props.iteration);
+        return React.createElement("h2", null, 
+            this.props.correct, 
+            " —  Iteration:   ", 
+            this.props.iteration);
     };
     return StatusBar;
 }(React.Component));
@@ -2557,7 +2677,25 @@ var LRVis = (function (_super) {
         var isPerceptron = this.props.sim.state.type === "perceptron";
         var leftSize = isPerceptron ? 4 : 6;
         var rightSize = 12 - leftSize;
-        return React.createElement("div", null, React.createElement("div", {className: "row"}, React.createElement("div", {className: "col-sm-" + leftSize}, React.createElement(TabSwitcher, {ref: function (c) { return _this.leftVis = c; }, things: this.props.leftVis, onChangeVisualization: function (vis, aft) { return _this.changeBody(0, vis, aft); }})), React.createElement("div", {className: "col-sm-" + rightSize}, React.createElement(TabSwitcher, {ref: function (c) { return _this.rightVis = c; }, things: this.props.rightVis, onChangeVisualization: function (vis, aft) { return _this.changeBody(1, vis, aft); }}))), React.createElement("div", {className: "row"}, React.createElement("div", {className: "col-sm-" + leftSize}, React.createElement("div", {className: "visbody", ref: function (b) { return _this.bodyDivs[0] = b; }}), React.createElement(ControlButtonBar, {running: this.state.running, sim: sim}), React.createElement("hr", null)), React.createElement("div", {className: "col-sm-" + rightSize}, React.createElement("div", {className: "visbody", ref: function (b) { return _this.bodyDivs[1] = b; }}), React.createElement("div", null, React.createElement(StatusBar, {correct: this.state.correct, iteration: this.state.stepNum})), React.createElement("hr", null))));
+        return React.createElement("div", null, 
+            React.createElement("div", {className: "row"}, 
+                React.createElement("div", {className: "col-sm-" + leftSize}, 
+                    React.createElement(TabSwitcher, {ref: function (c) { return _this.leftVis = c; }, things: this.props.leftVis, onChangeVisualization: function (vis, aft) { return _this.changeBody(0, vis, aft); }})
+                ), 
+                React.createElement("div", {className: "col-sm-" + rightSize}, 
+                    React.createElement(TabSwitcher, {ref: function (c) { return _this.rightVis = c; }, things: this.props.rightVis, onChangeVisualization: function (vis, aft) { return _this.changeBody(1, vis, aft); }})
+                )), 
+            React.createElement("div", {className: "row"}, 
+                React.createElement("div", {className: "col-sm-" + leftSize}, 
+                    React.createElement("div", {className: "visbody", ref: function (b) { return _this.bodyDivs[0] = b; }}), 
+                    React.createElement(ControlButtonBar, {running: this.state.running, sim: sim}), 
+                    React.createElement("hr", null)), 
+                React.createElement("div", {className: "col-sm-" + rightSize}, 
+                    React.createElement("div", {className: "visbody", ref: function (b) { return _this.bodyDivs[1] = b; }}), 
+                    React.createElement("div", null, 
+                        React.createElement(StatusBar, {correct: this.state.correct, iteration: this.state.stepNum})
+                    ), 
+                    React.createElement("hr", null))));
     };
     return LRVis;
 }(MultiVisDisplayer));
@@ -2574,9 +2712,13 @@ var TabSwitcher = (function (_super) {
     TabSwitcher.prototype.render = function () {
         var _this = this;
         var isDark = function (color) { return Util.parseColor(color).reduce(function (a, b) { return a + b; }) / 3 < 127; };
-        return React.createElement("div", null, React.createElement("ul", {className: "nav nav-pills"}, this.state.modes.map(function (mode, i) {
-            return React.createElement("li", {key: i, className: _this.state.currentMode === i ? "custom-active" : ""}, React.createElement("a", {style: mode.color ? { backgroundColor: mode.color, color: isDark(mode.color) ? "white" : "black" } : {}, onClick: function (e) { return _this.setMode(i); }}, mode.text));
-        })));
+        return React.createElement("div", null, 
+            React.createElement("ul", {className: "nav nav-pills"}, this.state.modes.map(function (mode, i) {
+                return React.createElement("li", {key: i, className: _this.state.currentMode === i ? "custom-active" : ""}, 
+                    React.createElement("a", {style: mode.color ? { backgroundColor: mode.color, color: isDark(mode.color) ? "white" : "black" } : {}, onClick: function (e) { return _this.setMode(i); }}, mode.text)
+                );
+            }))
+        );
     };
     TabSwitcher.prototype.componentDidMount = function () {
         this.setMode(0, true);
