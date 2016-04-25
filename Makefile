@@ -1,9 +1,9 @@
-all: bin bin/screenshot.png bin/index.html bin/icon.png bin/libs.css bin/program.js bin/libs.js
+all: bin bin/screenshot.png bin/screenshot-perceptron.png bin/index.html bin/icon.png bin/libs.css bin/program.js bin/libs.js
 
 bin/%: src/%
 	cp $< $@
 
-bin/screenshot.png: screenshot.png
+bin/%.png: %.png
 	cp $< $@
 
 bin/program.js:
