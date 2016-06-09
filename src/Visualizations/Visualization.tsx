@@ -57,13 +57,10 @@ class ControlButtonBar extends React.Component<{ running: boolean, sim: Simulati
 			<button className={this.props.running ? "btn btn-danger" : "btn btn-primary"} onClick={sim.runtoggle.bind(sim) }>{this.props.running ? "Stop" : "Animate"}</button>&nbsp;
 			<button className="btn btn-warning" onClick={sim.reset.bind(sim) }>Reset</button>&nbsp;
 			<button className="btn btn-default" onClick={sim.trainAllButton.bind(sim) }>{sim.state.type === "perceptron" ? "Train All" : "Train"}</button>&nbsp;
-			{(() => {
-				if(sim.state.type === "perceptron" && sim.trainingMethod.trainSingle)
-					return <button className="btn btn-default" onClick={sim.trainNextButton.bind(sim) }>Train Single</button>;
-				if(sim.state.type === "nn")
-					return <button className="btn btn-default" onClick={sim.forwardPassStep.bind(sim) }>Forward Pass Step</button>;
-				return null;
-			})()}
+			{(sim.state.showTrainSingleButton || (sim.state.type === "perceptron" && sim.trainingMethod.trainSingle))?
+				<button className="btn btn-default" onClick={sim.trainNextButton.bind(sim) }>Train Single</button>:""}&nbsp;
+			{(sim.state.type === "nn")?
+				<button className="btn btn-default" onClick={sim.forwardPassStep.bind(sim) }>Forward Pass Step</button>:""}&nbsp;
 		</div>;
 	}
 }
@@ -104,7 +101,7 @@ class LRVis extends MultiVisDisplayer<{ leftVis: Visualization[], rightVis: Visu
 			<div className="row">
 				<div className={`col-sm-${leftSize}`}>
 					<div className="visbody" ref={b => this.bodyDivs[0] = b } />
-					<ControlButtonBar running={this.state.running} sim={sim}/>
+					<ControlButtonBar running={this.state.running} sim={sim} />
 					<hr />
 				</div>
 				<div className={`col-sm-${rightSize}`}>

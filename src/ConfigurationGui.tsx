@@ -40,6 +40,7 @@ class ConfigurationGui extends React.Component<Configuration, {}> {
 						<BSCheckbox label="Show class propabilities as gradient" id="showGradient" onChange={loadConfig} conf={conf}/>
 					:""}
 					<BSCheckbox label="Show bias input" id="bias" onChange={loadConfig} conf={conf} />
+					<BSCheckbox label="Show Train Single button" id="showTrainSingleButton" onChange={loadConfig} conf={conf} />
 					<button className="btn btn-default" data-toggle="modal" data-target="#exportModal">Import / Export</button>
 				</div>
 				<div className="col-sm-6">

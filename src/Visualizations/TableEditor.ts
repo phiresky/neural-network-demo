@@ -42,7 +42,15 @@ class TableEditor implements Visualization {
 			minSpareRows: 1,
 			colWidths: ic + oc + oc <= 6 ? 80 : 45,
 			cells: (row, col, prop) => {
-				if (row >= this.headerCount) return { type: 'numeric', format: '0.[000]' };
+				if (row >= this.headerCount) {
+					if(row == this.sim.currentTrainingDataPoint + 2)
+						return { type: 'numeric', format: '0.[000]', renderer: function(instance: any, td: HTMLTableCellElement) {
+							Handsontable.renderers.NumericRenderer.apply(this, arguments);
+							td.style.fontWeight = 'bold';
+							td.style.background = 'lightgreen';
+						}};
+					return { type: 'numeric', format: '0.[000]' };
+				}
 				else {
 					const conf: any = { renderer: headerRenderer };
 					if (row == 0) conf.readOnly = true;

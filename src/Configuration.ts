@@ -38,5 +38,7 @@ interface Configuration {
     arrowScale?: int;
 	/** when animating, step through all data points on their own */
 	animationTrainSinglePoints?: boolean;
+	/** show train single button. only used for neural network demo */
+	showTrainSingleButton?: boolean;
 	type?: ConfigurationType;
 }

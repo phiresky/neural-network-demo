@@ -74,6 +74,7 @@ class Simulation extends React.Component<{ autoRun: boolean }, Configuration> {
 		this.lastWeights = [];
 		this.lrVis.leftVis.onNetworkLoaded(this.net);
 		this.lrVis.rightVis.onNetworkLoaded(this.net);
+		this.currentTrainingDataPoint = -1;
 		this.onFrame(true);
 	}
 
@@ -105,16 +106,26 @@ class Simulation extends React.Component<{ autoRun: boolean }, Configuration> {
 	}
 
 	/** -1 when not training single data points, otherwise index into [[Configuration#data]] */
-	currentTrainingDataPoint = -1;
+	private _currentTrainingDataPoint = -1;
+	get currentTrainingDataPoint() { return this._currentTrainingDataPoint; }
+	set currentTrainingDataPoint(val) { 
+		if(val != this._currentTrainingDataPoint) {
+			if (val >= this.state.data.length) {
+				val -= this.state.data.length;
+			}
+			this._currentTrainingDataPoint = val;
+			this.table.hot.render();
+			if(this._currentTrainingDataPoint >= 0)
+				this.net.setInputsAndCalculate(this.state.data[this._currentTrainingDataPoint].input);
+			this.netgraph.drawGraph();
+		}}
 	/** train the next single data point */
 	trainNext() {
 		this.currentTrainingDataPoint++;
 		if (this.state.drawArrows)
 			this.lastWeights = [{ dataPoint: null, weights: this.net.connections.map(c => c.weight) }];
 		this.stepsCurrent++;
-		if (this.currentTrainingDataPoint >= this.state.data.length) {
-			this.currentTrainingDataPoint -= this.state.data.length;
-		}
+		
 		const newWeights = this.trainingMethod.trainSingle(this.net, this.state.data[this.currentTrainingDataPoint]);
 		if (this.state.drawArrows) this.lastWeights.push(newWeights);
 	}

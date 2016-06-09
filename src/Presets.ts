@@ -86,7 +86,8 @@ module Presets {
 			weights: null,
 			drawCoordinateSystem: true,
 			animationTrainSinglePoints: false,
-			type: "nn"
+			type: "nn",
+			showTrainSingleButton: false
 		},
 		{
 			name: "Binary Classifier for XOR"
@@ -278,7 +279,13 @@ module Presets {
 				{ input: [0.95, -0.39], output: [0.95, -0.39] },
 				{ input: [0.86, -0.53], output: [0.86, -0.53] }]
 		},
-		{ "name": "Bit Position Auto Encoder", "learningRate": 0.05, "data": [{ "input": [1, 0, 0, 0], "output": [1, 0, 0, 0] }, { "input": [0, 1, 0, 0], "output": [0, 1, 0, 0] }, { "input": [0, 0, 1, 0], "output": [0, 0, 1, 0] }, { "input": [0, 0, 0, 1], "output": [0, 0, 0, 1] }], "inputLayer": { "neuronCount": 4, "names": ["in1", "in2", "in3", "in4"] }, "outputLayer": { "neuronCount": 4, "activation": "sigmoid", "names": ["out1", "out2", "out3", "out4"] }, "hiddenLayers": [{ "neuronCount": 2, "activation": "sigmoid" }] },
+		{ "name": "Bit Position Auto Encoder",
+			"learningRate": 0.05,
+			showTrainSingleButton: true,
+			"data": [{ "input": [1, 0, 0, 0], "output": [1, 0, 0, 0] }, { "input": [0, 1, 0, 0], "output": [0, 1, 0, 0] }, { "input": [0, 0, 1, 0], "output": [0, 0, 1, 0] }, { "input": [0, 0, 0, 1], "output": [0, 0, 0, 1] }], 
+			"inputLayer": { "neuronCount": 4, "names": ["in1", "in2", "in3", "in4"] }, 
+			"outputLayer": { "neuronCount": 4, "activation": "sigmoid", "names": ["out1", "out2", "out3", "out4"] },
+			"hiddenLayers": [{ "neuronCount": 2, "activation": "sigmoid" }] },
 		{
 			"name": "Rosenblatt Perceptron",
 			stepsPerSecond: 2,

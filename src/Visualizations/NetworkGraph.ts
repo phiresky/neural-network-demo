@@ -84,6 +84,11 @@ class NetworkGraph implements Visualization {
 					type = 'Output: '+neuron.name;
 					color = NetworkVisualization.colors.autoencoder.output;
 				}
+				if(this.sim.state.type == "nn" && this.sim.currentTrainingDataPoint >= 0) {
+					let v = 1 - Math.min(Math.max(neuron.output, 0), 1);
+					v = (v*250) | 0;
+					color = 'rgb(' + [v, v, v] + ')'
+				}
 				this.nodes.add({
 					id: neuron.id,
 					label: `${type}`,
