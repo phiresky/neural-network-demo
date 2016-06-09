@@ -389,6 +389,16 @@ module Presets {
 					output: [ 0 ] } ]
 		},
 		{
+			name: "Rosenblatt Perceptron — XOR",
+			parent: "Rosenblatt Perceptron",
+			data: [
+				{ input: [0, 0], output: [0] },
+				{ input: [0, 1], output: [1] },
+				{ input: [1, 0], output: [1] },
+				{ input: [1, 1], output: [0] }
+			],
+		},
+		{
 			"name": "Averaged Perceptron",
 			parent: "Rosenblatt Perceptron",
 			trainingMethod: "Averaged Perceptron",
