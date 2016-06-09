@@ -489,7 +489,8 @@ var Presets;
             weights: null,
             drawCoordinateSystem: true,
             animationTrainSinglePoints: false,
-            type: "nn"
+            type: "nn",
+            showTrainSingleButton: false
         },
         {
             name: "Binary Classifier for XOR"
@@ -679,7 +680,13 @@ var Presets;
                 { input: [0.95, -0.39], output: [0.95, -0.39] },
                 { input: [0.86, -0.53], output: [0.86, -0.53] }]
         },
-        { "name": "Bit Position Auto Encoder", "learningRate": 0.05, "data": [{ "input": [1, 0, 0, 0], "output": [1, 0, 0, 0] }, { "input": [0, 1, 0, 0], "output": [0, 1, 0, 0] }, { "input": [0, 0, 1, 0], "output": [0, 0, 1, 0] }, { "input": [0, 0, 0, 1], "output": [0, 0, 0, 1] }], "inputLayer": { "neuronCount": 4, "names": ["in1", "in2", "in3", "in4"] }, "outputLayer": { "neuronCount": 4, "activation": "sigmoid", "names": ["out1", "out2", "out3", "out4"] }, "hiddenLayers": [{ "neuronCount": 2, "activation": "sigmoid" }] },
+        { "name": "Bit Position Auto Encoder",
+            "learningRate": 0.05,
+            showTrainSingleButton: true,
+            "data": [{ "input": [1, 0, 0, 0], "output": [1, 0, 0, 0] }, { "input": [0, 1, 0, 0], "output": [0, 1, 0, 0] }, { "input": [0, 0, 1, 0], "output": [0, 0, 1, 0] }, { "input": [0, 0, 0, 1], "output": [0, 0, 0, 1] }],
+            "inputLayer": { "neuronCount": 4, "names": ["in1", "in2", "in3", "in4"] },
+            "outputLayer": { "neuronCount": 4, "activation": "sigmoid", "names": ["out1", "out2", "out3", "out4"] },
+            "hiddenLayers": [{ "neuronCount": 2, "activation": "sigmoid" }] },
         {
             "name": "Rosenblatt Perceptron",
             stepsPerSecond: 2,
@@ -1024,7 +1031,7 @@ var Simulation = (function (_super) {
         /** current average error (see Net.NeuralNet#getLoss) */
         this.averageError = 1;
         /** -1 when not training single data points, otherwise index into [[Configuration#data]] */
-        this.currentTrainingDataPoint = -1;
+        this._currentTrainingDataPoint = -1;
         /** cache for all the steps that the [[NetGraph]] will go through for a single forward pass step */
         this.forwardPassEles = [];
         this.aniFrameCallback = this.animationStep.bind(this);
@@ -1058,6 +1065,7 @@ var Simulation = (function (_super) {
         this.lastWeights = [];
         this.lrVis.leftVis.onNetworkLoaded(this.net);
         this.lrVis.rightVis.onNetworkLoaded(this.net);
+        this.currentTrainingDataPoint = -1;
         this.onFrame(true);
     };
     /** train all data points according to [[#trainingMethod]] */
@@ -1086,15 +1094,29 @@ var Simulation = (function (_super) {
         this.stepsWanted = this.stepsCurrent;
         this.onFrame(true);
     };
+    Object.defineProperty(Simulation.prototype, "currentTrainingDataPoint", {
+        get: function () { return this._currentTrainingDataPoint; },
+        set: function (val) {
+            if (val != this._currentTrainingDataPoint) {
+                if (val >= this.state.data.length) {
+                    val -= this.state.data.length;
+                }
+                this._currentTrainingDataPoint = val;
+                this.table.hot.render();
+                if (this._currentTrainingDataPoint >= 0)
+                    this.net.setInputsAndCalculate(this.state.data[this._currentTrainingDataPoint].input);
+                this.netgraph.drawGraph();
+            }
+        },
+        enumerable: true,
+        configurable: true
+    });
     /** train the next single data point */
     Simulation.prototype.trainNext = function () {
         this.currentTrainingDataPoint++;
         if (this.state.drawArrows)
             this.lastWeights = [{ dataPoint: null, weights: this.net.connections.map(function (c) { return c.weight; }) }];
         this.stepsCurrent++;
-        if (this.currentTrainingDataPoint >= this.state.data.length) {
-            this.currentTrainingDataPoint -= this.state.data.length;
-        }
         var newWeights = this.trainingMethod.trainSingle(this.net, this.state.data[this.currentTrainingDataPoint]);
         if (this.state.drawArrows)
             this.lastWeights.push(newWeights);
@@ -1718,6 +1740,7 @@ var ConfigurationGui = (function (_super) {
                     React.createElement(BSCheckbox, {label: "Show class propabilities as gradient", id: "showGradient", onChange: loadConfig, conf: conf})
                     : "", 
                 React.createElement(BSCheckbox, {label: "Show bias input", id: "bias", onChange: loadConfig, conf: conf}), 
+                React.createElement(BSCheckbox, {label: "Show Train Single button", id: "showTrainSingleButton", onChange: loadConfig, conf: conf}), 
                 React.createElement("button", {className: "btn btn-default", "data-toggle": "modal", "data-target": "#exportModal"}, "Import / Export")), 
             React.createElement("div", {className: "col-sm-6"}, 
                 React.createElement("h4", null, conf.type === "perceptron" ? "Perceptron" : "Net"), 
@@ -1941,6 +1964,11 @@ var NetworkGraph = (function () {
                 if (neuron instanceof Net.OutputNeuron) {
                     type = 'Output: ' + neuron.name;
                     color = NetworkVisualization.colors.autoencoder.output;
+                }
+                if (this.sim.state.type == "nn" && this.sim.currentTrainingDataPoint >= 0) {
+                    var v = 1 - Math.min(Math.max(neuron.output, 0), 1);
+                    v = (v * 250) | 0;
+                    color = 'rgb(' + [v, v, v] + ')';
                 }
                 this.nodes.add({
                     id: neuron.id,
@@ -2507,8 +2535,15 @@ var TableEditor = (function () {
             minSpareRows: 1,
             colWidths: ic + oc + oc <= 6 ? 80 : 45,
             cells: function (row, col, prop) {
-                if (row >= _this.headerCount)
+                if (row >= _this.headerCount) {
+                    if (row == _this.sim.currentTrainingDataPoint + 2)
+                        return { type: 'numeric', format: '0.[000]', renderer: function (instance, td) {
+                                Handsontable.renderers.NumericRenderer.apply(this, arguments);
+                                td.style.fontWeight = 'bold';
+                                td.style.background = 'lightgreen';
+                            } };
                     return { type: 'numeric', format: '0.[000]' };
+                }
                 else {
                     var conf = { renderer: headerRenderer };
                     if (row == 0)
@@ -2652,13 +2687,12 @@ var ControlButtonBar = (function (_super) {
             " ", 
             React.createElement("button", {className: "btn btn-default", onClick: sim.trainAllButton.bind(sim)}, sim.state.type === "perceptron" ? "Train All" : "Train"), 
             " ", 
-            (function () {
-                if (sim.state.type === "perceptron" && sim.trainingMethod.trainSingle)
-                    return React.createElement("button", {className: "btn btn-default", onClick: sim.trainNextButton.bind(sim)}, "Train Single");
-                if (sim.state.type === "nn")
-                    return React.createElement("button", {className: "btn btn-default", onClick: sim.forwardPassStep.bind(sim)}, "Forward Pass Step");
-                return null;
-            })());
+            (sim.state.showTrainSingleButton || (sim.state.type === "perceptron" && sim.trainingMethod.trainSingle)) ?
+                React.createElement("button", {className: "btn btn-default", onClick: sim.trainNextButton.bind(sim)}, "Train Single") : "", 
+            " ", 
+            (sim.state.type === "nn") ?
+                React.createElement("button", {className: "btn btn-default", onClick: sim.forwardPassStep.bind(sim)}, "Forward Pass Step") : "", 
+            " ");
     };
     return ControlButtonBar;
 }(React.Component));
