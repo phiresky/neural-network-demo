@@ -21,25 +21,24 @@ The compiled files are included in the `gh-pages` branch
 **Setup**
 
 ```bash
+git checkout gh-pages # to set upstream
+git checkout master
 git worktree add bin gh-pages
-sudo npm -g install typescript bower typings
-(cd lib
-	typings install
-	bower install
-)
+npm install
 ```
 
-Then build via `make`.
+Then build via `$ webpack`.
 
-Use 
+Use
 
 ```bash
 python3 -m http.server &
-tsc --watch &
+webpack --watch &
 ```
 
 for automatic compiling and deploying to <http://localhost:8000/bin>
 
-Call enableDev() once from the browser console to enable loading of unminified libraries.
 
 Use `Simulation.instance` to access the main object and all it's children.
+
+Use `cd bin; git add -A; git commit -m'update binaries'; git push` to update the binaries.

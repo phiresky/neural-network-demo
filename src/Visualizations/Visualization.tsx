@@ -1,7 +1,14 @@
+import * as React from "react";
+import * as $ from "jquery";
+import Simulation from "../Simulation";
+import {int, double} from "../main";
+import Net from "../Net";
+import {parseColor} from "../Util";
+
 /** some GUI component that displays some visualization of information about the neural network */
-interface Visualization {
+export interface Visualization {
 	/** DOM element that contains all the stuff */
-	container: JQuery;
+	container: HTMLDivElement;
 	/**
 	 * List of possible modes of input for this visualization.
 	 * Switching between these is handled externally, see [[TabSwitcher]].
@@ -14,9 +21,9 @@ interface Visualization {
 	onFrame: (framenum: int) => void;
 }
 interface MultiVisState {
-	running: boolean, bodies: Visualization[],
-	correct: string,
-	stepNum: number
+	running?: boolean, bodies?: Visualization[],
+	correct?: string,
+	stepNum?: number
 }
 /** display multiple Visualizations */
 abstract class MultiVisDisplayer<T> extends React.Component<{ sim: Simulation } & T, MultiVisState> {
@@ -72,7 +79,7 @@ class StatusBar extends React.Component<{ correct: string, iteration: int }, {}>
 	}
 }
 /** Display two visualizations next to each other with tabbed navigation */
-class LRVis extends MultiVisDisplayer<{ leftVis: Visualization[], rightVis: Visualization[] }> {
+export class LRVis extends MultiVisDisplayer<{ leftVis: Visualization[], rightVis: Visualization[] }> {
 	leftVis: TabSwitcher;
 	rightVis: TabSwitcher;
 	constructor(props: { sim: Simulation, leftVis: Visualization[], rightVis: Visualization[] }) {
@@ -119,7 +126,7 @@ class LRVis extends MultiVisDisplayer<{ leftVis: Visualization[], rightVis: Visu
 interface _Mode { thing: int, action: int, text: string, color: string }
 interface TSProps { things: Visualization[], onChangeVisualization: (v: Visualization, aft: () => void) => void, ref?: any }
 /** switch between multiple visualizations using a tabbed interface */
-class TabSwitcher extends React.Component<TSProps, { modes: _Mode[], currentMode: number }> {
+class TabSwitcher extends React.Component<TSProps, { modes?: _Mode[], currentMode?: number }> {
 	constructor(props: TSProps) {
 		super(props);
 		this.state = {
@@ -128,7 +135,7 @@ class TabSwitcher extends React.Component<TSProps, { modes: _Mode[], currentMode
 		};
 	}
 	render() {
-		const isDark = (color: string) => Util.parseColor(color).reduce((a, b) => a + b) / 3 < 127;
+		const isDark = (color: string) => parseColor(color).reduce((a, b) => a + b) / 3 < 127;
 		return <div><ul className="nav nav-pills">
 			{this.state.modes.map((mode, i) =>
 				<li key={i} className={this.state.currentMode === i ? "custom-active" : ""}>

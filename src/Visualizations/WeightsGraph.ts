@@ -1,3 +1,9 @@
+import {Visualization} from "./Visualization";
+import Simulation from "../Simulation";
+import * as $ from "jquery";
+import {int, double} from "../main";
+import Net from "../Net";
+import * as vis from "vis";
 interface Point3d {
 	x: double; y: double; z: double;
 	style?: double;
@@ -7,9 +13,9 @@ interface Point3d {
  * 
  * hidden when in perceptron mode because then it's pretty boring
  */
-class WeightsGraph implements Visualization {
+export default class WeightsGraph implements Visualization {
 	actions = ["Weights"];
-	container = $("<div>");
+	container = document.createElement("div");
 	offsetBetweenLayers = 2;
 	graph: any;//vis.Graph3d;
 	xyToConnection: { [xcommay: string]: [Net.NeuronConnection, int] } = {};
@@ -21,7 +27,7 @@ class WeightsGraph implements Visualization {
 		};
 		// hack to disable axis drawing
 		vis.Graph3d.prototype._redrawAxis = function() { };
-		this.graph = new vis.Graph3d(this.container[0], undefined, {
+		this.graph = new vis.Graph3d(this.container, undefined, {
 			style: 'bar',
 			showPerspective: false,
 			cameraPosition: { horizontal: -0.001, vertical: Math.PI / 2 },

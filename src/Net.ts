@@ -1,9 +1,14 @@
+import {int, double} from "./main";
+import {InputLayerConfig, LayerConfig, OutputLayerConfig} from "./Presets";
+import {makeArray} from "./Util";
+import {Configuration, TrainingData} from "./Configuration";
+
 /**
  * Simple implementation of a neural network (multilayer perceptron)
  * 
  * Uses stochastic gradient descent with squared error as the loss function
  */
-module Net {
+export module Net {
 	/** tangens hyperbolicus polyfill */
 	const tanh = function(x: double) {
 		if (x === Infinity) {
@@ -173,12 +178,12 @@ module Net {
 		constructor(input: InputLayerConfig, hidden: LayerConfig[], output: OutputLayerConfig, public learnRate: number,
 			startWeight = () => Math.random() - 0.5, public startWeights?: double[]) {
 			let nid = 0;
-			this.inputs = Util.makeArray(input.neuronCount, i => new InputNeuron(nid++, i, input.names[i]));
+			this.inputs = makeArray(input.neuronCount, i => new InputNeuron(nid++, i, input.names[i]));
 			this.layers.push(this.inputs.slice());
 			for (var layer of hidden) {
-				this.layers.push(Util.makeArray(layer.neuronCount, i => new Neuron(layer.activation, nid++, i)));
+				this.layers.push(makeArray(layer.neuronCount, i => new Neuron(layer.activation, nid++, i)));
 			}
-			this.outputs = Util.makeArray(output.neuronCount, i => new OutputNeuron(output.activation, nid++, i, output.names[i]));
+			this.outputs = makeArray(output.neuronCount, i => new OutputNeuron(output.activation, nid++, i, output.names[i]));
 			this.layers.push(this.outputs);
 			for (let i = 0; i < this.layers.length - 1; i++) {
 				const inLayer = this.layers[i];
@@ -324,3 +329,5 @@ module Net {
 		}
 	}
 }
+
+export default Net;

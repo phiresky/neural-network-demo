@@ -1,3 +1,10 @@
+import * as React from 'react';
+import Simulation from "./Simulation";
+import * as Util from "./Util";
+import {LayerConfig, InputLayerConfig} from "./Presets";
+import Net from "./Net";
+import {Configuration, TrainingData} from "./Configuration";
+
 /** small wrapper for bootstrap form groups */
 class BSFormGroup extends React.Component<{
 		label: string, children?: any, id:string, isStatic?:boolean
@@ -21,7 +28,7 @@ class BSCheckbox extends React.Component<{conf: Configuration, label: string, id
 }
 
 /** GUI for displaying and modifying [[Configuration]] */
-class ConfigurationGui extends React.Component<Configuration, {}> {
+export default class ConfigurationGui extends React.Component<Configuration, {}> {
 	render() {
 		const conf = this.props;
 		const loadConfig = () => Simulation.instance.loadConfig();

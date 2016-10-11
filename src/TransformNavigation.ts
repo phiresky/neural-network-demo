@@ -1,8 +1,11 @@
+import {int, double} from "./main";
+import {stopEvent} from "./Util";
+
 /**
  * this class handles the linear transformations used to offset and scale the drawing in a 2d canvas
  * @see [[#toReal]] and [[#toCanvas]]
  */
-class TransformNavigation {
+export default class TransformNavigation {
 	public scalex = 200; public scaley = -200;
 	offsetx = 0; offsety = 0;
 
@@ -37,12 +40,12 @@ class TransformNavigation {
 			this.offsetx += (afterTransform.x - beforeTransform.x) * this.scalex;
 			this.offsety += (afterTransform.y - beforeTransform.y) * this.scaley;
 			transformChanged();
-			Util.stopEvent(e);
+			stopEvent(e);
 		});
 		canvas.addEventListener('mousedown', e => {
 			if (!transformActive()) return;
 			this.mousestart = { x: e.pageX, y: e.pageY };
-			Util.stopEvent(e);
+			stopEvent(e);
 		});
 		window.addEventListener('mousemove', e => {
 			if (!transformActive()) return;
@@ -52,12 +55,12 @@ class TransformNavigation {
 			this.mousestart.x = e.pageX;
 			this.mousestart.y = e.pageY;
 			transformChanged();
-			Util.stopEvent(e);
+			stopEvent(e);
 		});
 		window.addEventListener('mouseup', e => {
 			if (this.mousestart) {
 				this.mousestart = null;
-				Util.stopEvent(e);
+				stopEvent(e);
 			}
 		});
 	}

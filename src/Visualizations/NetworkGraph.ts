@@ -1,19 +1,27 @@
-declare const vis:any; // vis.js library
+import * as $ from "jquery";
+import * as vis from "vis";
+import {int, double} from "../main";
+import {Visualization} from "./Visualization";
+import Net from "../Net";
+import Simulation from "../Simulation";
+import NetworkVisualization from "./NetworkVisualization";
+import {TrainingData, Configuration} from "../Configuration";
+
 /** step for [[Simulation#forwardPass]] */
-interface NetGraphUpdate {
+export interface NetGraphUpdate {
 	nodes: any[];
 	edges: any[];
 	highlightNodes?: number[];
 	highlightEdges?: number[];
 }
 /** show the network as a ordered left-to-right graph using arrow color, width and label to show weights */
-class NetworkGraph implements Visualization {
+export default class NetworkGraph implements Visualization {
 	actions = ["Network Graph"];
 	graph:any; // vis.Network
 	nodes:any; // vis.DataSet
 	edges:any; // vis.DataSet
 	net:Net.NeuralNet;
-	container = $("<div>");
+	container = document.createElement("div");
 	showbias: boolean;
 	currentlyDisplayingForwardPass = false;
 	biasBeforeForwardPass = false;
@@ -41,7 +49,7 @@ class NetworkGraph implements Visualization {
 			interaction: { dragNodes: false }
 		}
 		if(this.graph) this.graph.destroy();
-		this.graph = new vis.Network(this.container[0], graphData, options);
+		this.graph = new vis.Network(this.container, graphData, options);
 	}
 	private edgeId(conn:Net.NeuronConnection) {
 		return conn.inp.id * this.net.connections.length + conn.out.id

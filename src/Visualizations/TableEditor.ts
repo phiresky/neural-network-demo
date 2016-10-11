@@ -1,14 +1,27 @@
-declare var Handsontable: any, LZString: any;
+
+import * as $ from "jquery";
+//import numbro from 'numbro';
+//import moment from 'moment';
+//import pikaday from 'pikaday';
+//import Zeroclipboard from 'zeroclipboard';
+import * as Handsontable from 'handsontable/dist/handsontable.full.js';
+import {Visualization} from "./Visualization";
+import Simulation from "../Simulation";
+import Net from "../Net";
+import {cloneConfig} from "../Util";
+import {TrainingData} from "../Configuration";
+
+declare var LZString: any;
 /**
  * Edit training data and display network output using a table interface
  */
-class TableEditor implements Visualization {
+export default class TableEditor implements Visualization {
 	/** handsontable instance */
 	hot: any;
 	actions = ["Table input"];
 	headerCount = 2;
 	lastUpdate = 0;
-	container: JQuery = $("<div>");
+	container = document.createElement("div");
 	constructor(public sim: Simulation) { }
 	/** called by Handsontable after some data was changed in the table */
 	afterChange(changes: [number, number, number, number][], reason: string) {
@@ -18,8 +31,8 @@ class TableEditor implements Visualization {
 	onNetworkLoaded(net:Net.NeuralNet) {
 		if (this.hot) this.hot.destroy();
 		const oldContainer = this.container;
-		this.container = $("<div class='fullsize' style='overflow:hidden'>");
-		if (oldContainer) oldContainer.replaceWith(this.container);
+		this.container = $("<div class='fullsize' style='overflow:hidden'>")[0] as HTMLDivElement;
+		if (oldContainer) $(oldContainer).replaceWith(this.container);
 		$("<div>").addClass("btn btn-default")
 			.css({ position: "absolute", right: "2em", bottom: "2em" })
 			.text("Remove all")
@@ -38,10 +51,10 @@ class TableEditor implements Visualization {
 			mergeCells.push({ row: 0, col: ic, rowspan: 1, colspan: oc });
 			mergeCells.push({ row: 0, col: ic + oc, rowspan: 1, colspan: oc });
 		}
-		const _conf = <Handsontable.Options>{
+		const conf = {
 			minSpareRows: 1,
 			colWidths: ic + oc + oc <= 6 ? 80 : 45,
-			cells: (row, col, prop) => {
+			cells: (row: number, col: number, prop: string) => {
 				if (row >= this.headerCount) {
 					if(row == this.sim.currentTrainingDataPoint + 2)
 						return { type: 'numeric', format: '0.[000]', renderer: function(instance: any, td: HTMLTableCellElement) {
@@ -74,8 +87,7 @@ class TableEditor implements Visualization {
 			mergeCells: mergeCells,
 			afterChange: this.afterChange.bind(this)
 		};
-		this.container.handsontable(_conf);
-		this.hot = this.container.handsontable('getInstance');
+		this.hot = new Handsontable(this.container, conf);
 		this.loadData();
 	}
 	/** read data from table into the [[Configuration]] */
@@ -83,7 +95,7 @@ class TableEditor implements Visualization {
 		const sim = this.sim;
 		const data: number[][] = this.hot.getData();
 		const headers = <string[]><any>data[1];
-		const newConfig = Util.cloneConfig(sim.state);
+		const newConfig = cloneConfig(sim.state);
 		const ic = newConfig.inputLayer.neuronCount, oc = newConfig.outputLayer.neuronCount
 		newConfig.inputLayer.names = headers.slice(0, ic);
 		newConfig.outputLayer.names = headers.slice(ic, ic + oc);

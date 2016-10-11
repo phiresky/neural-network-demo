@@ -3,3 +3,4 @@
 bower_components/
 lib/typings/
 bin/
+node_modules/

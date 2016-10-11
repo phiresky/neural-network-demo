@@ -1,12 +1,14 @@
 /** type of the demonstration. Can change GUI and valid options */
 type ConfigurationType = "perceptron"|"nn";
+import {int, double} from "./main";
+import {InputLayerConfig, OutputLayerConfig, LayerConfig} from "./Presets";
 
-interface TrainingData {
+export interface TrainingData {
 	input: double[]; output: double[];
 }
 /** Configuration interface. Default preset must contain values for all these properties! */
-interface Configuration {
-	name: string;
+export interface Configuration {
+	name?: string;
 	/** inherit all properties from the preset with this name */
 	parent?: string;
 	data?: TrainingData[];

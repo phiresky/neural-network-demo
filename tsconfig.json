@@ -1,16 +1,17 @@
 {
 	"compilerOptions": {
 		"target": "ES5",
-		"out": "bin/program.js",
 		"watch": false,
 		"sourceMap": true,
 		"noImplicitAny": true,
 		"suppressImplicitAnyIndexErrors": true,
 		"jsx": "react",
-		"experimentalDecorators": true
+		"experimentalDecorators": true,
+		"moduleResolution": "node",
+		"outDir": "bin"
 	},
 	"files": [
-		"./lib/typings/browser.d.ts",
+		"./src/untyped.d.ts",
 		"./src/main.tsx",
 		"./src/Net.ts",
 		"./src/Presets.ts",

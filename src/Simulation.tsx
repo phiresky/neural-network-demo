@@ -1,3 +1,16 @@
+import * as React from "react";
+import * as LZString from "lz-string";
+import ErrorGraph from "./Visualizations/ErrorGraph";
+import ConfigurationGui from "./ConfigurationGui";
+import ExportModal from "./ExportModal";
+import {TableEditor, WeightsGraph, LRVis, NetworkVisualization, NetworkGraph, NetGraphUpdate} from "./Visualizations";
+import Net from "./Net";
+import Presets from "./Presets";
+import * as Util from "./Util";
+import {TrainingData, Configuration} from "./Configuration";
+import * as $ from "jquery";
+import "jquery";
+import "bootstrap/dist/js/bootstrap";
 /**
  * the interface between the GUI and the Simulation / Neural network
  * 
@@ -5,7 +18,7 @@
  * 
  * the [[#state]] of this object contains the [[Configuration]]
  */
-class Simulation extends React.Component<{ autoRun: boolean }, Configuration> {
+export default class Simulation extends React.Component<{ autoRun: boolean }, Configuration> {
 	static instance: Simulation;
 	
 	netviz: NetworkVisualization;
@@ -410,3 +423,5 @@ class Simulation extends React.Component<{ autoRun: boolean }, Configuration> {
 		);
 	}
 }
+
+(window as any).Simulation = Simulation;

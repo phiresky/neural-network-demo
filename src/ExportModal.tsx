@@ -1,4 +1,10 @@
-class ExportModal extends React.Component<{sim:Simulation, ref:any},{exportWeights:string, errors:string[]}> {
+import * as React from "react";
+import * as $ from "jquery";
+import Simulation from "./Simulation";
+import * as Util from "./Util";
+import {Configuration, TrainingData} from "./Configuration";
+
+export default class ExportModal extends React.Component<{sim:Simulation, ref:any},{exportWeights?:string, errors?:string[]}> {
 	constructor(props:{sim:Simulation,ref:any}) {
 		super(props);
 		this.state = {
@@ -77,7 +83,7 @@ class ExportModal extends React.Component<{sim:Simulation, ref:any},{exportWeigh
 			try {
 				const text = r.result;
 				this.props.sim.setState(JSON.parse(text));
-				$("#exportModal").modal('hide');
+				($("#exportModal") as any).modal('hide');
 			} catch (e) {
 				this.addIOError("Error while reading " + file.name + ": " + e);
 			}
@@ -121,7 +127,7 @@ class ExportModal extends React.Component<{sim:Simulation, ref:any},{exportWeigh
 					newState.data.push(ele);
 				}
 				sim.setState(newState, () => sim.table.loadData());
-				$("#exportModal").modal('hide');
+				($("#exportModal") as any).modal('hide');
 			} catch (e) {
 				this.addIOError("Error while reading " + file.name + ": " + e);
 				console.error(e);

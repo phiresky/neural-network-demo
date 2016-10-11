@@ -1,23 +1,29 @@
-interface InputLayerConfig {
-	neuronCount: int;
-	names: string[];
-}
-interface LayerConfig {
-	neuronCount: int;
-	activation: string;
-}
-interface OutputLayerConfig {
-	neuronCount: int;
-	activation: string;
-	names: string[];
-}
+import * as LZString from "lz-string";
+import * as $ from "jquery";
+import {int, double} from "./main";
+import Simulation from "./Simulation";
+import * as Util from "./Util";
+import {TrainingData, Configuration} from "./Configuration";
 
+export interface InputLayerConfig {
+	neuronCount: int;
+	names: string[];
+}
+export interface LayerConfig {
+	neuronCount: int;
+	activation: string;
+}
+export interface OutputLayerConfig {
+	neuronCount: int;
+	activation: string;
+	names: string[];
+}
 /**
  * A preset is a hardcoded [[Configuration]].
  * It can also have a parent from which it inherits all properties.
  * This module handles loading of presets
  */
-module Presets {
+namespace Presets {
 	/** get a list of all the preset names */
 	export function getNames(): string[] {
 		return presets.map(p => p.name).filter(c => c !== "Default");
@@ -37,9 +43,8 @@ module Presets {
 			chain.unshift(preset);
 			if (parentName === "Default") break;
 		}
-		chain.unshift({});
 		console.log("loading preset chain: " + chain.map((c: any) => c.name));
-		return JSON.parse(JSON.stringify($.extend.apply($, chain)));
+		return JSON.parse(JSON.stringify(($ as any).extend({}, ...chain)));
 	}
 	export function printPreset(sim: Simulation, parentName = "Default") {
 		const parent = get(parentName);
@@ -464,3 +469,4 @@ module Presets {
 		});
 	}
 }
+export default Presets;

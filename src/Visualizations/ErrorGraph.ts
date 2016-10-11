@@ -1,12 +1,16 @@
+import * as $ from "jquery";
+import {Visualization} from "./Visualization";
+import Simulation from "../Simulation";
+import * as highstock from "highstock-release";
 /** display the error history from [[Simulation#errorHistory]] as a line graph */
-class ErrorGraph implements Visualization {
-	chart: HighstockChartObject;
+export default class ErrorGraph implements Visualization {
+	chart: any;
 	actions = ["Error History"];
-	container = $("<div>");
+	container = document.createElement("div");
 	constructor(public sim: Simulation) {
-		this.container.highcharts(<any>{
+		this.chart = new highstock.Chart({
 			title: { text: 'Average RMSE' },
-			chart: { type: 'line', animation: false },
+			chart: { type: 'line', renderTo: this.container, animation: false },
 			plotOptions: { line: { marker: { enabled: false } } },
 			legend: { enabled: false },
 			yAxis: { min: 0, title: { text: '' }, labels: { format: "{value:%.2f}" } },
@@ -14,7 +18,6 @@ class ErrorGraph implements Visualization {
 			colors: ["black"],
 			credits: { enabled: false }
 		});
-		this.chart = this.container.highcharts();
 	}
 	onFrame() {
 		const data:[number,number] = [this.sim.stepsCurrent, this.sim.averageError];

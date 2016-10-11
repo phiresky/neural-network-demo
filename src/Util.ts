@@ -1,3 +1,6 @@
+import {int, double} from "./main";
+import {TrainingData, Configuration} from "./Configuration";
+
 module Util {
 	/**
 	 * @param len array length
@@ -189,3 +192,4 @@ module Util {
 		return x => (threshold - wbias - wx * x) / wy;
 	}
 }
+export = Util;

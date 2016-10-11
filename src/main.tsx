@@ -1,12 +1,21 @@
-// type aliases for my sanity
-/** floating point number */ type double = number;
-/** whole number */ type int = number;
+import * as React from "react";
+import * as $ from "jquery";
+import {render} from "react-dom";
+import Simulation from "./Simulation";
+import Presets from "./Presets";
 
-declare var React: typeof __React, ReactDOM: typeof __React.__DOM;
+import "bootstrap/dist/css/bootstrap.min.css";
+import "vis/dist/vis.min.css";
+import "handsontable/dist/handsontable.full.min.css";
+
+// type aliases for my sanity
+/** floating point number */ export type double = number;
+/** whole number */ export type int = number;
+
 
 $(document).ready(() => {
 	Presets.loadPetersonBarney();
-	ReactDOM.render(<Simulation autoRun={false} />, document.getElementById("mainContainer"));
+	render(<Simulation autoRun={false} />, document.getElementById("mainContainer"));
 	(window as any).sim = Simulation.instance;
 });
 

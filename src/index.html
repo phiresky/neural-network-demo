@@ -6,7 +6,6 @@
 <meta property='og:image' content='https://phiresky.github.io/neural-network-demo/screenshot.png'>
 <link rel="shortcut icon" href="icon.png">
 <title>Neural network demo</title>
-<link rel='stylesheet' href='libs.css'>
 <style>
 	.visbody {
 		 height:400px;
@@ -56,20 +55,7 @@
 	}
 </style>
 <div id="mainContainer"><!-- React will put src/Simulation.tsx body here --></div>
-<script>
-	/** enable development mode (load non-minified libraries) */
-	function enableDev() {
-		localStorage.setItem("dev", "true");
-		location.reload();
-	}
-	var libs = ["libs.js"];
-	if(localStorage.getItem("dev")) {
-		libs = "jquery/dist/jquery.min,bootstrap/dist/js/bootstrap,vis/dist/vis,handsontable/dist/handsontable.full,lz-string/libs/lz-string,highstock/highstock.src,react/react,react/react-dom".split(",")
-		.map(function(s) { return "../lib/bower_components/"+s+".js"})
-	}
-	document.writeln.apply(document, libs.map(function(s) { return "<script src='"+s+"'></"+"script>"}));
-</script>
-<script src="program.js"></script>
+<script src="bundle.js"></script>
 <script>
 	// Use Ghostery / µBlock Origin or Google Analytics opt out
 	(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){

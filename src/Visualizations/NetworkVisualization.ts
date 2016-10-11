@@ -1,3 +1,12 @@
+import * as $ from "jquery";
+import {Visualization} from ".";
+import {int, double} from "../main";
+import Simulation from "../Simulation";
+import Net from "../Net";
+import TransformNavigation from "../TransformNavigation";
+import * as Util from "../Util";
+import {TrainingData} from "../Configuration";
+
 enum NetType {
 	/** 2D-Input, Single Output (≤0.5 is class 0, otherwise class 1) */
 	BinaryClassify,
@@ -18,7 +27,7 @@ enum NetType {
  * 
  * For 2D auto encoding draw every target output point connected to the network output.
  */
-class NetworkVisualization implements Visualization {
+export default class NetworkVisualization implements Visualization {
 	actions: (string|{name:string, color:string})[] = [];
 	canvas: HTMLCanvasElement;
 	ctx: CanvasRenderingContext2D;
@@ -26,7 +35,7 @@ class NetworkVisualization implements Visualization {
 	inputMode: int = 0;
 	trafo: TransformNavigation;
 	backgroundResolution = 15;
-	container = $("<div>");
+	container = document.createElement("div");
 	netType: NetType = NetType.BinaryClassify;
 	static colors = {
 		binaryClassify: {
