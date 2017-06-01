@@ -36,8 +36,14 @@ python3 -m http.server &
 webpack --watch &
 ```
 
-for automatic compiling and deploying to <http://localhost:8000/bin>
+for automatic compiling and deploying to <http://localhost:8000/bin>.
 
+Use
+```bash
+NODE_ENV=production webpack
+```
+
+for an optimized build.
 
 Use `Simulation.instance` to access the main object and all it's children.
 

@@ -28,9 +28,9 @@ function checkSanity() {
 	const inp = [-0.3094657452311367, -0.2758470894768834, 0.005968799814581871, 0.13201188389211893, -0.33257930004037917,
 		0.24626848078332841, -0.35734778200276196, 0.489376779878512, -0.2165879353415221];
 	sim.stop();
-	sim.state.inputLayer = { neuronCount: 2, names: ['', ''] };
-	sim.state.hiddenLayers = [{ neuronCount: 2, activation: "sigmoid" }];
-	sim.state.outputLayer = { neuronCount: 1, activation: "sigmoid", names: [''] };
+	(sim.state as any).inputLayer = { neuronCount: 2, names: ['', ''] };
+	(sim.state as any).hiddenLayers = [{ neuronCount: 2, activation: "sigmoid" }];
+	(sim.state as any).outputLayer = { neuronCount: 1, activation: "sigmoid", names: [''] };
 	sim.net.connections.forEach((e, i) => e.weight = inp[i]);
 	for (var i = 0; i < 1000; i++) sim.trainAll();
 	const realout = sim.net.connections.map(e => e.weight);

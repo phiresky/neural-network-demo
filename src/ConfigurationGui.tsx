@@ -98,7 +98,7 @@ class NeuronLayer extends React.Component<{
 			<button className="btn btn-xs btn-default" onClick={() => p.countChanged(-1)}>-</button>
 			{p.layer.activation?
 				<select className="btn btn-xs btn-default activation"
-						onChange={(e) => p.activationChanged((e.target as HTMLInputElement).value)} 
+						onChange={(e) => p.activationChanged(e.currentTarget.value)} 
 						value={p.layer.activation}>
 					{Object.keys(Net.NonLinearities).map(name => <option key={name} value={name}>{name}</option>)}
 				</select>
