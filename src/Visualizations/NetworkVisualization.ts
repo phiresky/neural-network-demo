@@ -34,7 +34,7 @@ export default class NetworkVisualization implements Visualization {
 	/** [0] = Drag View; [length - 1] = Remove on click; [n] = Add data point of class (n-1) */
 	inputMode: int = 0;
 	trafo: TransformNavigation;
-	backgroundResolution = 5;
+	backgroundResolution = 15;
 	container = document.createElement("div");
 	netType: NetType = NetType.BinaryClassify;
 	static colors = {

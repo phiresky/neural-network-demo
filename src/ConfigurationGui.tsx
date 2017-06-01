@@ -109,11 +109,14 @@ class NeuronLayer extends React.Component<{
 
 /** GUI for configuring the neuron layers */
 class NeuronGui extends React.Component<Configuration, {}> {
+	comicShown = false;
 	addLayer() {
 		const hiddenLayers = this.props.hiddenLayers.slice();
 		hiddenLayers.unshift({ activation: 'sigmoid', neuronCount: 2 });
-		if (hiddenLayers.length === 4)
+		if (hiddenLayers.length === 4 && !this.comicShown) {
 			window.open("https://i.imgur.com/GOTeNFr.png");
+			this.comicShown = true;
+		}
 		Simulation.instance.setState({ hiddenLayers, custom: true });
 	}
 	removeLayer() {
