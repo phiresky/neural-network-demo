@@ -112,6 +112,8 @@ class NeuronGui extends React.Component<Configuration, {}> {
 	addLayer() {
 		const hiddenLayers = this.props.hiddenLayers.slice();
 		hiddenLayers.unshift({ activation: 'sigmoid', neuronCount: 2 });
+		if(hiddenLayers.length === 4)
+			window.open("https://i.imgur.com/GOTeNFr.png");
 		Simulation.instance.setState({hiddenLayers, custom:true});
 	}
 	removeLayer() {
