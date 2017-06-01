@@ -1,7 +1,7 @@
-import {Visualization} from "./Visualization";
+import { Visualization } from "./Visualization";
 import Simulation from "../Simulation";
 import * as $ from "jquery";
-import {int, double} from "../main";
+import { int, double } from "../main";
 import Net from "../Net";
 import * as vis from "vis";
 interface Point3d {
@@ -26,7 +26,7 @@ export default class WeightsGraph implements Visualization {
 			return 'rgb(' + [h, h, h] + ')'
 		};
 		// hack to disable axis drawing
-		vis.Graph3d.prototype._redrawAxis = function() { };
+		vis.Graph3d.prototype._redrawAxis = function () { };
 		this.graph = new vis.Graph3d(this.container, undefined, {
 			style: 'bar',
 			showPerspective: false,
@@ -94,7 +94,7 @@ export default class WeightsGraph implements Visualization {
 		return data;
 	}
 	onNetworkLoaded(net: Net.NeuralNet) {
-		if(this.sim.state.type == "perceptron") this.actions = [];
+		if (this.sim.state.type == "perceptron") this.actions = [];
 		else this.actions = ["Weights"];
 		this.graph.setData(this.parseData(net));
 	}

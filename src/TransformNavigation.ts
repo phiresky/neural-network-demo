@@ -1,5 +1,5 @@
-import {int, double} from "./main";
-import {stopEvent} from "./Util";
+import { int, double } from "./main";
+import { stopEvent } from "./Util";
 
 /**
  * this class handles the linear transformations used to offset and scale the drawing in a 2d canvas

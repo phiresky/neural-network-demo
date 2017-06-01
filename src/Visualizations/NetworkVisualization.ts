@@ -1,11 +1,11 @@
 import * as $ from "jquery";
-import {Visualization} from ".";
-import {int, double} from "../main";
+import { Visualization } from ".";
+import { int, double } from "../main";
 import Simulation from "../Simulation";
 import Net from "../Net";
 import TransformNavigation from "../TransformNavigation";
 import * as Util from "../Util";
-import {TrainingData} from "../Configuration";
+import { TrainingData } from "../Configuration";
 
 enum NetType {
 	/** 2D-Input, Single Output (≤0.5 is class 0, otherwise class 1) */
@@ -28,13 +28,13 @@ enum NetType {
  * For 2D auto encoding draw every target output point connected to the network output.
  */
 export default class NetworkVisualization implements Visualization {
-	actions: (string|{name:string, color:string})[] = [];
+	actions: (string | { name: string, color: string })[] = [];
 	canvas: HTMLCanvasElement;
 	ctx: CanvasRenderingContext2D;
 	/** [0] = Drag View; [length - 1] = Remove on click; [n] = Add data point of class (n-1) */
 	inputMode: int = 0;
 	trafo: TransformNavigation;
-	backgroundResolution = 15;
+	backgroundResolution = 5;
 	container = document.createElement("div");
 	netType: NetType = NetType.BinaryClassify;
 	static colors = {
@@ -61,9 +61,9 @@ export default class NetworkVisualization implements Visualization {
 		}
 	}
 
-	constructor(public sim: Simulation, public dataPointIsHighlighted:(p:TrainingData) => boolean) {
+	constructor(public sim: Simulation, public dataPointIsHighlighted: (p: TrainingData) => boolean) {
 		const tmp = NetworkVisualization.colors.multiClass;
-		tmp.bg = tmp.fg.map(c => Util.printColor(<any>Util.parseColor(c).map(x => (x*1.3)|0))); 
+		tmp.bg = tmp.fg.map(c => Util.printColor(<any>Util.parseColor(c).map(x => (x * 1.3) | 0)));
 		this.canvas = <HTMLCanvasElement>$("<canvas class=fullsize>")[0];
 		this.canvas.width = 550;
 		this.canvas.height = 400;
@@ -78,13 +78,13 @@ export default class NetworkVisualization implements Visualization {
 	}
 
 	onNetworkLoaded(net: Net.NeuralNet) {
-		if(net.inputs.length != 2) this.netType = NetType.CantDraw;
+		if (net.inputs.length != 2) this.netType = NetType.CantDraw;
 		else {
-			if(net.outputs.length == 1) this.netType = NetType.BinaryClassify;
-			else if(net.outputs.length == 2) this.netType = NetType.AutoEncode;
+			if (net.outputs.length == 1) this.netType = NetType.BinaryClassify;
+			else if (net.outputs.length == 2) this.netType = NetType.AutoEncode;
 			else this.netType = NetType.MultiClass;
 		}
-		switch(this.netType) {
+		switch (this.netType) {
 			case NetType.BinaryClassify:
 				this.actions = ["Move View", "Add Red", "Add Green", "Remove"];
 				break;
@@ -94,8 +94,8 @@ export default class NetworkVisualization implements Visualization {
 			case NetType.MultiClass:
 				this.actions = ["Move View"];
 				let i = 0;
-				for(const name of this.sim.state.outputLayer.names)
-					this.actions.push({name:name, color:NetworkVisualization.colors.multiClass.bg[i++]});
+				for (const name of this.sim.state.outputLayer.names)
+					this.actions.push({ name: name, color: NetworkVisualization.colors.multiClass.bg[i++] });
 				this.actions.push("Remove");
 				break;
 			case NetType.CantDraw:
@@ -116,15 +116,15 @@ export default class NetworkVisualization implements Visualization {
 		}
 		const isSinglePerceptron = this.sim.state.type === "perceptron";
 		const separator = isSinglePerceptron && this.getSeparator(Util.toLinearFunction(this.sim.net.connections.map(i => i.weight) as any));
-		if(isSinglePerceptron)
+		if (isSinglePerceptron)
 			this.drawPolyBackground(separator);
 		else this.drawBackground();
-		if(this.sim.state.drawCoordinateSystem) this.drawCoordinateSystem();
-		if(this.sim.state.drawArrows) this.drawArrows();
+		if (this.sim.state.drawCoordinateSystem) this.drawCoordinateSystem();
+		if (this.sim.state.drawArrows) this.drawArrows();
 		this.drawDataPoints();
-		if(isSinglePerceptron) {
+		if (isSinglePerceptron) {
 			const tor = this.trafo.toReal;
-			if(this.sim.state.drawArrows && this.sim.lastWeights !== undefined && this.sim.lastWeights.length > 0) {
+			if (this.sim.state.drawArrows && this.sim.lastWeights !== undefined && this.sim.lastWeights.length > 0) {
 				const separator = this.getSeparator(Util.toLinearFunction(this.sim.lastWeights[0].weights as any));
 				this.drawLine(tor.x(0), separator.min, tor.x(this.canvas.width), separator.max, "gray");
 			}
@@ -151,30 +151,30 @@ export default class NetworkVisualization implements Visualization {
 			throw "can't draw this"
 		}
 	}
-	
-	drawDataPoint(p:TrainingData) {
-		const color = 
-			this.netType === NetType.BinaryClassify ? 
+
+	drawDataPoint(p: TrainingData) {
+		const color =
+			this.netType === NetType.BinaryClassify ?
 				NetworkVisualization.colors.binaryClassify.fg[p.output[0] | 0]
-			: this.netType === NetType.MultiClass ? 
-				NetworkVisualization.colors.multiClass.fg[Util.getMaxIndex(p.output)]
-			: null;
+				: this.netType === NetType.MultiClass ?
+					NetworkVisualization.colors.multiClass.fg[Util.getMaxIndex(p.output)]
+					: null;
 		this.drawPoint(p.input[0], p.input[1], color, this.dataPointIsHighlighted(p));
 	}
-	
+
 	drawPoint(x: number, y: number, color: string, highlight = false) {
 		x = this.trafo.toCanvas.x(x), y = this.trafo.toCanvas.y(y);
 		this.ctx.fillStyle = color;
 		this.ctx.beginPath();
 		this.ctx.lineWidth = highlight ? 5 : 1;
-		this.ctx.strokeStyle = highlight ? "#000000": "#000000";
+		this.ctx.strokeStyle = highlight ? "#000000" : "#000000";
 		this.ctx.arc(x, y, 5, 0, 2 * Math.PI);
 		this.ctx.fill();
 		this.ctx.beginPath();
 		this.ctx.arc(x, y, highlight ? 7 : 5, 0, 2 * Math.PI);
 		this.ctx.stroke();
 	}
-	
+
 	/** draw the weight vector arrows according to [[Simulation#lastWeights]] */
 	drawArrows() {
 		this.ctx.lineWidth = 2;
@@ -183,19 +183,19 @@ export default class NetworkVisualization implements Visualization {
 		const steps = this.sim.lastWeights;
 		if (steps === undefined || steps.length < 2) return;
 		const scale = {
-			x:(x:number) => this.trafo.toCanvas.x(x*this.sim.state.arrowScale),
-			y:(y:number) => this.trafo.toCanvas.y(y*this.sim.state.arrowScale)
+			x: (x: number) => this.trafo.toCanvas.x(x * this.sim.state.arrowScale),
+			y: (y: number) => this.trafo.toCanvas.y(y * this.sim.state.arrowScale)
 		}
-		if(this.sim.state.inputLayer.neuronCount !== 2
+		if (this.sim.state.inputLayer.neuronCount !== 2
 			|| this.sim.state.outputLayer.neuronCount !== 1
 			|| this.sim.state.hiddenLayers.length !== 0)
 			throw Error("conf not valid for arrows");
-			
-		const weightVector = (weights: number[]) => ({x:scale.x(weights[0]), y:scale.y(weights[1])});
-		if (steps[steps.length-1].weights.some((x, i) => x !== steps[0].weights[i])) {
+
+		const weightVector = (weights: number[]) => ({ x: scale.x(weights[0]), y: scale.y(weights[1]) });
+		if (steps[steps.length - 1].weights.some((x, i) => x !== steps[0].weights[i])) {
 			let oldWeights = steps[0].weights.map(x => 0);
-			
-			for (const {weights,dataPoint} of steps) {
+
+			for (const { weights, dataPoint } of steps) {
 				this.ctx.strokeStyle = this.ctx.fillStyle = dataPoint ?
 					NetworkVisualization.colors.binaryClassify.weightVector[dataPoint.output[0]]
 					: "#888";
@@ -206,15 +206,15 @@ export default class NetworkVisualization implements Visualization {
 				oldWeights = weights;
 			}
 			this.ctx.strokeStyle = this.ctx.fillStyle = "#000000";
-			Util.drawArrow(this.ctx, {x:scale.x(0), y:scale.y(0)},
-					weightVector(steps[steps.length-1].weights), al, aw);
+			Util.drawArrow(this.ctx, { x: scale.x(0), y: scale.y(0) },
+				weightVector(steps[steps.length - 1].weights), al, aw);
 		}
 	}
-	
+
 	/** 
 	 * calculate the y position of the given function to the left and right of the canvas in actual/real coordinates
 	 */
-	getSeparator(lineFunction:(x:number) => number) {
+	getSeparator(lineFunction: (x: number) => number) {
 		return {
 			min: lineFunction(this.trafo.toReal.x(0)),
 			max: lineFunction(this.trafo.toReal.x(this.canvas.width))
@@ -236,11 +236,11 @@ export default class NetworkVisualization implements Visualization {
 		return;
 	}
 	/** divide the canvas into two regions using the linear function run through [[getSeparator]] as the divider and color the regions */
-	drawPolyBackground({min, max}: {min: number, max: number}) {
+	drawPolyBackground({ min, max }: { min: number, max: number }) {
 		const colors = NetworkVisualization.colors.binaryClassify.bg;
 		const ctx = this.ctx;
 		const c = this.trafo.toCanvas;
-		const tmp = (y:number) => {
+		const tmp = (y: number) => {
 			ctx.beginPath();
 			ctx.moveTo(0, c.y(min));
 			ctx.lineTo(0, y);
@@ -261,10 +261,10 @@ export default class NetworkVisualization implements Visualization {
 		}
 		for (let x = 0; x < this.canvas.width; x += this.backgroundResolution) {
 			for (let y = 0; y < this.canvas.height; y += this.backgroundResolution) {
-					const vals = this.sim.net.getOutput([this.trafo.toReal.x(x + this.backgroundResolution / 2), this.trafo.toReal.y(y + this.backgroundResolution / 2)]);
-				if(this.sim.state.outputLayer.neuronCount > 2) {
+				const vals = this.sim.net.getOutput([this.trafo.toReal.x(x + this.backgroundResolution / 2), this.trafo.toReal.y(y + this.backgroundResolution / 2)]);
+				if (this.sim.state.outputLayer.neuronCount > 2) {
 					this.ctx.fillStyle = NetworkVisualization.colors.multiClass.bg[Util.getMaxIndex(vals)];
-				} else {	
+				} else {
 					if (this.sim.state.showGradient) {
 						this.ctx.fillStyle = NetworkVisualization.colors.binaryClassify.gradient(vals[0]);
 					} else this.ctx.fillStyle = NetworkVisualization.colors.binaryClassify.bg[+(vals[0] > 0.5)];
@@ -306,9 +306,9 @@ export default class NetworkVisualization implements Visualization {
 		this.onFrame();
 	}
 	refitData() {
-		if(this.sim.state.data.length < 3) return;
+		if (this.sim.state.data.length < 3) return;
 		// update transform
-		if(this.sim.state.inputLayer.neuronCount == 2) {
+		if (this.sim.state.inputLayer.neuronCount == 2) {
 			const fillamount = 0.6;
 			const bounds = Util.bounds2dTrainingsInput(this.sim.state.data);
 			const w = bounds.maxx - bounds.minx, h = bounds.maxy - bounds.miny;
@@ -345,13 +345,13 @@ export default class NetworkVisualization implements Visualization {
 				if (evt.button != 0) label = inv(label);
 				if (evt.ctrlKey || evt.metaKey || evt.altKey) label = inv(label);
 				let output = [label];
-				if(this.netType === NetType.MultiClass) {
+				if (this.netType === NetType.MultiClass) {
 					output = Util.arrayWithOneAt(this.sim.state.outputLayer.neuronCount, label);
 				}
 				data.push({ input: [x, y], output: output });
 			}
 		} else return;
-		this.sim.setState({data, custom: true});
+		this.sim.setState({ data, custom: true });
 		this.sim.lastWeights = undefined;
 		this.onFrame();
 	}

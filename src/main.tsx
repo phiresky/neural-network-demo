@@ -1,6 +1,6 @@
 import * as React from "react";
 import * as $ from "jquery";
-import {render} from "react-dom";
+import { render } from "react-dom";
 import Simulation from "./Simulation";
 import Presets from "./Presets";
 

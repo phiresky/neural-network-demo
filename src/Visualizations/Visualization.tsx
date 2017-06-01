@@ -1,9 +1,9 @@
 import * as React from "react";
 import * as $ from "jquery";
 import Simulation from "../Simulation";
-import {int, double} from "../main";
+import { int, double } from "../main";
 import Net from "../Net";
-import {parseColor} from "../Util";
+import { parseColor } from "../Util";
 
 /** some GUI component that displays some visualization of information about the neural network */
 export interface Visualization {
@@ -61,13 +61,13 @@ class ControlButtonBar extends React.Component<{ running: boolean, sim: Simulati
 	render() {
 		const sim = this.props.sim;
 		return <div className="h3">
-			<button className={this.props.running ? "btn btn-danger" : "btn btn-primary"} onClick={sim.runtoggle.bind(sim) }>{this.props.running ? "Stop" : "Animate"}</button>&nbsp;
-			<button className="btn btn-warning" onClick={sim.reset.bind(sim) }>Reset</button>&nbsp;
-			<button className="btn btn-default" onClick={sim.trainAllButton.bind(sim) }>{sim.state.type === "perceptron" ? "Train All" : "Train"}</button>&nbsp;
-			{(sim.state.showTrainSingleButton || (sim.state.type === "perceptron" && sim.trainingMethod.trainSingle))?
-				<button className="btn btn-default" onClick={sim.trainNextButton.bind(sim) }>Train Single</button>:""}&nbsp;
-			{(sim.state.type === "nn")?
-				<button className="btn btn-default" onClick={sim.forwardPassStep.bind(sim) }>Forward Pass Step</button>:""}&nbsp;
+			<button className={this.props.running ? "btn btn-danger" : "btn btn-primary"} onClick={sim.runtoggle.bind(sim)}>{this.props.running ? "Stop" : "Animate"}</button>&nbsp;
+			<button className="btn btn-warning" onClick={sim.reset.bind(sim)}>Reset</button>&nbsp;
+			<button className="btn btn-default" onClick={sim.trainAllButton.bind(sim)}>{sim.state.type === "perceptron" ? "Train All" : "Train"}</button>&nbsp;
+			{(sim.state.showTrainSingleButton || (sim.state.type === "perceptron" && sim.trainingMethod.trainSingle)) ?
+				<button className="btn btn-default" onClick={sim.trainNextButton.bind(sim)}>Train Single</button> : ""}&nbsp;
+			{(sim.state.type === "nn") ?
+				<button className="btn btn-default" onClick={sim.forwardPassStep.bind(sim)}>Forward Pass Step</button> : ""}&nbsp;
 		</div>;
 	}
 }
@@ -95,24 +95,24 @@ export class LRVis extends MultiVisDisplayer<{ leftVis: Visualization[], rightVi
 				<div className={`col-sm-${leftSize}`}>
 					<TabSwitcher ref={(c: TabSwitcher) => this.leftVis = c}
 						things={this.props.leftVis}
-						onChangeVisualization={(vis, aft) => this.changeBody(0, vis, aft) }
-						/>
+						onChangeVisualization={(vis, aft) => this.changeBody(0, vis, aft)}
+					/>
 				</div>
 				<div className={`col-sm-${rightSize}`}>
 					<TabSwitcher ref={(c: TabSwitcher) => this.rightVis = c}
 						things={this.props.rightVis}
-						onChangeVisualization={(vis, aft) => this.changeBody(1, vis, aft) }
-						/>
+						onChangeVisualization={(vis, aft) => this.changeBody(1, vis, aft)}
+					/>
 				</div>
 			</div>
 			<div className="row">
 				<div className={`col-sm-${leftSize}`}>
-					<div className="visbody" ref={b => this.bodyDivs[0] = b } />
+					<div className="visbody" ref={b => this.bodyDivs[0] = b} />
 					<ControlButtonBar running={this.state.running} sim={sim} />
 					<hr />
 				</div>
 				<div className={`col-sm-${rightSize}`}>
-					<div className="visbody" ref={b => this.bodyDivs[1] = b } />
+					<div className="visbody" ref={b => this.bodyDivs[1] = b} />
 					<div>
 						<StatusBar correct={this.state.correct} iteration={this.state.stepNum} />
 					</div>
@@ -140,11 +140,11 @@ class TabSwitcher extends React.Component<TSProps, { modes?: _Mode[], currentMod
 			{this.state.modes.map((mode, i) =>
 				<li key={i} className={this.state.currentMode === i ? "custom-active" : ""}>
 					<a style={mode.color ? { backgroundColor: mode.color, color: isDark(mode.color) ? "white" : "black" } : {}}
-						onClick={e => this.setMode(i) }>
+						onClick={e => this.setMode(i)}>
 						{mode.text}
 					</a>
 				</li>
-			) }
+			)}
 		</ul></div>;
 	}
 	componentDidMount() {

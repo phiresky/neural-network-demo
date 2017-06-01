@@ -1,7 +1,7 @@
 /** type of the demonstration. Can change GUI and valid options */
-type ConfigurationType = "perceptron"|"nn";
-import {int, double} from "./main";
-import {InputLayerConfig, OutputLayerConfig, LayerConfig} from "./Presets";
+type ConfigurationType = "perceptron" | "nn";
+import { int, double } from "./main";
+import { InputLayerConfig, OutputLayerConfig, LayerConfig } from "./Presets";
 
 export interface TrainingData {
 	input: double[]; output: double[];
@@ -37,7 +37,7 @@ export interface Configuration {
 	drawCoordinateSystem?: boolean;
 	/** draw weight arrows (only possible when single perceptron) */
 	drawArrows?: boolean;
-    arrowScale?: int;
+	arrowScale?: int;
 	/** when animating, step through all data points on their own */
 	animationTrainSinglePoints?: boolean;
 	/** show train single button. only used for neural network demo */

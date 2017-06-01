@@ -1,5 +1,5 @@
 import * as $ from "jquery";
-import {Visualization} from "./Visualization";
+import { Visualization } from "./Visualization";
 import Simulation from "../Simulation";
 import * as highstock from "highstock-release";
 /** display the error history from [[Simulation#errorHistory]] as a line graph */
@@ -20,7 +20,7 @@ export default class ErrorGraph implements Visualization {
 		});
 	}
 	onFrame() {
-		const data:[number,number] = [this.sim.stepsCurrent, this.sim.averageError];
+		const data: [number, number] = [this.sim.stepsCurrent, this.sim.averageError];
 		this.chart.series[0].addPoint(data, true, false);
 	}
 	onView() {

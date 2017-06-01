@@ -1,7 +1,7 @@
-import {int, double} from "./main";
-import {InputLayerConfig, LayerConfig, OutputLayerConfig} from "./Presets";
-import {makeArray} from "./Util";
-import {Configuration, TrainingData} from "./Configuration";
+import { int, double } from "./main";
+import { InputLayerConfig, LayerConfig, OutputLayerConfig } from "./Presets";
+import { makeArray } from "./Util";
+import { Configuration, TrainingData } from "./Configuration";
 
 /**
  * Simple implementation of a neural network (multilayer perceptron)
@@ -10,7 +10,7 @@ import {Configuration, TrainingData} from "./Configuration";
  */
 export module Net {
 	/** tangens hyperbolicus polyfill */
-	const tanh = function(x: double) {
+	const tanh = function (x: double) {
 		if (x === Infinity) {
 			return 1;
 		} else if (x === -Infinity) {
@@ -49,8 +49,8 @@ export module Net {
 			df: x => 1
 		}
 	}
-	
-		
+
+
 	/**
 	 * A training method for a neural network.
 	 * 
@@ -59,10 +59,10 @@ export module Net {
 	 * if trainSingle is null, only batch training is possible
 	 */
 	export interface TrainingMethod {
-		trainAll:(net: NeuralNet, data: TrainingData[]) => WeightsStep[];
-		trainSingle:(net: NeuralNet, data: TrainingData) => WeightsStep;
+		trainAll: (net: NeuralNet, data: TrainingData[]) => WeightsStep[];
+		trainSingle: (net: NeuralNet, data: TrainingData) => WeightsStep;
 	};
-	
+
 	/** list of training methods for each Configuration#type */
 	export const trainingMethods: { [type: string]: { [name: string]: TrainingMethod } } = {
 		"nn": {
@@ -101,7 +101,7 @@ export module Net {
 			/** averaged perceptron (from http://ciml.info/dl/v0_8/ciml-v0_8-ch03.pdf , p.48) */
 			"Averaged Perceptron": {
 				trainAll: (net, data) => {
-					if(!(net as any).tmpStore) (net as any).tmpStore = {c:1, w:net.connections.map(c=>c.weight), u:net.connections.map(c=>0)};
+					if (!(net as any).tmpStore) (net as any).tmpStore = { c: 1, w: net.connections.map(c => c.weight), u: net.connections.map(c => 0) };
 					const vars = (net as any).tmpStore;
 					const storeWeightSteps = true; // false for optimizing (but then can't use Configuration#drawArrows)
 					if (net.layers.length !== 2 || net.outputs.length !== 1 || net.outputs[0].activation !== "threshold (≥ 0)")
@@ -140,8 +140,8 @@ export module Net {
 					const y = val.output[0] == 1 ? 1 : -1;
 					const yGot = net.outputs[0].output == 1 ? 1 : -1;
 					//const err = (outp.targetOutput - outp.output);
-					const G = (x:double) => Math.min(Math.max(0, x), 1);
-					const err = G(-y * net.outputs[0].weightedInputs / x.reduce((a,b) => a + b*b, 0));
+					const G = (x: double) => Math.min(Math.max(0, x), 1);
+					const err = G(-y * net.outputs[0].weightedInputs / x.reduce((a, b) => a + b * b, 0));
 					for (const conn of outp.inputs) {
 						conn.weight += net.learnRate * err * y * conn.inp.output;
 					}
@@ -161,7 +161,7 @@ export module Net {
 		dataPoint: TrainingData;
 		weights: number[];
 	}
-	
+
 	/**
 	 * back propagation code adapted from https://de.wikipedia.org/wiki/Backpropagation
 	 */

@@ -3,11 +3,11 @@ import * as LZString from "lz-string";
 import ErrorGraph from "./Visualizations/ErrorGraph";
 import ConfigurationGui from "./ConfigurationGui";
 import ExportModal from "./ExportModal";
-import {TableEditor, WeightsGraph, LRVis, NetworkVisualization, NetworkGraph, NetGraphUpdate} from "./Visualizations";
+import { TableEditor, WeightsGraph, LRVis, NetworkVisualization, NetworkGraph, NetGraphUpdate } from "./Visualizations";
 import Net from "./Net";
 import Presets from "./Presets";
 import * as Util from "./Util";
-import {TrainingData, Configuration} from "./Configuration";
+import { TrainingData, Configuration } from "./Configuration";
 import * as $ from "jquery";
 import "jquery";
 import "bootstrap/dist/js/bootstrap";
@@ -20,7 +20,7 @@ import "bootstrap/dist/js/bootstrap";
  */
 export default class Simulation extends React.Component<{ autoRun: boolean }, Configuration> {
 	static instance: Simulation;
-	
+
 	netviz: NetworkVisualization;
 	netgraph: NetworkGraph;
 	table: TableEditor;
@@ -67,7 +67,7 @@ export default class Simulation extends React.Component<{ autoRun: boolean }, Co
 
 	constructor(props: { autoRun: boolean }) {
 		super(props);
-		if(Simulation.instance) throw Error("Already instantiated");
+		if (Simulation.instance) throw Error("Already instantiated");
 		else Simulation.instance = this;
 		this.netviz = new NetworkVisualization(this, p => p === this.state.data[this.currentTrainingDataPoint]);
 		this.netgraph = new NetworkGraph(this);
@@ -121,24 +121,25 @@ export default class Simulation extends React.Component<{ autoRun: boolean }, Co
 	/** -1 when not training single data points, otherwise index into [[Configuration#data]] */
 	private _currentTrainingDataPoint = -1;
 	get currentTrainingDataPoint() { return this._currentTrainingDataPoint; }
-	set currentTrainingDataPoint(val) { 
-		if(val != this._currentTrainingDataPoint) {
+	set currentTrainingDataPoint(val) {
+		if (val != this._currentTrainingDataPoint) {
 			if (val >= this.state.data.length) {
 				val -= this.state.data.length;
 			}
 			this._currentTrainingDataPoint = val;
 			this.table.hot.render();
-			if(this._currentTrainingDataPoint >= 0)
+			if (this._currentTrainingDataPoint >= 0)
 				this.net.setInputsAndCalculate(this.state.data[this._currentTrainingDataPoint].input);
 			this.netgraph.drawGraph();
-		}}
+		}
+	}
 	/** train the next single data point */
 	trainNext() {
 		this.currentTrainingDataPoint++;
 		if (this.state.drawArrows)
 			this.lastWeights = [{ dataPoint: null, weights: this.net.connections.map(c => c.weight) }];
 		this.stepsCurrent++;
-		
+
 		const newWeights = this.trainingMethod.trainSingle(this.net, this.state.data[this.currentTrainingDataPoint]);
 		if (this.state.drawArrows) this.lastWeights.push(newWeights);
 	}
@@ -259,7 +260,7 @@ export default class Simulation extends React.Component<{ autoRun: boolean }, Co
 		}
 		this.stepsWanted += delta / 1000 * this.state.stepsPerSecond;
 		while (this.stepsCurrent < this.stepsWanted) {
-			if(this.state.animationTrainSinglePoints && this.trainingMethod.trainSingle) this.trainNext()
+			if (this.state.animationTrainSinglePoints && this.trainingMethod.trainSingle) this.trainNext()
 			else this.trainAll();
 		}
 		this.onFrame(false);
@@ -389,11 +390,11 @@ export default class Simulation extends React.Component<{ autoRun: boolean }, Co
 							<ul className="dropdown-menu">
 								<li className="dropdown-header">Neural Network</li>
 								{Presets.getNames().map(name => {
-									const ele = <li key={name}><a onClick={e => this.setState(Presets.get(name)) }>{name}</a></li>;
+									const ele = <li key={name}><a onClick={e => this.setState(Presets.get(name))}>{name}</a></li>;
 									if (name === "Rosenblatt Perceptron")
 										return [<li className="divider" />, <li className="dropdown-header">Perceptron</li>, ele];
 									else return ele;
-								}) }
+								})}
 							</ul>
 						</div>
 						<h1>{pageTitle}
@@ -403,7 +404,7 @@ export default class Simulation extends React.Component<{ autoRun: boolean }, Co
 					<LRVis sim={this} ref={(e: LRVis) => this.lrVis = e}
 						leftVis={[this.netgraph, this.errorGraph, this.weightsGraph]}
 						rightVis={[this.netviz, this.table]}
-						/>
+					/>
 					<div className="panel panel-default">
 						<div className="panel-heading">
 							<h3 className="panel-title">
@@ -418,7 +419,7 @@ export default class Simulation extends React.Component<{ autoRun: boolean }, Co
 						<a href="https://github.com/phiresky/neural-network-demo/">Source on GitHub</a>
 					</footer>
 				</div>
-				<ExportModal sim={this} ref={(e: ExportModal) => this.exportModal = e}/>
+				<ExportModal sim={this} ref={(e: ExportModal) => this.exportModal = e} />
 			</div>
 		);
 	}

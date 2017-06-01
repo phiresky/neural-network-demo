@@ -1,5 +1,5 @@
-import {int, double} from "./main";
-import {TrainingData, Configuration} from "./Configuration";
+import { int, double } from "./main";
+import { TrainingData, Configuration } from "./Configuration";
 
 module Util {
 	/**

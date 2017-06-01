@@ -2,10 +2,10 @@ import * as React from "react";
 import * as $ from "jquery";
 import Simulation from "./Simulation";
 import * as Util from "./Util";
-import {Configuration, TrainingData} from "./Configuration";
+import { Configuration, TrainingData } from "./Configuration";
 
-export default class ExportModal extends React.Component<{sim:Simulation, ref:any},{exportWeights?:string, errors?:string[]}> {
-	constructor(props:{sim:Simulation,ref:any}) {
+export default class ExportModal extends React.Component<{ sim: Simulation, ref: any }, { exportWeights?: string, errors?: string[] }> {
+	constructor(props: { sim: Simulation, ref: any }) {
 		super(props);
 		this.state = {
 			exportWeights: "0",
@@ -16,7 +16,7 @@ export default class ExportModal extends React.Component<{sim:Simulation, ref:an
 	render() {
 		const ele = $("#exportModal")[0];
 		let visible = true;
-		if(ele && getComputedStyle(ele).display == "none") visible = false;
+		if (ele && getComputedStyle(ele).display == "none") visible = false;
 		return (
 			<div className="modal fade" id="exportModal">
 				<div className="modal-dialog">
@@ -25,10 +25,10 @@ export default class ExportModal extends React.Component<{sim:Simulation, ref:an
 							<button type="button" className="close" data-dismiss="modal">×</button>
 							<h3 className="modal-title">Import / Export</h3>
 						</div>
-						{visible?<div className="modal-body">
+						{visible ? <div className="modal-body">
 							<h4 className="modal-title">Export to URL</h4>
 							<select className="exportWeights"
-									onChange={t => this.setState({exportWeights: (t.target as HTMLSelectElement).value})} value={this.state.exportWeights}>
+								onChange={t => this.setState({ exportWeights: (t.target as HTMLSelectElement).value })} value={this.state.exportWeights}>
 								<option value="0">Don't include weights</option>
 								<option value="1">Include current weights</option>
 								<option value="2">Include start weights</option>
@@ -54,21 +54,21 @@ export default class ExportModal extends React.Component<{sim:Simulation, ref:an
 							<span className="btn btn-default btn-file">
 								Import CSV file <input type="file" className="importCSV" onChange={this.importCSV.bind(this)} />
 							</span>
-							{this.state.errors.map((error,i) => 
+							{this.state.errors.map((error, i) =>
 								<div key={i} className="alert alert-danger">{error}
 									<button type="button" className="close" data-dismiss="alert">×</button>
 								</div>
 							)}
-						</div>:"Loading..."}
+						</div> : "Loading..."}
 					</div>
 				</div>
 			</div>
 		);
 	}
-	exportJSON(conf:Configuration) {
+	exportJSON(conf: Configuration) {
 		Util.download(JSON.stringify(conf, null, '\t'), conf.name + ".json");
 	}
-	exportCSV(conf:Configuration) {
+	exportCSV(conf: Configuration) {
 		const csv = conf.inputLayer.names.concat(conf.outputLayer.names)
 			.map(Util.csvSanitize).join(",") + "\n"
 			+ conf.data.map(data => data.input.concat(data.output).join(",")).join("\n");
@@ -90,7 +90,7 @@ export default class ExportModal extends React.Component<{sim:Simulation, ref:an
 		}
 		r.readAsText(file);
 	}
-	
+
 	importCSV(ev: Event) {
 		console.log("imo");
 		const files = (ev.target as HTMLInputElement).files;
@@ -105,24 +105,24 @@ export default class ExportModal extends React.Component<{sim:Simulation, ref:an
 				const lens = data.map(l => l.length);
 				const len = Math.min(...lens);
 				if (len !== Math.max(...lens))
-					throw `line lengths varying between ${len} and ${Math.max(...lens) }, must be constant`;
+					throw `line lengths varying between ${len} and ${Math.max(...lens)}, must be constant`;
 				const inps = sim.state.inputLayer.neuronCount;
 				const oups = sim.state.outputLayer.neuronCount;
 				if (len !== inps + oups)
-					throw `invalid line length, expected (${inps} inputs + ${oups} outputs = ) ${inps+oups} columns, got ${len} columns`;
+					throw `invalid line length, expected (${inps} inputs + ${oups} outputs = ) ${inps + oups} columns, got ${len} columns`;
 				const newState = Util.cloneConfig(sim.state);
-				if(!data[0][0].match(/^\d+$/)) {
+				if (!data[0][0].match(/^\d+$/)) {
 					const headers = data.shift();
 					newState.inputLayer.names = headers.slice(0, inps);
 					newState.outputLayer.names = headers.slice(inps, inps + oups);
 				}
 				newState.data = [];
-				for(let l = 0; l < data.length; l++) {
-					const ele:TrainingData = {input:[], output:[]};
-					for(let i = 0; i < len; i++) {
+				for (let l = 0; l < data.length; l++) {
+					const ele: TrainingData = { input: [], output: [] };
+					for (let i = 0; i < len; i++) {
 						const v = parseFloat(data[l][i]);
-						if(isNaN(v)) throw `can't parse ${data[l][i]} as a number in line ${l+1}`;
-						(i < inps ? ele.input:ele.output).push(v);
+						if (isNaN(v)) throw `can't parse ${data[l][i]} as a number in line ${l + 1}`;
+						(i < inps ? ele.input : ele.output).push(v);
 					}
 					newState.data.push(ele);
 				}
@@ -138,6 +138,6 @@ export default class ExportModal extends React.Component<{sim:Simulation, ref:an
 	addIOError(err: string) {
 		const errors = this.state.errors.slice();
 		errors.push(err);
-		this.setState({errors});
+		this.setState({ errors });
 	}
 }

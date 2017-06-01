@@ -5,11 +5,11 @@ import * as $ from "jquery";
 //import pikaday from 'pikaday';
 //import Zeroclipboard from 'zeroclipboard';
 import * as Handsontable from 'handsontable/dist/handsontable.full.js';
-import {Visualization} from "./Visualization";
+import { Visualization } from "./Visualization";
 import Simulation from "../Simulation";
 import Net from "../Net";
-import {cloneConfig} from "../Util";
-import {TrainingData} from "../Configuration";
+import { cloneConfig } from "../Util";
+import { TrainingData } from "../Configuration";
 
 declare var LZString: any;
 /**
@@ -28,7 +28,7 @@ export default class TableEditor implements Visualization {
 		if (reason === 'loadData') return;
 		this.reparseData();
 	}
-	onNetworkLoaded(net:Net.NeuralNet) {
+	onNetworkLoaded(net: Net.NeuralNet) {
 		if (this.hot) this.hot.destroy();
 		const oldContainer = this.container;
 		this.container = $("<div class='fullsize' style='overflow:hidden'>")[0] as HTMLDivElement;
@@ -36,7 +36,7 @@ export default class TableEditor implements Visualization {
 		$("<div>").addClass("btn btn-default")
 			.css({ position: "absolute", right: "2em", bottom: "2em" })
 			.text("Remove all")
-			.click(e => this.sim.setState({data: []}, () => this.loadData()))
+			.click(e => this.sim.setState({ data: [] }, () => this.loadData()))
 			.appendTo(this.container);
 		const headerRenderer = function firstRowRenderer(instance: any, td: HTMLTableCellElement) {
 			Handsontable.renderers.TextRenderer.apply(this, arguments);
@@ -56,12 +56,14 @@ export default class TableEditor implements Visualization {
 			colWidths: ic + oc + oc <= 6 ? 80 : 45,
 			cells: (row: number, col: number, prop: string) => {
 				if (row >= this.headerCount) {
-					if(row == this.sim.currentTrainingDataPoint + 2)
-						return { type: 'numeric', format: '0.[000]', renderer: function(instance: any, td: HTMLTableCellElement) {
-							Handsontable.renderers.NumericRenderer.apply(this, arguments);
-							td.style.fontWeight = 'bold';
-							td.style.background = 'lightgreen';
-						}};
+					if (row == this.sim.currentTrainingDataPoint + 2)
+						return {
+							type: 'numeric', format: '0.[000]', renderer: function (instance: any, td: HTMLTableCellElement) {
+								Handsontable.renderers.NumericRenderer.apply(this, arguments);
+								td.style.fontWeight = 'bold';
+								td.style.background = 'lightgreen';
+							}
+						};
 					return { type: 'numeric', format: '0.[000]' };
 				}
 				else {
@@ -123,7 +125,7 @@ export default class TableEditor implements Visualization {
 	/** load data from [[Configuration]] into the table */
 	loadData() {
 		const sim = this.sim;
-		const data: (number|string)[][] = [[], sim.state.inputLayer.names.concat(sim.state.outputLayer.names).concat(sim.state.outputLayer.names)];
+		const data: (number | string)[][] = [[], sim.state.inputLayer.names.concat(sim.state.outputLayer.names).concat(sim.state.outputLayer.names)];
 		const ic = sim.state.inputLayer.neuronCount, oc = sim.state.outputLayer.neuronCount;
 		data[0][0] = 'Inputs';
 		data[0][ic] = 'Expected Output';
