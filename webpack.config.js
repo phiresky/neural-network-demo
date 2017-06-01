@@ -19,7 +19,9 @@ module.exports = {
 					NODE_ENV: JSON.stringify('production')
 				}
 			}),
-			new webpack.optimize.UglifyJsPlugin(),
+			new webpack.optimize.UglifyJsPlugin({
+				sourceMap: true
+			}),
 		] : []),
 		new webpack.ProvidePlugin({
 			jQuery: 'jquery',
@@ -31,7 +33,8 @@ module.exports = {
 				..."index.html icon.png".split(" ").map(s => ({ from: "src/" + s, to: "bin/" + s })),
 				..."screenshot.png screenshot-perceptron.png".split(" ").map(s => ({ from: s, to: "bin/" + s })),
 			]
-		)
+		),
+		// new (require('webpack-bundle-analyzer').BundleAnalyzerPlugin)()
 	],
 	devtool: 'source-map',
 	module: {
