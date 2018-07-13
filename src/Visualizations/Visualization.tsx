@@ -13,7 +13,7 @@ export interface Visualization {
 	 * List of possible modes of input for this visualization.
 	 * Switching between these is handled externally, see [[TabSwitcher]].
 	 */
-	actions: (string | { name: string, color: string })[];
+	actions: (string | { name: string; color: string })[];
 	/** called when the action is changed or the visualization becomes visible */
 	onView: (previouslyHidden: boolean, mode: int) => void;
 	onNetworkLoaded: (net: Net.NeuralNet) => void;
@@ -21,12 +21,16 @@ export interface Visualization {
 	onFrame: (framenum: int) => void;
 }
 interface MultiVisState {
-	running?: boolean, bodies?: Visualization[],
-	correct?: string,
-	stepNum?: number
+	running?: boolean;
+	bodies?: Visualization[];
+	correct?: string;
+	stepNum?: number;
 }
 /** display multiple Visualizations */
-abstract class MultiVisDisplayer<T> extends React.Component<{ sim: Simulation } & T, MultiVisState> {
+abstract class MultiVisDisplayer<T> extends React.Component<
+	{ sim: Simulation } & T,
+	MultiVisState
+> {
 	bodyDivs: HTMLDivElement[] = [];
 
 	constructor(props: { sim: Simulation } & T) {
@@ -46,43 +50,103 @@ abstract class MultiVisDisplayer<T> extends React.Component<{ sim: Simulation } 
 	changeBody(i: int, vis: Visualization, aft: () => void) {
 		this.bodiesTmp = this.bodiesTmp || this.state.bodies.slice();
 		this.bodiesTmp[i] = vis;
-		this.setState({ bodies: this.bodiesTmp }, () => { this.bodiesTmp = undefined; aft() });
+		this.setState({ bodies: this.bodiesTmp }, () => {
+			this.bodiesTmp = undefined;
+			aft();
+		});
 	}
 	componentDidUpdate(prevProps: any, prevState: MultiVisState) {
 		for (let i = 0; i < prevState.bodies.length; i++) {
 			if (prevState.bodies[i] !== this.state.bodies[i]) {
-				$(this.bodyDivs[i]).children().detach();
+				$(this.bodyDivs[i])
+					.children()
+					.detach();
 				$(this.bodyDivs[i]).append(this.state.bodies[i].container);
 			}
 		}
 	}
 }
-class ControlButtonBar extends React.Component<{ running: boolean, sim: Simulation }, {}>{
+class ControlButtonBar extends React.Component<
+	{ running: boolean; sim: Simulation },
+	{}
+> {
 	render() {
 		const sim = this.props.sim;
-		return <div className="h3">
-			<button className={this.props.running ? "btn btn-danger" : "btn btn-primary"} onClick={sim.runtoggle.bind(sim)}>{this.props.running ? "Stop" : "Animate"}</button>&nbsp;
-			<button className="btn btn-warning" onClick={sim.reset.bind(sim)}>Reset</button>&nbsp;
-			<button className="btn btn-default" onClick={sim.trainAllButton.bind(sim)}>{sim.state.type === "perceptron" ? "Train All" : "Train"}</button>&nbsp;
-			{(sim.state.showTrainSingleButton || (sim.state.type === "perceptron" && sim.trainingMethod.trainSingle)) ?
-				<button className="btn btn-default" onClick={sim.trainNextButton.bind(sim)}>Train Single</button> : ""}&nbsp;
-			{(sim.state.type === "nn") ?
-				<button className="btn btn-default" onClick={sim.forwardPassStep.bind(sim)}>Forward Pass Step</button> : ""}&nbsp;
-		</div>;
+		return (
+			<div className="h3">
+				<button
+					className={
+						this.props.running
+							? "btn btn-danger"
+							: "btn btn-primary"
+					}
+					onClick={sim.runtoggle.bind(sim)}
+				>
+					{this.props.running ? "Stop" : "Animate"}
+				</button>&nbsp;
+				<button
+					className="btn btn-warning"
+					onClick={sim.reset.bind(sim)}
+				>
+					Reset
+				</button>&nbsp;
+				<button
+					className="btn btn-default"
+					onClick={sim.trainAllButton.bind(sim)}
+				>
+					{sim.state.type === "perceptron" ? "Train All" : "Train"}
+				</button>&nbsp;
+				{sim.state.showTrainSingleButton ||
+				(sim.state.type === "perceptron" &&
+					sim.trainingMethod.trainSingle) ? (
+					<button
+						className="btn btn-default"
+						onClick={sim.trainNextButton.bind(sim)}
+					>
+						Train Single
+					</button>
+				) : (
+					""
+				)}&nbsp;
+				{sim.state.type === "nn" ? (
+					<button
+						className="btn btn-default"
+						onClick={sim.forwardPassStep.bind(sim)}
+					>
+						Forward Pass Step
+					</button>
+				) : (
+					""
+				)}&nbsp;
+			</div>
+		);
 	}
 }
-class StatusBar extends React.Component<{ correct: string, iteration: int }, {}> {
+class StatusBar extends React.Component<
+	{ correct: string; iteration: int },
+	{}
+> {
 	render() {
-		return <h2>
-			{this.props.correct} —&nbsp; Iteration: &nbsp; {this.props.iteration}
-		</h2>
+		return (
+			<h2>
+				{this.props.correct} —&nbsp; Iteration: &nbsp;{" "}
+				{this.props.iteration}
+			</h2>
+		);
 	}
 }
 /** Display two visualizations next to each other with tabbed navigation */
-export class LRVis extends MultiVisDisplayer<{ leftVis: Visualization[], rightVis: Visualization[] }> {
+export class LRVis extends MultiVisDisplayer<{
+	leftVis: Visualization[];
+	rightVis: Visualization[];
+}> {
 	leftVis: TabSwitcher;
 	rightVis: TabSwitcher;
-	constructor(props: { sim: Simulation, leftVis: Visualization[], rightVis: Visualization[] }) {
+	constructor(props: {
+		sim: Simulation;
+		leftVis: Visualization[];
+		rightVis: Visualization[];
+	}) {
 		super(props);
 	}
 	render() {
@@ -90,43 +154,75 @@ export class LRVis extends MultiVisDisplayer<{ leftVis: Visualization[], rightVi
 		const isPerceptron = this.props.sim.state.type === "perceptron";
 		const leftSize = isPerceptron ? 4 : 6;
 		const rightSize = 12 - leftSize;
-		return <div>
-			<div className="row">
-				<div className={`col-sm-${leftSize}`}>
-					<TabSwitcher ref={(c: TabSwitcher) => this.leftVis = c}
-						things={this.props.leftVis}
-						onChangeVisualization={(vis, aft) => this.changeBody(0, vis, aft)}
-					/>
-				</div>
-				<div className={`col-sm-${rightSize}`}>
-					<TabSwitcher ref={(c: TabSwitcher) => this.rightVis = c}
-						things={this.props.rightVis}
-						onChangeVisualization={(vis, aft) => this.changeBody(1, vis, aft)}
-					/>
-				</div>
-			</div>
-			<div className="row">
-				<div className={`col-sm-${leftSize}`}>
-					<div className="visbody" ref={b => this.bodyDivs[0] = b} />
-					<ControlButtonBar running={this.state.running} sim={sim} />
-					<hr />
-				</div>
-				<div className={`col-sm-${rightSize}`}>
-					<div className="visbody" ref={b => this.bodyDivs[1] = b} />
-					<div>
-						<StatusBar correct={this.state.correct} iteration={this.state.stepNum} />
+		return (
+			<div>
+				<div className="row">
+					<div className={`col-sm-${leftSize}`}>
+						<TabSwitcher
+							ref={(c: TabSwitcher) => (this.leftVis = c)}
+							things={this.props.leftVis}
+							onChangeVisualization={(vis, aft) =>
+								this.changeBody(0, vis, aft)
+							}
+						/>
 					</div>
-					<hr />
+					<div className={`col-sm-${rightSize}`}>
+						<TabSwitcher
+							ref={(c: TabSwitcher) => (this.rightVis = c)}
+							things={this.props.rightVis}
+							onChangeVisualization={(vis, aft) =>
+								this.changeBody(1, vis, aft)
+							}
+						/>
+					</div>
+				</div>
+				<div className="row">
+					<div className={`col-sm-${leftSize}`}>
+						<div
+							className="visbody"
+							ref={b => (this.bodyDivs[0] = b)}
+						/>
+						<ControlButtonBar
+							running={this.state.running}
+							sim={sim}
+						/>
+						<hr />
+					</div>
+					<div className={`col-sm-${rightSize}`}>
+						<div
+							className="visbody"
+							ref={b => (this.bodyDivs[1] = b)}
+						/>
+						<div>
+							<StatusBar
+								correct={this.state.correct}
+								iteration={this.state.stepNum}
+							/>
+						</div>
+						<hr />
+					</div>
 				</div>
 			</div>
-		</div>
+		);
 	}
 }
 /** Mode for TabSwitcher */
-interface _Mode { thing: int, action: int, text: string, color: string }
-interface TSProps { things: Visualization[], onChangeVisualization: (v: Visualization, aft: () => void) => void, ref?: any }
+interface _Mode {
+	thing: int;
+	action: int;
+	text: string;
+	color: string;
+}
+interface TSProps {
+	things: Visualization[];
+	onChangeVisualization: (v: Visualization, aft: () => void) => void;
+	ref?: any;
+}
 /** switch between multiple visualizations using a tabbed interface */
-class TabSwitcher extends React.Component<TSProps, { modes?: _Mode[], currentMode?: number }> {
+class TabSwitcher extends React.Component<
+	TSProps,
+	{ modes?: _Mode[]; currentMode?: number }
+> {
 	constructor(props: TSProps) {
 		super(props);
 		this.state = {
@@ -135,17 +231,40 @@ class TabSwitcher extends React.Component<TSProps, { modes?: _Mode[], currentMod
 		};
 	}
 	render() {
-		const isDark = (color: string) => parseColor(color).reduce((a, b) => a + b) / 3 < 127;
-		return <div><ul className="nav nav-pills">
-			{this.state.modes.map((mode, i) =>
-				<li key={i} className={this.state.currentMode === i ? "custom-active" : ""}>
-					<a style={mode.color ? { backgroundColor: mode.color, color: isDark(mode.color) ? "white" : "black" } : {}}
-						onClick={e => this.setMode(i)}>
-						{mode.text}
-					</a>
-				</li>
-			)}
-		</ul></div>;
+		const isDark = (color: string) =>
+			parseColor(color).reduce((a, b) => a + b) / 3 < 127;
+		return (
+			<div>
+				<ul className="nav nav-pills">
+					{this.state.modes.map((mode, i) => (
+						<li
+							key={i}
+							className={
+								this.state.currentMode === i
+									? "custom-active"
+									: ""
+							}
+						>
+							<a
+								style={
+									mode.color
+										? {
+												backgroundColor: mode.color,
+												color: isDark(mode.color)
+													? "white"
+													: "black"
+										  }
+										: {}
+								}
+								onClick={e => this.setMode(i)}
+							>
+								{mode.text}
+							</a>
+						</li>
+					))}
+				</ul>
+			</div>
+		);
 	}
 	componentDidMount() {
 		this.setMode(0, true);
@@ -154,14 +273,20 @@ class TabSwitcher extends React.Component<TSProps, { modes?: _Mode[], currentMod
 		const modes: _Mode[] = [];
 		this.props.things.forEach((thing, thingid) =>
 			thing.actions.forEach((button, buttonid) => {
-				let text = "", color = "";
-				if (typeof button === 'string') {
+				let text = "",
+					color = "";
+				if (typeof button === "string") {
 					text = button;
 				} else {
 					text = button.name;
 					color = button.color;
 				}
-				modes.push({ thing: thingid, action: buttonid, text: text, color: color });
+				modes.push({
+					thing: thingid,
+					action: buttonid,
+					text: text,
+					color: color
+				});
 			})
 		);
 		return modes;
@@ -184,13 +309,20 @@ class TabSwitcher extends React.Component<TSProps, { modes?: _Mode[], currentMod
 	/** network was loaded, check if the children actions have changed and update the tab bar accordingly */
 	onNetworkLoaded(net: Net.NeuralNet) {
 		//todo: ugly hack
-		const beforeActions = JSON.stringify(this.props.things.map(t => t.actions));
+		const beforeActions = JSON.stringify(
+			this.props.things.map(t => t.actions)
+		);
 		this.props.things.forEach(thing => thing.onNetworkLoaded(net));
-		const afterActions = JSON.stringify(this.props.things.map(t => t.actions));
+		const afterActions = JSON.stringify(
+			this.props.things.map(t => t.actions)
+		);
 		if (beforeActions !== afterActions)
-			this.setState({
-				modes: this.createButtonsAndActions(),
-				currentMode: 0
-			}, () => this.setMode(0, true));
+			this.setState(
+				{
+					modes: this.createButtonsAndActions(),
+					currentMode: 0
+				},
+				() => this.setMode(0, true)
+			);
 	}
 }

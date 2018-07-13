@@ -4,7 +4,8 @@ import { int, double } from "./main";
 import { InputLayerConfig, OutputLayerConfig, LayerConfig } from "./Presets";
 
 export interface TrainingData {
-	input: double[]; output: double[];
+	input: double[];
+	output: double[];
 }
 /** Configuration interface. Default preset must contain values for all these properties! */
 export interface Configuration {

@@ -1,10 +1,9 @@
-
 import * as $ from "jquery";
 //import numbro from 'numbro';
 //import moment from 'moment';
 //import pikaday from 'pikaday';
 //import Zeroclipboard from 'zeroclipboard';
-import * as Handsontable from 'handsontable/dist/handsontable.full.js';
+import * as Handsontable from "handsontable/dist/handsontable.full.js";
 import { Visualization } from "./Visualization";
 import Simulation from "../Simulation";
 import Net from "../Net";
@@ -22,31 +21,39 @@ export default class TableEditor implements Visualization {
 	headerCount = 2;
 	lastUpdate = 0;
 	container = document.createElement("div");
-	constructor(public sim: Simulation) { }
+	constructor(public sim: Simulation) {}
 	/** called by Handsontable after some data was changed in the table */
 	afterChange(changes: [number, number, number, number][], reason: string) {
-		if (reason === 'loadData') return;
+		if (reason === "loadData") return;
 		this.reparseData();
 	}
 	onNetworkLoaded(net: Net.NeuralNet) {
 		if (this.hot) this.hot.destroy();
 		const oldContainer = this.container;
-		this.container = $("<div class='fullsize' style='overflow:hidden'>")[0] as HTMLDivElement;
+		this.container = $(
+			"<div class='fullsize' style='overflow:hidden'>"
+		)[0] as HTMLDivElement;
 		if (oldContainer) $(oldContainer).replaceWith(this.container);
-		$("<div>").addClass("btn btn-default")
+		$("<div>")
+			.addClass("btn btn-default")
 			.css({ position: "absolute", right: "2em", bottom: "2em" })
 			.text("Remove all")
 			.click(e => this.sim.setState({ data: [] }, () => this.loadData()))
 			.appendTo(this.container);
-		const headerRenderer = function firstRowRenderer(instance: any, td: HTMLTableCellElement) {
+		const headerRenderer = function firstRowRenderer(
+			instance: any,
+			td: HTMLTableCellElement
+		) {
 			Handsontable.renderers.TextRenderer.apply(this, arguments);
-			td.style.fontWeight = 'bold';
-			td.style.background = '#CCC';
-		}
+			td.style.fontWeight = "bold";
+			td.style.background = "#CCC";
+		};
 		const mergeCells: {}[] = [];
-		const ic = net.inputs.length, oc = net.outputs.length;
+		const ic = net.inputs.length,
+			oc = net.outputs.length;
 		//console.log(`creating new table (${ic}, ${oc})`);
-		if (ic > 1) mergeCells.push({ row: 0, col: 0, rowspan: 1, colspan: ic });
+		if (ic > 1)
+			mergeCells.push({ row: 0, col: 0, rowspan: 1, colspan: ic });
 		if (oc > 1) {
 			mergeCells.push({ row: 0, col: ic, rowspan: 1, colspan: oc });
 			mergeCells.push({ row: 0, col: ic + oc, rowspan: 1, colspan: oc });
@@ -58,15 +65,22 @@ export default class TableEditor implements Visualization {
 				if (row >= this.headerCount) {
 					if (row == this.sim.currentTrainingDataPoint + 2)
 						return {
-							type: 'numeric', format: '0.[000]', renderer: function (instance: any, td: HTMLTableCellElement) {
-								Handsontable.renderers.NumericRenderer.apply(this, arguments);
-								td.style.fontWeight = 'bold';
-								td.style.background = 'lightgreen';
+							type: "numeric",
+							format: "0.[000]",
+							renderer: function(
+								instance: any,
+								td: HTMLTableCellElement
+							) {
+								Handsontable.renderers.NumericRenderer.apply(
+									this,
+									arguments
+								);
+								td.style.fontWeight = "bold";
+								td.style.background = "lightgreen";
 							}
 						};
-					return { type: 'numeric', format: '0.[000]' };
-				}
-				else {
+					return { type: "numeric", format: "0.[000]" };
+				} else {
 					const conf: any = { renderer: headerRenderer };
 					if (row == 0) conf.readOnly = true;
 					return conf;
@@ -96,22 +110,33 @@ export default class TableEditor implements Visualization {
 	reparseData() {
 		const sim = this.sim;
 		const data: number[][] = this.hot.getData();
-		const headers = <string[]><any>data[1];
+		const headers = <string[]>(<any>data[1]);
 		const newConfig = cloneConfig(sim.state);
-		const ic = newConfig.inputLayer.neuronCount, oc = newConfig.outputLayer.neuronCount
+		const ic = newConfig.inputLayer.neuronCount,
+			oc = newConfig.outputLayer.neuronCount;
 		newConfig.inputLayer.names = headers.slice(0, ic);
 		newConfig.outputLayer.names = headers.slice(ic, ic + oc);
-		newConfig.data = data.slice(2).map(row => row.slice(0, ic + oc))
-			.filter(row => row.every(cell => typeof cell === 'number'))
-			.map(row => <TrainingData>{ input: row.slice(0, ic), output: row.slice(ic) });
+		newConfig.data = data
+			.slice(2)
+			.map(row => row.slice(0, ic + oc))
+			.filter(row => row.every(cell => typeof cell === "number"))
+			.map(
+				row =>
+					<TrainingData>{
+						input: row.slice(0, ic),
+						output: row.slice(ic)
+					}
+			);
 		newConfig.custom = true;
 		sim.setState(newConfig);
 	}
 	onFrame() {
 		const sim = this.sim;
-		if ((Date.now() - this.lastUpdate) < 500) return;
+		if (Date.now() - this.lastUpdate < 500) return;
 		this.lastUpdate = Date.now();
-		const xOffset = sim.state.inputLayer.neuronCount + sim.state.outputLayer.neuronCount;
+		const xOffset =
+			sim.state.inputLayer.neuronCount +
+			sim.state.outputLayer.neuronCount;
 		const vals: [number, number, number][] = [];
 		for (let y = 0; y < sim.state.data.length; y++) {
 			const p = sim.state.data[y];
@@ -125,19 +150,32 @@ export default class TableEditor implements Visualization {
 	/** load data from [[Configuration]] into the table */
 	loadData() {
 		const sim = this.sim;
-		const data: (number | string)[][] = [[], sim.state.inputLayer.names.concat(sim.state.outputLayer.names).concat(sim.state.outputLayer.names)];
-		const ic = sim.state.inputLayer.neuronCount, oc = sim.state.outputLayer.neuronCount;
-		data[0][0] = 'Inputs';
-		data[0][ic] = 'Expected Output';
-		data[0][ic + oc + oc - 1] = ' ';
-		data[0][ic + oc] = 'Actual Output';
+		const data: (number | string)[][] = [
+			[],
+			sim.state.inputLayer.names
+				.concat(sim.state.outputLayer.names)
+				.concat(sim.state.outputLayer.names)
+		];
+		const ic = sim.state.inputLayer.neuronCount,
+			oc = sim.state.outputLayer.neuronCount;
+		data[0][0] = "Inputs";
+		data[0][ic] = "Expected Output";
+		data[0][ic + oc + oc - 1] = " ";
+		data[0][ic + oc] = "Actual Output";
 		const mergeCells: {}[] = [];
-		if (ic > 1) mergeCells.push({ row: 0, col: 0, rowspan: 1, colspan: ic });
+		if (ic > 1)
+			mergeCells.push({ row: 0, col: 0, rowspan: 1, colspan: ic });
 		if (oc > 1) {
 			mergeCells.push({ row: 0, col: ic + oc, rowspan: 1, colspan: oc });
-			mergeCells.push({ row: 0, col: ic + oc * 2, rowspan: 1, colspan: oc });
+			mergeCells.push({
+				row: 0,
+				col: ic + oc * 2,
+				rowspan: 1,
+				colspan: oc
+			});
 		}
-		if (mergeCells.length > 0) this.hot.updateSettings({ mergeCells: mergeCells });
+		if (mergeCells.length > 0)
+			this.hot.updateSettings({ mergeCells: mergeCells });
 
 		sim.state.data.forEach(t => data.push(t.input.concat(t.output)));
 		this.hot.loadData(data);

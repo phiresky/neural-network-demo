@@ -1,7 +1,7 @@
 import { int, double } from "./main";
 import { TrainingData, Configuration } from "./Configuration";
 
-module Util {
+namespace Util {
 	/**
 	 * @param len array length
 	 * @param supplier map from index to array element
@@ -16,7 +16,8 @@ module Util {
 	 * ≈ argmax function
 	 */
 	export function getMaxIndex(vals: double[]) {
-		let max = vals[0], maxi = 0;
+		let max = vals[0],
+			maxi = 0;
 		for (let i = 1; i < vals.length; i++) {
 			if (vals[i] > max) {
 				max = vals[i];
@@ -37,10 +38,13 @@ module Util {
 	}
 	/** AABB */
 	export interface Bounds {
-		minx: double, maxx: double, miny: double, maxy: double
+		minx: double;
+		maxx: double;
+		miny: double;
+		maxy: double;
 	}
 	/**
-	 * get AABB of a set of points in the form of 2d-TrainingData 
+	 * get AABB of a set of points in the form of 2d-TrainingData
 	 */
 	export function bounds2dTrainingsInput(data: TrainingData[]): Bounds {
 		return {
@@ -48,7 +52,7 @@ module Util {
 			miny: Math.min(...data.map(d => d.input[1])),
 			maxx: Math.max(...data.map(d => d.input[0])),
 			maxy: Math.max(...data.map(d => d.input[1]))
-		}
+		};
 	}
 	let _nextGaussian: double;
 	/** port of https://docs.oracle.com/javase/7/docs/api/java/util/Random.html#nextGaussian() */
@@ -56,7 +60,7 @@ module Util {
 		if (_nextGaussian !== undefined) {
 			var nextGaussian = _nextGaussian;
 			_nextGaussian = undefined;
-			return (nextGaussian * standardDeviation) + mean;
+			return nextGaussian * standardDeviation + mean;
 		} else {
 			let v1: double, v2: double, s: double, multiplier: double;
 			do {
@@ -64,11 +68,11 @@ module Util {
 				v2 = 2 * Math.random() - 1; // between -1 and 1
 				s = v1 * v1 + v2 * v2;
 			} while (s >= 1 || s == 0);
-			multiplier = Math.sqrt(-2 * Math.log(s) / s);
+			multiplier = Math.sqrt((-2 * Math.log(s)) / s);
 			_nextGaussian = v2 * multiplier;
-			return (v1 * multiplier * standardDeviation) + mean;
+			return v1 * multiplier * standardDeviation + mean;
 		}
-	};
+	}
 	/**
 	 * deep clone a configuration object
 	 */
@@ -92,8 +96,13 @@ module Util {
 	 * convert three numbers to hex color string
 	 */
 	export function printColor(c: [int, int, int]) {
-		c = <any>c.map(x => x < 0 ? 0 : x > 255 ? 255 : x);
-		return '#' + ("000000" + (c[0] << 16 | c[1] << 8 | c[2]).toString(16)).slice(-6);
+		c = <any>c.map(x => (x < 0 ? 0 : x > 255 ? 255 : x));
+		return (
+			"#" +
+			("000000" + ((c[0] << 16) | (c[1] << 8) | c[2]).toString(16)).slice(
+				-6
+			)
+		);
 	}
 	/**
 	 * parse url query parameters (...?a=b&x=y) to js object ({a:"b",x:"y"})
@@ -101,8 +110,8 @@ module Util {
 	export function parseUrlParameters(): { [name: string]: string } {
 		if (!location.search) return {};
 		var query: { [name: string]: string } = {};
-		for (const p of location.search.slice(1).split('&')) {
-			var b = p.split('=').map(c => c.replace(/\+/g, ' '));
+		for (const p of location.search.slice(1).split("&")) {
+			var b = p.split("=").map(c => c.replace(/\+/g, " "));
 			query[decodeURIComponent(b[0])] = decodeURIComponent(b[1]);
 		}
 
@@ -110,22 +119,32 @@ module Util {
 	}
 	/** normalize 2d point in the given bounds to [0,1]×[0,1] */
 	export function normalize(i: Bounds, x: double, y: double) {
-		return [(x - i.minx) / (i.maxx - i.minx), (y - i.miny) / (i.maxy - i.miny)];
+		return [
+			(x - i.minx) / (i.maxx - i.minx),
+			(y - i.miny) / (i.maxy - i.miny)
+		];
 	}
 	/** normalize x and y training data of given configuration into [0,1] */
 	export function normalizeInputs(conf: Configuration) {
-		if (conf.inputLayer.neuronCount !== 2) throw Error("can only normalize 2d data");
+		if (conf.inputLayer.neuronCount !== 2)
+			throw Error("can only normalize 2d data");
 		const data = conf.data;
 		const i = Util.bounds2dTrainingsInput(data);
-		data.forEach(data => data.input = normalize(i, data.input[0], data.input[1]));
+		data.forEach(
+			data => (data.input = normalize(i, data.input[0], data.input[1]))
+		);
 	}
-	/** 
+	/**
 	 * download some text
 	 * @param text file content
 	 * @param name file name
 	 * @param type mime type
 	 */
-	export function download(text: string, name: string, type: string = 'text/plain') {
+	export function download(
+		text: string,
+		name: string,
+		type: string = "text/plain"
+	) {
 		var a = document.createElement("a");
 		var file = new Blob([text], { type: type });
 		a.href = URL.createObjectURL(file);
@@ -135,8 +154,7 @@ module Util {
 	/** sanitize string for output to CSV */
 	export function csvSanitize(s: string) {
 		s = s.replace(/"/g, '""');
-		if (s.search(/("|,|\n)/g) >= 0)
-			return `"${s}"`;
+		if (s.search(/("|,|\n)/g) >= 0) return `"${s}"`;
 		else return s;
 	}
 	/** interpret n as a logarithmic scale */
@@ -153,19 +171,29 @@ module Util {
 		e.stopPropagation();
 	}
 
-	interface Point { x: double, y: double }
-	/** 
+	interface Point {
+		x: double;
+		y: double;
+	}
+	/**
 	 * Draws a line with a filled arrow head at its end.
 	 *
-	 * FOUND ON USENET  
+	 * FOUND ON USENET
 	 * @param al Arrowhead length
 	 * @param aw Arrowhead width
 	 *
 	 */
-	export function drawArrow(g: CanvasRenderingContext2D, start: Point, end: Point,
-		al: double, aw: double) {
+	export function drawArrow(
+		g: CanvasRenderingContext2D,
+		start: Point,
+		end: Point,
+		al: double,
+		aw: double
+	) {
 		// Compute length of line
-		const length = Math.sqrt((end.x - start.x) ** 2 + (end.y - start.y) ** 2);
+		const length = Math.sqrt(
+			(end.x - start.x) ** 2 + (end.y - start.y) ** 2
+		);
 		// Compute normalized line vector
 		const x = (end.x - start.x) / length;
 		const y = (end.y - start.y) / length;
@@ -184,7 +212,10 @@ module Util {
 		g.fill();
 	}
 	/** convert perceptron weights to a linear function */
-	export function toLinearFunction([wx, wy, wbias]: [number, number, number], threshold = 0): (x: number) => number {
+	export function toLinearFunction(
+		[wx, wy, wbias]: [number, number, number],
+		threshold = 0
+	): (x: number) => number {
 		//   w1*x + w2*y + w3 = thres
 		// ⇒ w2*y = thres - w3 - w1*x
 		// ⇒ y = (thres - w3 - w1*x) / w2

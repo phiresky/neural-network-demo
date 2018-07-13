@@ -3,7 +3,14 @@ import * as LZString from "lz-string";
 import ErrorGraph from "./Visualizations/ErrorGraph";
 import ConfigurationGui from "./ConfigurationGui";
 import ExportModal from "./ExportModal";
-import { TableEditor, WeightsGraph, LRVis, NetworkVisualization, NetworkGraph, NetGraphUpdate } from "./Visualizations";
+import {
+	TableEditor,
+	WeightsGraph,
+	LRVis,
+	NetworkVisualization,
+	NetworkGraph,
+	NetGraphUpdate
+} from "./Visualizations";
 import Net from "./Net";
 import Presets from "./Presets";
 import * as Util from "./Util";
@@ -13,12 +20,15 @@ import "jquery";
 import "bootstrap/dist/js/bootstrap";
 /**
  * the interface between the GUI and the Simulation / Neural network
- * 
+ *
  * handles buttons, animation and configuration updates with the help of React
- * 
+ *
  * the [[#state]] of this object contains the [[Configuration]]
  */
-export default class Simulation extends React.Component<{ autoRun: boolean }, Configuration> {
+export default class Simulation extends React.Component<
+	{ autoRun: boolean },
+	Configuration
+> {
 	static instance: Simulation;
 
 	netviz: NetworkVisualization;
@@ -64,12 +74,14 @@ export default class Simulation extends React.Component<{ autoRun: boolean }, Co
 		return Net.trainingMethods[this.state.type][this.state.trainingMethod];
 	}
 
-
 	constructor(props: { autoRun: boolean }) {
 		super(props);
 		if (Simulation.instance) throw Error("Already instantiated");
 		else Simulation.instance = this;
-		this.netviz = new NetworkVisualization(this, p => p === this.state.data[this.currentTrainingDataPoint]);
+		this.netviz = new NetworkVisualization(
+			this,
+			p => p === this.state.data[this.currentTrainingDataPoint]
+		);
 		this.netgraph = new NetworkGraph(this);
 		this.errorGraph = new ErrorGraph(this);
 		this.table = new TableEditor(this);
@@ -81,7 +93,14 @@ export default class Simulation extends React.Component<{ autoRun: boolean }, Co
 	initializeNet() {
 		if (this.net) this.stop();
 		console.log("initializeNet()");
-		this.net = new Net.NeuralNet(this.state.inputLayer, this.state.hiddenLayers, this.state.outputLayer, this.state.learningRate, undefined, this.state.weights);
+		this.net = new Net.NeuralNet(
+			this.state.inputLayer,
+			this.state.hiddenLayers,
+			this.state.outputLayer,
+			this.state.learningRate,
+			undefined,
+			this.state.weights
+		);
 		this.stepsWanted = this.stepsCurrent = 0;
 		this.errorHistory = [];
 		this.lastWeights = [];
@@ -96,7 +115,12 @@ export default class Simulation extends React.Component<{ autoRun: boolean }, Co
 		this.currentTrainingDataPoint = -1;
 		this.stepsCurrent++;
 		if (this.state.drawArrows)
-			this.lastWeights = [{ dataPoint: null, weights: this.net.connections.map(c => c.weight) }];
+			this.lastWeights = [
+				{
+					dataPoint: null,
+					weights: this.net.connections.map(c => c.weight)
+				}
+			];
 		const steps = this.trainingMethod.trainAll(this.net, this.state.data);
 		if (this.state.drawArrows) this.lastWeights.push(...steps);
 	}
@@ -104,8 +128,7 @@ export default class Simulation extends React.Component<{ autoRun: boolean }, Co
 	/** handle Train All button press */
 	trainAllButton() {
 		this.stop();
-		for (var i = 0; i < this.state.iterationsPerClick; i++)
-			this.trainAll();
+		for (var i = 0; i < this.state.iterationsPerClick; i++) this.trainAll();
 		this.stepsWanted = this.stepsCurrent;
 		this.onFrame(true);
 	}
@@ -120,7 +143,9 @@ export default class Simulation extends React.Component<{ autoRun: boolean }, Co
 
 	/** -1 when not training single data points, otherwise index into [[Configuration#data]] */
 	private _currentTrainingDataPoint = -1;
-	get currentTrainingDataPoint() { return this._currentTrainingDataPoint; }
+	get currentTrainingDataPoint() {
+		return this._currentTrainingDataPoint;
+	}
 	set currentTrainingDataPoint(val) {
 		if (val != this._currentTrainingDataPoint) {
 			if (val >= this.state.data.length) {
@@ -129,7 +154,9 @@ export default class Simulation extends React.Component<{ autoRun: boolean }, Co
 			this._currentTrainingDataPoint = val;
 			this.table.hot.render();
 			if (this._currentTrainingDataPoint >= 0)
-				this.net.setInputsAndCalculate(this.state.data[this._currentTrainingDataPoint].input);
+				this.net.setInputsAndCalculate(
+					this.state.data[this._currentTrainingDataPoint].input
+				);
 			this.netgraph.drawGraph();
 		}
 	}
@@ -137,10 +164,18 @@ export default class Simulation extends React.Component<{ autoRun: boolean }, Co
 	trainNext() {
 		this.currentTrainingDataPoint++;
 		if (this.state.drawArrows)
-			this.lastWeights = [{ dataPoint: null, weights: this.net.connections.map(c => c.weight) }];
+			this.lastWeights = [
+				{
+					dataPoint: null,
+					weights: this.net.connections.map(c => c.weight)
+				}
+			];
 		this.stepsCurrent++;
 
-		const newWeights = this.trainingMethod.trainSingle(this.net, this.state.data[this.currentTrainingDataPoint]);
+		const newWeights = this.trainingMethod.trainSingle(
+			this.net,
+			this.state.data[this.currentTrainingDataPoint]
+		);
 		if (this.state.drawArrows) this.lastWeights.push(newWeights);
 	}
 
@@ -160,7 +195,9 @@ export default class Simulation extends React.Component<{ autoRun: boolean }, Co
 				// start next
 				this.lrVis.leftVis.setMode(0);
 				this.currentTrainingDataPoint++;
-				this.forwardPassEles = this.netgraph.forwardPass(this.state.data[this.currentTrainingDataPoint]);
+				this.forwardPassEles = this.netgraph.forwardPass(
+					this.state.data[this.currentTrainingDataPoint]
+				);
 				this.netgraph.applyUpdate(this.forwardPassEles.shift());
 				// redraw for highlighted data point
 				this.netviz.onFrame();
@@ -227,18 +264,29 @@ export default class Simulation extends React.Component<{ autoRun: boolean }, Co
 				const res = this.net.getOutput(val.input);
 				if (+(res[0] > 0.5) == val.output[0]) correct++;
 			}
-			this.lrVis.setState({ correct: `Correct: ${correct}/${this.state.data.length}` });
+			this.lrVis.setState({
+				correct: `Correct: ${correct}/${this.state.data.length}`
+			});
 		} else {
-			this.lrVis.setState({ correct: `Error: ${(this.averageError).toFixed(2)}` });
+			this.lrVis.setState({
+				correct: `Error: ${this.averageError.toFixed(2)}`
+			});
 		}
 		this.lrVis.setState({ stepNum: this.stepsCurrent });
 
 		if (correct == this.state.data.length) {
-			if (this.state.autoRestart && this.running && this.restartTimeout == -1) {
+			if (
+				this.state.autoRestart &&
+				this.running &&
+				this.restartTimeout == -1
+			) {
 				this.restartTimeout = setTimeout(() => {
 					this.stop();
 					this.restartTimeout = -1;
-					setTimeout(() => { this.reset(); this.run(); }, 100);
+					setTimeout(() => {
+						this.reset();
+						this.run();
+					}, 100);
 				}, this.state.autoRestartTime);
 			}
 		} else {
@@ -258,38 +306,65 @@ export default class Simulation extends React.Component<{ autoRun: boolean }, Co
 			console.warn(`only ${(1000 / delta).toFixed(1)} fps`);
 			delta = 1000 / 5;
 		}
-		this.stepsWanted += delta / 1000 * this.state.stepsPerSecond;
+		this.stepsWanted += (delta / 1000) * this.state.stepsPerSecond;
 		while (this.stepsCurrent < this.stepsWanted) {
-			if (this.state.animationTrainSinglePoints && this.trainingMethod.trainSingle) this.trainNext()
+			if (
+				this.state.animationTrainSinglePoints &&
+				this.trainingMethod.trainSingle
+			)
+				this.trainNext();
 			else this.trainAll();
 		}
 		this.onFrame(false);
-		if (this.running) this.runningId = requestAnimationFrame(this.aniFrameCallback);
+		if (this.running)
+			this.runningId = requestAnimationFrame(this.aniFrameCallback);
 	}
 
 	/** called by React when configuration ([[#state]]) is about to change */
 	componentWillUpdate(nextProps: any, newConfig: Configuration) {
-		if (this.state.hiddenLayers.length !== newConfig.hiddenLayers.length && newConfig.custom) {
-			if (this.state.custom/* && !forceNeuronRename*/) return;
+		if (
+			this.state.hiddenLayers.length !== newConfig.hiddenLayers.length &&
+			newConfig.custom
+		) {
+			if (this.state.custom /* && !forceNeuronRename*/) return;
 			const inN = newConfig.inputLayer.neuronCount;
 			const outN = newConfig.outputLayer.neuronCount;
 			newConfig.name = "Custom Network";
-			newConfig.inputLayer = { names: Util.makeArray(inN, i => `in${i + 1}`), neuronCount: inN };
-			newConfig.outputLayer = { names: Util.makeArray(outN, i => `out${i + 1}`), activation: newConfig.outputLayer.activation, neuronCount: outN };
+			newConfig.inputLayer = {
+				names: Util.makeArray(inN, i => `in${i + 1}`),
+				neuronCount: inN
+			};
+			newConfig.outputLayer = {
+				names: Util.makeArray(outN, i => `out${i + 1}`),
+				activation: newConfig.outputLayer.activation,
+				neuronCount: outN
+			};
 		}
 	}
 
 	/** called by React after the configuration changed; updates the gui components not handled by react accordingly */
 	componentDidUpdate(prevProps: any, oldConfig: Configuration) {
-		const co = oldConfig, cn = this.state;
+		const co = oldConfig,
+			cn = this.state;
 		if (!cn.autoRestart) clearTimeout(this.restartTimeout);
 		const layerDifferent = (l1: any, l2: any) =>
-			l1.activation !== l2.activation || l1.neuronCount !== l2.neuronCount || (l1.names && l1.names.some((name: string, i: number) => l2.names[i] !== name));
-		if (cn.hiddenLayers.length !== co.hiddenLayers.length
-			|| layerDifferent(cn.inputLayer, co.inputLayer)
-			|| layerDifferent(cn.outputLayer, co.outputLayer)
-			|| cn.hiddenLayers.some((layer, i) => layerDifferent(layer, co.hiddenLayers[i]))
-			|| cn.weights && (!co.weights || cn.weights.some((weight, i) => co.weights[i] !== weight))) {
+			l1.activation !== l2.activation ||
+			l1.neuronCount !== l2.neuronCount ||
+			(l1.names &&
+				l1.names.some(
+					(name: string, i: number) => l2.names[i] !== name
+				));
+		if (
+			cn.hiddenLayers.length !== co.hiddenLayers.length ||
+			layerDifferent(cn.inputLayer, co.inputLayer) ||
+			layerDifferent(cn.outputLayer, co.outputLayer) ||
+			cn.hiddenLayers.some((layer, i) =>
+				layerDifferent(layer, co.hiddenLayers[i])
+			) ||
+			(cn.weights &&
+				(!co.weights ||
+					cn.weights.some((weight, i) => co.weights[i] !== weight)))
+		) {
 			this.initializeNet();
 		}
 		if (!cn.custom)
@@ -300,9 +375,10 @@ export default class Simulation extends React.Component<{ autoRun: boolean }, Co
 			}
 			if (co.type !== cn.type) {
 				// gui layout may change, trigger resize
-				window.dispatchEvent(new Event('resize'));
+				window.dispatchEvent(new Event("resize"));
 			}
-			if (co.trainingMethod != cn.trainingMethod) delete (this.net as any).tmpStore;
+			if (co.trainingMethod != cn.trainingMethod)
+				delete (this.net as any).tmpStore;
 			this.net.learnRate = cn.learningRate;
 			this.onFrame(false);
 		}
@@ -315,13 +391,14 @@ export default class Simulation extends React.Component<{ autoRun: boolean }, Co
 	}
 
 	/** parse the [[ConfigurationGui]] contents into [[#state]] */
-	loadConfig() { // from gui
+	loadConfig() {
+		// from gui
 		const config = $.extend(true, {}, this.state);
 		for (const conf in config) {
 			const ele = document.getElementById(conf) as HTMLInputElement;
 			if (!ele) continue;
-			if (ele.type == 'checkbox') config[conf] = ele.checked;
-			else if (typeof config[conf] === 'number')
+			if (ele.type == "checkbox") config[conf] = ele.checked;
+			else if (typeof config[conf] === "number")
 				config[conf] = +ele.value;
 			else config[conf] = ele.value;
 		}
@@ -339,7 +416,8 @@ export default class Simulation extends React.Component<{ autoRun: boolean }, Co
 	 * @param exportWeights 0 = no weights, 1 = current weights, 2 = start weights
 	 */
 	serializeToUrl(exportWeights = 0) {
-		const url = location.protocol + '//' + location.host + location.pathname + "?";
+		const url =
+			location.protocol + "//" + location.host + location.pathname + "?";
 		console.log("serializing to url");
 		const params: any = {};
 		if (this.state.custom || exportWeights > 0) {
@@ -347,10 +425,14 @@ export default class Simulation extends React.Component<{ autoRun: boolean }, Co
 		} else {
 			params.preset = this.state.name;
 		}
-		if (exportWeights === 1) params.config.weights = this.net.connections.map(c => c.weight);
+		if (exportWeights === 1)
+			params.config.weights = this.net.connections.map(c => c.weight);
 		if (exportWeights === 2) params.config.weights = this.net.startWeights;
 
-		if (params.config) params.config = LZString.compressToEncodedURIComponent(JSON.stringify(params.config));
+		if (params.config)
+			params.config = LZString.compressToEncodedURIComponent(
+				JSON.stringify(params.config)
+			);
 		return url + $.param(params);
 	}
 	/**
@@ -358,57 +440,106 @@ export default class Simulation extends React.Component<{ autoRun: boolean }, Co
 	 */
 	deserializeFromUrl(): Configuration {
 		const urlParams = Util.parseUrlParameters();
-		const preset = urlParams["preset"], config = urlParams["config"];
-		if (preset && Presets.exists(preset))
-			return Presets.get(preset);
+		const preset = urlParams["preset"],
+			config = urlParams["config"];
+		if (preset && Presets.exists(preset)) return Presets.get(preset);
 		else if (config) {
-			console.log(JSON.parse(LZString.decompressFromEncodedURIComponent(config)));
-			return JSON.parse(LZString.decompressFromEncodedURIComponent(config));
-		} else
-			return Presets.get("Binary Classifier for XOR");
+			console.log(
+				JSON.parse(LZString.decompressFromEncodedURIComponent(config))
+			);
+			return JSON.parse(
+				LZString.decompressFromEncodedURIComponent(config)
+			);
+		} else return Presets.get("Binary Classifier for XOR");
 	}
 	/**
 	 * (this should be default in newer React versions?)
 	 */
-	shouldComponentUpdate() { return true; }
+	shouldComponentUpdate() {
+		return true;
+	}
 
 	/**
 	 * called by React to render the GUI
 	 */
 	render() {
-		const pageTitle = this.state.type === "perceptron" ? "Perceptron demo" : "Neural Network demo";
-		const presetName = this.state.custom ? " Custom Network" : " Preset: " + this.state.name;
+		const pageTitle =
+			this.state.type === "perceptron"
+				? "Perceptron demo"
+				: "Neural Network demo";
+		const presetName = this.state.custom
+			? " Custom Network"
+			: " Preset: " + this.state.name;
 		document.title = `${pageTitle} — ${presetName}`;
 		return (
 			<div>
 				<div className="container">
 					<div className="page-header">
-						<div className="btn-toolbar pull-right dropdown" style={{ marginTop: "5px" }}>
-							<button className="btn btn-info dropdown-toggle" data-toggle="dropdown">{"Load Preset "}
+						<div
+							className="btn-toolbar pull-right dropdown"
+							style={{ marginTop: "5px" }}
+						>
+							<button
+								className="btn btn-info dropdown-toggle"
+								data-toggle="dropdown"
+							>
+								{"Load Preset "}
 								<span className="caret" />
 							</button>
 							<ul className="dropdown-menu">
-								<li className="dropdown-header">Neural Network</li>
+								<li className="dropdown-header">
+									Neural Network
+								</li>
 								{Presets.getNames().map(name => {
-									const ele = <li key={name}><a onClick={e => this.setState(Presets.get(name))}>{name}</a></li>;
+									const ele = (
+										<li key={name}>
+											<a
+												onClick={e =>
+													this.setState(
+														Presets.get(name)
+													)
+												}
+											>
+												{name}
+											</a>
+										</li>
+									);
 									if (name === "Rosenblatt Perceptron")
-										return [<li className="divider" />, <li className="dropdown-header">Perceptron</li>, ele];
+										return [
+											<li className="divider" />,
+											<li className="dropdown-header">
+												Perceptron
+											</li>,
+											ele
+										];
 									else return ele;
 								})}
 							</ul>
 						</div>
-						<h1>{pageTitle}
+						<h1>
+							{pageTitle}
 							<small>{presetName}</small>
 						</h1>
 					</div>
-					<LRVis sim={this} ref={(e: LRVis) => this.lrVis = e}
-						leftVis={[this.netgraph, this.errorGraph, this.weightsGraph]}
+					<LRVis
+						sim={this}
+						ref={(e: LRVis) => (this.lrVis = e)}
+						leftVis={[
+							this.netgraph,
+							this.errorGraph,
+							this.weightsGraph
+						]}
 						rightVis={[this.netviz, this.table]}
 					/>
 					<div className="panel panel-default">
 						<div className="panel-heading">
 							<h3 className="panel-title">
-								<a data-toggle="collapse" data-target=".panel-body">Configuration</a>
+								<a
+									data-toggle="collapse"
+									data-target=".panel-body"
+								>
+									Configuration
+								</a>
 							</h3>
 						</div>
 						<div className="panel-body collapse in">
@@ -416,10 +547,15 @@ export default class Simulation extends React.Component<{ autoRun: boolean }, Co
 						</div>
 					</div>
 					<footer className="small">
-						<a href="https://github.com/phiresky/neural-network-demo/">Source on GitHub</a>
+						<a href="https://github.com/phiresky/neural-network-demo/">
+							Source on GitHub
+						</a>
 					</footer>
 				</div>
-				<ExportModal sim={this} ref={(e: ExportModal) => this.exportModal = e} />
+				<ExportModal
+					sim={this}
+					ref={(e: ExportModal) => (this.exportModal = e)}
+				/>
 			</div>
 		);
 	}

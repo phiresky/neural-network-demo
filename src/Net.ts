@@ -5,12 +5,12 @@ import { Configuration, TrainingData } from "./Configuration";
 
 /**
  * Simple implementation of a neural network (multilayer perceptron)
- * 
+ *
  * Uses stochastic gradient descent with squared error as the loss function
  */
-export module Net {
+export namespace Net {
 	/** tangens hyperbolicus polyfill */
-	const tanh = function (x: double) {
+	const tanh = function(x: double) {
 		if (x === Infinity) {
 			return 1;
 		} else if (x === -Infinity) {
@@ -19,21 +19,27 @@ export module Net {
 			var y = Math.exp(2 * x);
 			return (y - 1) / (y + 1);
 		}
-	}
+	};
 	/** an activation function (non-linearity) and its derivative */
 	interface ActivationFunction {
-		f: (x: double) => double,
-		df: (x: double) => double
+		f: (x: double) => double;
+		df: (x: double) => double;
 	}
 	/** list of known activation functions */
 	export var NonLinearities: { [name: string]: ActivationFunction } = {
 		sigmoid: {
 			f: x => 1 / (1 + Math.exp(-x)),
-			df: x => { x = 1 / (1 + Math.exp(-x)); return x * (1 - x) }
+			df: x => {
+				x = 1 / (1 + Math.exp(-x));
+				return x * (1 - x);
+			}
 		},
 		tanh: {
 			f: x => tanh(x),
-			df: x => { x = tanh(x); return 1 - x * x }
+			df: x => {
+				x = tanh(x);
+				return 1 - x * x;
+			}
 		},
 		linear: {
 			f: x => x,
@@ -41,31 +47,32 @@ export module Net {
 		},
 		relu: {
 			f: x => Math.max(x, 0),
-			df: x => x <= 0 ? 0 : 1
+			df: x => (x <= 0 ? 0 : 1)
 		},
 		// used for Rosenblatt Perceptron (df is fake and unimportant)
 		"threshold (≥ 0)": {
-			f: x => (x >= 0) ? 1 : 0,
+			f: x => (x >= 0 ? 1 : 0),
 			df: x => 1
 		}
-	}
-
+	};
 
 	/**
 	 * A training method for a neural network.
-	 * 
+	 *
 	 * optionally returns WeightsSteps for displaying of intermediate data in the NetworkVisualization
-	 * 
+	 *
 	 * if trainSingle is null, only batch training is possible
 	 */
 	export interface TrainingMethod {
 		trainAll: (net: NeuralNet, data: TrainingData[]) => WeightsStep[];
 		trainSingle: (net: NeuralNet, data: TrainingData) => WeightsStep;
-	};
+	}
 
 	/** list of training methods for each Configuration#type */
-	export const trainingMethods: { [type: string]: { [name: string]: TrainingMethod } } = {
-		"nn": {
+	export const trainingMethods: {
+		[type: string]: { [name: string]: TrainingMethod };
+	} = {
+		nn: {
 			"Batch Training": {
 				trainAll: (net, data) => net.trainAll(data, false, false),
 				trainSingle: null
@@ -76,9 +83,11 @@ export module Net {
 			}
 		},
 		/** A Perceptron is a special type of NeuralNet that has an input layer with 3 neurons (incl. bias), an output layer with 1 neuron, and no hidden layers */
-		"perceptron": {
+		perceptron: {
 			"Rosenblatt Perceptron": {
-				trainAll(net, data) { return data.map(val => this.trainSingle(net, val)) },
+				trainAll(net, data) {
+					return data.map(val => this.trainSingle(net, val));
+				},
 				trainSingle: (net, val) => {
 					// this algorithm is equivalent to what the neural network would do via net.train(data, true, true)
 					// (when the output neuron has this activation function:
@@ -86,7 +95,7 @@ export module Net {
 					net.setInputsAndCalculate(val.input);
 					const outp = net.outputs[0];
 					outp.targetOutput = val.output[0];
-					const err = (outp.targetOutput - outp.output);
+					const err = outp.targetOutput - outp.output;
 					for (const conn of outp.inputs) {
 						conn.weight += net.learnRate * err * conn.inp.output;
 					}
@@ -101,32 +110,51 @@ export module Net {
 			/** averaged perceptron (from http://ciml.info/dl/v0_8/ciml-v0_8-ch03.pdf , p.48) */
 			"Averaged Perceptron": {
 				trainAll: (net, data) => {
-					if (!(net as any).tmpStore) (net as any).tmpStore = { c: 1, w: net.connections.map(c => c.weight), u: net.connections.map(c => 0) };
+					if (!(net as any).tmpStore)
+						(net as any).tmpStore = {
+							c: 1,
+							w: net.connections.map(c => c.weight),
+							u: net.connections.map(c => 0)
+						};
 					const vars = (net as any).tmpStore;
 					const storeWeightSteps = true; // false for optimizing (but then can't use Configuration#drawArrows)
-					if (net.layers.length !== 2 || net.outputs.length !== 1 || net.outputs[0].activation !== "threshold (≥ 0)")
+					if (
+						net.layers.length !== 2 ||
+						net.outputs.length !== 1 ||
+						net.outputs[0].activation !== "threshold (≥ 0)"
+					)
 						throw Error("can only be used for single perceptron");
 					if (storeWeightSteps) var weights: WeightsStep[] = [];
 					for (const val of data) {
 						const y = val.output[0] ? 1 : -1;
 						const x = val.input.concat([1]);
 						let yReal = 0;
-						for (let i = 0; i < x.length; i++) yReal += x[i] * vars.w[i];
+						for (let i = 0; i < x.length; i++)
+							yReal += x[i] * vars.w[i];
 						if (y * yReal <= 0) {
 							for (let i = 0; i < x.length; i++) {
 								vars.w[i] += net.learnRate * y * x[i];
 								vars.u[i] += net.learnRate * y * vars.c * x[i];
 							}
-							if (storeWeightSteps) weights.push({ dataPoint: val, weights: x.map((x, i) => vars.w[i] - vars.u[i] / vars.c) });
+							if (storeWeightSteps)
+								weights.push({
+									dataPoint: val,
+									weights: x.map(
+										(x, i) => vars.w[i] - vars.u[i] / vars.c
+									)
+								});
 						}
 						++vars.c;
 					}
-					net.connections.forEach((conn, i) => conn.weight = vars.w[i] - vars.u[i] / vars.c);
+					net.connections.forEach(
+						(conn, i) =>
+							(conn.weight = vars.w[i] - vars.u[i] / vars.c)
+					);
 					return weights;
 				},
 				trainSingle: null
 			},
-			/** from http://www.jmlr.org/papers/volume3/crammer03a/crammer03a.pdf , page 965 
+			/** from http://www.jmlr.org/papers/volume3/crammer03a/crammer03a.pdf , page 965
 			 * equivalent to Rosenblatt Perceptron except for how G is defined (see pdf)
 			 */
 			"Binary MIRA": {
@@ -141,21 +169,25 @@ export module Net {
 					const yGot = net.outputs[0].output == 1 ? 1 : -1;
 					//const err = (outp.targetOutput - outp.output);
 					const G = (x: double) => Math.min(Math.max(0, x), 1);
-					const err = G(-y * net.outputs[0].weightedInputs / x.reduce((a, b) => a + b * b, 0));
+					const err = G(
+						(-y * net.outputs[0].weightedInputs) /
+							x.reduce((a, b) => a + b * b, 0)
+					);
 					for (const conn of outp.inputs) {
-						conn.weight += net.learnRate * err * y * conn.inp.output;
+						conn.weight +=
+							net.learnRate * err * y * conn.inp.output;
 					}
 					var weights = net.connections.map(conn => conn.weight);
 					return { weights, dataPoint: val };
 				}
 			}
 		}
-	}
+	};
 
-	/** 
+	/**
 	 * intermediate result of a single data point training step and the resulting weights vector
-	 * 
-	 * used to visualize the weights vector in the perceptron demo 
+	 *
+	 * used to visualize the weights vector in the perceptron demo
 	 */
 	export class WeightsStep {
 		dataPoint: TrainingData;
@@ -175,38 +207,67 @@ export module Net {
 		outputs: OutputNeuron[];
 		/** a flat list of all the neuron connections */
 		connections: NeuronConnection[] = [];
-		constructor(input: InputLayerConfig, hidden: LayerConfig[], output: OutputLayerConfig, public learnRate: number,
-			startWeight = () => Math.random() - 0.5, public startWeights?: double[]) {
+		constructor(
+			input: InputLayerConfig,
+			hidden: LayerConfig[],
+			output: OutputLayerConfig,
+			public learnRate: number,
+			startWeight = () => Math.random() - 0.5,
+			public startWeights?: double[]
+		) {
 			let nid = 0;
-			this.inputs = makeArray(input.neuronCount, i => new InputNeuron(nid++, i, input.names[i]));
+			this.inputs = makeArray(
+				input.neuronCount,
+				i => new InputNeuron(nid++, i, input.names[i])
+			);
 			this.layers.push(this.inputs.slice());
 			for (var layer of hidden) {
-				this.layers.push(makeArray(layer.neuronCount, i => new Neuron(layer.activation, nid++, i)));
+				this.layers.push(
+					makeArray(
+						layer.neuronCount,
+						i => new Neuron(layer.activation, nid++, i)
+					)
+				);
 			}
-			this.outputs = makeArray(output.neuronCount, i => new OutputNeuron(output.activation, nid++, i, output.names[i]));
+			this.outputs = makeArray(
+				output.neuronCount,
+				i =>
+					new OutputNeuron(
+						output.activation,
+						nid++,
+						i,
+						output.names[i]
+					)
+			);
 			this.layers.push(this.outputs);
 			for (let i = 0; i < this.layers.length - 1; i++) {
 				const inLayer = this.layers[i];
 				const outLayer = this.layers[i + 1];
 				inLayer.push(new InputNeuron(nid++, -1, "Bias", 1));
 
-				for (const input of inLayer) for (const output of outLayer) {
-					var conn = new Net.NeuronConnection(input, output);
-					input.outputs.push(conn);
-					output.inputs.push(conn);
-					this.connections.push(conn);
-				}
+				for (const input of inLayer)
+					for (const output of outLayer) {
+						var conn = new Net.NeuronConnection(input, output);
+						input.outputs.push(conn);
+						output.inputs.push(conn);
+						this.connections.push(conn);
+					}
 				this.biases[i] = inLayer.pop() as InputNeuron;
 			}
 			if (!this.startWeights) {
-				this.startWeights = this.connections.map(c => c.weight = startWeight());
-			} else this.startWeights.forEach((w, i) => this.connections[i].weight = w);
+				this.startWeights = this.connections.map(
+					c => (c.weight = startWeight())
+				);
+			} else
+				this.startWeights.forEach(
+					(w, i) => (this.connections[i].weight = w)
+				);
 		}
 		setInputsAndCalculate(inputVals: double[]) {
 			for (let i = 0; i < this.inputs.length; i++)
 				this.inputs[i].output = inputVals[i];
-			for (const layer of this.layers.slice(1)) for (const neuron of layer)
-				neuron.calculateOutput();
+			for (const layer of this.layers.slice(1))
+				for (const neuron of layer) neuron.calculateOutput();
 		}
 		getOutput(inputVals: double[]) {
 			this.setInputsAndCalculate(inputVals);
@@ -223,14 +284,20 @@ export module Net {
 		}
 
 		/** if individual is true, train individually, else batch train */
-		trainAll(data: TrainingData[], individual: boolean, storeWeightSteps: boolean) {
+		trainAll(
+			data: TrainingData[],
+			individual: boolean,
+			storeWeightSteps: boolean
+		) {
 			if (storeWeightSteps) var weights: WeightsStep[] = [];
-			if (!individual) for (const conn of this.connections) conn.zeroDeltaWeight();
+			if (!individual)
+				for (const conn of this.connections) conn.zeroDeltaWeight();
 			for (const val of data) {
 				const step = this.train(val, individual, storeWeightSteps);
 				if (storeWeightSteps) weights.push(step);
 			}
-			if (!individual) for (const conn of this.connections) conn.flushDeltaWeight();
+			if (!individual)
+				for (const conn of this.connections) conn.flushDeltaWeight();
 			return weights;
 		}
 
@@ -248,8 +315,12 @@ export module Net {
 					}
 				}
 			}
-			if (storeWeightSteps) var weights = this.connections.map(conn => conn.weight + conn.deltaWeight);
-			if (flush) for (const conn of this.connections) conn.flushDeltaWeight();
+			if (storeWeightSteps)
+				var weights = this.connections.map(
+					conn => conn.weight + conn.deltaWeight
+				);
+			if (flush)
+				for (const conn of this.connections) conn.flushDeltaWeight();
 			return { weights, dataPoint: val };
 		}
 	}
@@ -259,7 +330,7 @@ export module Net {
 		public weight = 0;
 		/** cached delta weight for training */
 		deltaWeight = NaN;
-		constructor(public inp: Neuron, public out: Neuron) { }
+		constructor(public inp: Neuron, public out: Neuron) {}
 		zeroDeltaWeight() {
 			this.deltaWeight = 0;
 		}
@@ -279,7 +350,11 @@ export module Net {
 		public weightedInputs = 0;
 		public output = 0;
 		public error = 0;
-		constructor(public activation: string, public id: int, public layerIndex: int) { }
+		constructor(
+			public activation: string,
+			public id: int,
+			public layerIndex: int
+		) {}
 		calculateWeightedInputs() {
 			this.weightedInputs = 0;
 			for (const conn of this.inputs) {
@@ -288,39 +363,60 @@ export module Net {
 		}
 		calculateOutput() {
 			this.calculateWeightedInputs();
-			this.output = NonLinearities[this.activation].f(this.weightedInputs);
+			this.output = NonLinearities[this.activation].f(
+				this.weightedInputs
+			);
 		}
 		calculateError() {
 			var δ = 0;
 			for (const output of this.outputs) {
 				δ += output.out.error * output.weight;
 			}
-			this.error = δ * NonLinearities[this.activation].df(this.weightedInputs);
+			this.error =
+				δ * NonLinearities[this.activation].df(this.weightedInputs);
 		}
 	}
 	/** an input neuron (no inputs, fixed output value, can't be trained) */
 	export class InputNeuron extends Neuron {
 		constant: boolean = false; // value won't change
-		constructor(id: int, layerIndex: int, public name: string, constantOutput?: number) {
+		constructor(
+			id: int,
+			layerIndex: int,
+			public name: string,
+			constantOutput?: number
+		) {
 			super(null, id, layerIndex);
 			if (constantOutput !== undefined) {
 				this.output = constantOutput;
 				this.constant = true;
 			}
 		}
-		calculateOutput() { throw Error("input neuron") }
-		calculateWeightedInputs() { throw Error("input neuron") }
-		calculateError() { throw Error("input neuron") }
+		calculateOutput() {
+			throw Error("input neuron");
+		}
+		calculateWeightedInputs() {
+			throw Error("input neuron");
+		}
+		calculateError() {
+			throw Error("input neuron");
+		}
 	}
 	/** an output neuron (error calculated via target output */
 	export class OutputNeuron extends Neuron {
 		targetOutput: double;
-		constructor(public activation: string, id: int, layerIndex: int, public name: string) {
+		constructor(
+			public activation: string,
+			id: int,
+			layerIndex: int,
+			public name: string
+		) {
 			super(activation, id, layerIndex);
 		}
 
 		calculateError() {
-			this.error = NonLinearities[this.activation].df(this.weightedInputs) * (this.targetOutput - this.output);
+			this.error =
+				NonLinearities[this.activation].df(this.weightedInputs) *
+				(this.targetOutput - this.output);
 			// ⇔ for perceptron: (this.targetOutput - this.output)
 			// ⇔  1 if (sign(w*x) =  1 and y = -1);
 			//   -1 if (sign(w*x) = -1 and y =  1);

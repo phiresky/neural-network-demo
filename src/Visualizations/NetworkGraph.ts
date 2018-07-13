@@ -37,10 +37,10 @@ export default class NetworkGraph implements Visualization {
 			edges: this.edges
 		};
 		const options = {
-			nodes: { shape: 'dot' },
+			nodes: { shape: "dot" },
 			edges: {
-				smooth: { type: 'curvedCW', roundness: 0 },
-				font: { align: 'top', background: 'white' },
+				smooth: { type: "curvedCW", roundness: 0 },
+				font: { align: "top", background: "white" }
 				/*scaling: {
 					label: {min:1,max:2}
 				}*/
@@ -48,18 +48,23 @@ export default class NetworkGraph implements Visualization {
 			layout: { hierarchical: { direction: "LR" } },
 
 			interaction: { dragNodes: false }
-		}
+		};
 		if (this.graph) this.graph.destroy();
 		this.graph = new vis.Network(this.container, graphData, options);
 	}
 	private edgeId(conn: Net.NeuronConnection) {
-		return conn.inp.id * this.net.connections.length + conn.out.id
+		return conn.inp.id * this.net.connections.length + conn.out.id;
 	}
 	onNetworkLoaded(net: Net.NeuralNet, forceRedraw = false) {
-		if (!forceRedraw && this.net
-			&& this.net.layers.length == net.layers.length
-			&& this.net.layers.every((layer, index) => layer.length == net.layers[index].length)
-			&& this.showbias === this.sim.state.bias) {
+		if (
+			!forceRedraw &&
+			this.net &&
+			this.net.layers.length == net.layers.length &&
+			this.net.layers.every(
+				(layer, index) => layer.length == net.layers[index].length
+			) &&
+			this.showbias === this.sim.state.bias
+		) {
 			// same net layout, only update
 			this.net = net;
 			this.onFrame(0);
@@ -81,22 +86,26 @@ export default class NetworkGraph implements Visualization {
 			if (this.showbias && net.biases[lid])
 				layerWithBias = layer.concat(net.biases[lid]);
 			for (const neuron of layerWithBias) {
-				let type = 'Hidden Neuron ' + (nid++);
-				let color = '#000';
+				let type = "Hidden Neuron " + nid++;
+				let color = "#000";
 				if (neuron instanceof Net.InputNeuron) {
-					type = 'Input: ' + neuron.name;
+					type = "Input: " + neuron.name;
 					if (neuron.constant) {
 						color = NetworkVisualization.colors.autoencoder.bias;
-					}
-					else color = NetworkVisualization.colors.autoencoder.input;
-				} if (neuron instanceof Net.OutputNeuron) {
-					type = 'Output: ' + neuron.name;
+					} else
+						color = NetworkVisualization.colors.autoencoder.input;
+				}
+				if (neuron instanceof Net.OutputNeuron) {
+					type = "Output: " + neuron.name;
 					color = NetworkVisualization.colors.autoencoder.output;
 				}
-				if (this.sim.state.type == "nn" && this.sim.currentTrainingDataPoint >= 0) {
+				if (
+					this.sim.state.type == "nn" &&
+					this.sim.currentTrainingDataPoint >= 0
+				) {
 					let v = 1 - Math.min(Math.max(neuron.output, 0), 1);
 					v = (v * 250) | 0;
-					color = 'rgb(' + [v, v, v] + ')'
+					color = "rgb(" + [v, v, v] + ")";
 				}
 				this.nodes.add({
 					id: neuron.id,
@@ -111,9 +120,9 @@ export default class NetworkGraph implements Visualization {
 				id: this.edgeId(conn),
 				from: conn.inp.id,
 				to: conn.out.id,
-				arrows: 'to',
-				label: conn.weight.toFixed(2),
-			})
+				arrows: "to",
+				label: conn.weight.toFixed(2)
+			});
 		}
 		this.nodes.flush();
 		this.edges.flush();
@@ -131,29 +140,33 @@ export default class NetworkGraph implements Visualization {
 		const updates: NetGraphUpdate[] = [{ nodes: [], edges: [] }];
 		// reset all names
 
-		for (const layer of this.net.layers) for (const neuron of layer) {
-			updates[0].nodes.push({
-				id: neuron.id,
-				label: `0`
-			});
-		}
+		for (const layer of this.net.layers)
+			for (const neuron of layer) {
+				updates[0].nodes.push({
+					id: neuron.id,
+					label: `0`
+				});
+			}
 		for (const neuron of this.net.biases) {
 			updates[0].nodes.push({
 				id: neuron.id,
 				label: `Bias (1)`
-			})
+			});
 		}
 		for (let i = 0; i < data.input.length; i++) {
 			updates[0].nodes.push({
 				id: this.net.inputs[i].id,
-				label: `${this.net.inputs[i].name} = ${data.input[i].toFixed(2)}`
+				label: `${this.net.inputs[i].name} = ${data.input[i].toFixed(
+					2
+				)}`
 			});
 		}
-		const allEdgesInvisible = () => this.net.connections.map(conn => ({
-			id: this.edgeId(conn),
-			color: "rgba(255,255,255,0)",
-			label: undefined
-		}));
+		const allEdgesInvisible = () =>
+			this.net.connections.map(conn => ({
+				id: this.edgeId(conn),
+				color: "rgba(255,255,255,0)",
+				label: undefined
+			}));
 		updates[0].edges = allEdgesInvisible();
 		// passes
 		let lastNeuron: Net.Neuron;
@@ -162,29 +175,57 @@ export default class NetworkGraph implements Visualization {
 				if (neuron instanceof Net.InputNeuron) continue; // bias neuron
 				updates.push({
 					highlightNodes: [neuron.id],
-					nodes: lastNeuron ? [{ id: lastNeuron.id, label: lastNeuron.output.toFixed(2) }] : [],
-					edges: allEdgesInvisible().concat(neuron.inputs.map(i => ({
-						id: this.edgeId(i),
-						color: "black",
-						label: ""
-					})))
+					nodes: lastNeuron
+						? [
+								{
+									id: lastNeuron.id,
+									label: lastNeuron.output.toFixed(2)
+								}
+						  ]
+						: [],
+					edges: allEdgesInvisible().concat(
+						neuron.inputs.map(i => ({
+							id: this.edgeId(i),
+							color: "black",
+							label: ""
+						}))
+					)
 				});
 				let neuronVal = 0;
 				for (const input of neuron.inputs) {
 					const add = input.inp.output * input.weight;
 					neuronVal += add;
 					const update: NetGraphUpdate = {
-						nodes: [{ id: neuron.id, label: `∑ = ${neuronVal.toFixed(2)}` }],
-						edges: [{ id: this.edgeId(input), label: `+ ${input.inp.output.toFixed(2)} · (${input.weight.toFixed(2)})` }],
+						nodes: [
+							{
+								id: neuron.id,
+								label: `∑ = ${neuronVal.toFixed(2)}`
+							}
+						],
+						edges: [
+							{
+								id: this.edgeId(input),
+								label: `+ ${input.inp.output.toFixed(
+									2
+								)} · (${input.weight.toFixed(2)})`
+							}
+						],
 						highlightNodes: [],
 						highlightEdges: [this.edgeId(input)]
-					}
+					};
 					updates.push(update);
 				}
 				updates.push({
-					nodes: [{ id: neuron.id, label: `σ(${neuronVal.toFixed(2)}) = ${neuron.output.toFixed(2)}` }],
+					nodes: [
+						{
+							id: neuron.id,
+							label: `σ(${neuronVal.toFixed(
+								2
+							)}) = ${neuron.output.toFixed(2)}`
+						}
+					],
 					edges: allEdgesInvisible()
-				})
+				});
 				lastNeuron = neuron;
 			}
 		}
@@ -195,8 +236,10 @@ export default class NetworkGraph implements Visualization {
 		this.nodes.update(update.nodes);
 		this.nodes.flush();
 		this.edges.flush();
-		if (update.highlightNodes) this.graph.selectNodes(update.highlightNodes, false);
-		if (update.highlightEdges) this.graph.selectEdges(update.highlightEdges);
+		if (update.highlightNodes)
+			this.graph.selectNodes(update.highlightNodes, false);
+		if (update.highlightEdges)
+			this.graph.selectEdges(update.highlightEdges);
 	}
 	onFrame(framenum: int) {
 		if (this.currentlyDisplayingForwardPass) {
@@ -214,15 +257,13 @@ export default class NetworkGraph implements Visualization {
 				id: this.edgeId(conn),
 				label: conn.weight.toFixed(2),
 				width: Math.min(6, Math.abs(conn.weight * 2)),
-				color: conn.weight > 0 ? 'blue' : 'red'
-			})
+				color: conn.weight > 0 ? "blue" : "red"
+			});
 		}
 		this.edges.flush();
 	}
 	onView() {
 		this.graph.stabilize();
 	}
-	onHide() {
-
-	}
+	onHide() {}
 }

@@ -9,18 +9,25 @@ export default class ErrorGraph implements Visualization {
 	container = document.createElement("div");
 	constructor(public sim: Simulation) {
 		this.chart = new highstock.Chart({
-			title: { text: 'Average RMSE' },
-			chart: { type: 'line', renderTo: this.container, animation: false },
+			title: { text: "Average RMSE" },
+			chart: { type: "line", renderTo: this.container, animation: false },
 			plotOptions: { line: { marker: { enabled: false } } },
 			legend: { enabled: false },
-			yAxis: { min: 0, title: { text: '' }, labels: { format: "{value:%.2f}" } },
-			series: [{ name: 'Error', data: [] }],
+			yAxis: {
+				min: 0,
+				title: { text: "" },
+				labels: { format: "{value:%.2f}" }
+			},
+			series: [{ name: "Error", data: [] }],
 			colors: ["black"],
 			credits: { enabled: false }
 		});
 	}
 	onFrame() {
-		const data: [number, number] = [this.sim.stepsCurrent, this.sim.averageError];
+		const data: [number, number] = [
+			this.sim.stepsCurrent,
+			this.sim.averageError
+		];
 		this.chart.series[0].addPoint(data, true, false);
 	}
 	onView() {
@@ -30,5 +37,5 @@ export default class ErrorGraph implements Visualization {
 	onNetworkLoaded() {
 		this.chart.series[0].setData([]);
 	}
-	onHide() { }
+	onHide() {}
 }
