@@ -1,14 +1,15 @@
 {
 	"compilerOptions": {
 		"target": "ES5",
-		"watch": false,
 		"sourceMap": true,
-		"noImplicitAny": true,
-		"suppressImplicitAnyIndexErrors": true,
 		"jsx": "react",
 		"experimentalDecorators": true,
 		"moduleResolution": "node",
-		"outDir": "bin"
+		"outDir": "bin",
+		"strict": true,
+		"forceConsistentCasingInFileNames": true,
+		"noFallthroughCasesInSwitch": true,
+		"noImplicitReturns": true
 	},
 	"files": [
 		"./src/untyped.d.ts",
