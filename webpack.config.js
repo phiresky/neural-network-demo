@@ -43,7 +43,7 @@ module.exports = {
 	devtool: "source-map",
 	module: {
 		loaders: [
-			{ test: /\.tsx?$/, loader: "ts-loader?transpileOnly" },
+			{ test: /\.tsx?$/, loader: "ts-loader" },
 			{ test: /\.css$/, loader: "style-loader!css-loader?-url" }
 		]
 		//noParse: [path.join(__dirname, 'node_modules/handsontable/dist/handsontable.full.js')]
