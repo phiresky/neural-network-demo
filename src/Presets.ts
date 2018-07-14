@@ -3,7 +3,11 @@ import * as $ from "jquery";
 import { int, double } from "./main";
 import Simulation from "./Simulation";
 import * as Util from "./Util";
-import { TrainingData, Configuration } from "./Configuration";
+import {
+	TrainingData,
+	Configuration,
+	PartialConfiguration
+} from "./Configuration";
 
 export interface InputLayerConfig {
 	neuronCount: int;
@@ -48,8 +52,9 @@ namespace Presets {
 	}
 	export function printPreset(sim: Simulation, parentName = "Default") {
 		const parent = get(parentName);
-		const outconf: any = {};
-		for (const prop in sim.state) {
+		const outconf: Partial<Configuration> = {};
+		for (const _prop in sim.state) {
+			const prop = _prop as keyof Configuration;
 			if (sim.state[prop] !== parent[prop])
 				outconf[prop] = sim.state[prop];
 		}
@@ -64,7 +69,7 @@ namespace Presets {
 	}
 
 	/** all the hardcoded presets */
-	export const presets: Configuration[] = [
+	export const presets: PartialConfiguration[] = [
 		{
 			name: "Default",
 			stepsPerSecond: 3000,
@@ -884,7 +889,7 @@ namespace Presets {
 			p => p.name === "Vowel frequency response (Peterson and Barney)"
 		)[0];
 		preset.data = relevantData;
-		Util.normalizeInputs(preset);
+		Util.normalizeInputs(preset as any);
 		//presets.forEach(preset => preset.data && normalizeInputs(preset.data));
 	}
 

@@ -15,7 +15,7 @@ import "handsontable/dist/handsontable.full.min.css";
 $(document).ready(() => {
 	Presets.loadPetersonBarney();
 	render(
-		<Simulation autoRun={false} />,
+		<Simulation autoRun={false} /> as any,
 		document.getElementById("mainContainer")
 	);
 	(window as any).sim = Simulation.instance;

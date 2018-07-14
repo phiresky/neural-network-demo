@@ -20,9 +20,9 @@ export default class NetworkGraph implements Visualization {
 	graph: any; // vis.Network
 	nodes: any; // vis.DataSet
 	edges: any; // vis.DataSet
-	net: Net.NeuralNet;
+	net!: Net.NeuralNet;
 	container = document.createElement("div");
-	showbias: boolean;
+	showbias!: boolean;
 	currentlyDisplayingForwardPass = false;
 	biasBeforeForwardPass = false;
 
@@ -165,11 +165,11 @@ export default class NetworkGraph implements Visualization {
 			this.net.connections.map(conn => ({
 				id: this.edgeId(conn),
 				color: "rgba(255,255,255,0)",
-				label: undefined
+				label: undefined as string | undefined
 			}));
 		updates[0].edges = allEdgesInvisible();
 		// passes
-		let lastNeuron: Net.Neuron;
+		let lastNeuron: Net.Neuron | null = null;
 		for (const layer of this.net.layers.slice(1)) {
 			for (const neuron of layer) {
 				if (neuron instanceof Net.InputNeuron) continue; // bias neuron

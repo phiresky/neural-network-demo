@@ -6,7 +6,7 @@ import { Configuration, TrainingData } from "./Configuration";
 
 export default class ExportModal extends React.Component<
 	{ sim: Simulation; ref: any },
-	{ exportWeights?: string; errors?: string[] }
+	{ exportWeights: string; errors: string[] }
 > {
 	constructor(props: { sim: Simulation; ref: any }) {
 		super(props);
@@ -146,12 +146,15 @@ export default class ExportModal extends React.Component<
 	}
 	importJSON(ev: Event) {
 		const files = (ev.target as HTMLInputElement).files;
-		if (files.length !== 1) this.addIOError("invalid selection");
-		const file = files.item(0);
+		if (!files || files.length !== 1) {
+			this.addIOError("invalid selection");
+			return;
+		}
+		const file = files.item(0)!;
 		const r = new FileReader();
 		r.onload = t => {
 			try {
-				const text = r.result;
+				const text = r.result as string;
 				this.props.sim.setState(JSON.parse(text));
 				($("#exportModal") as any).modal("hide");
 			} catch (e) {
@@ -164,8 +167,11 @@ export default class ExportModal extends React.Component<
 	importCSV(ev: Event) {
 		console.log("imo");
 		const files = (ev.target as HTMLInputElement).files;
-		if (files.length !== 1) this.addIOError("invalid selection");
-		const file = files.item(0);
+		if (!files || files.length !== 1) {
+			this.addIOError("invalid selection");
+			return;
+		}
+		const file = files.item(0)!;
 		const r = new FileReader();
 		const sim = this.props.sim;
 		r.onload = t => {
@@ -185,7 +191,7 @@ export default class ExportModal extends React.Component<
 						oups} columns, got ${len} columns`;
 				const newState = Util.cloneConfig(sim.state);
 				if (!data[0][0].match(/^\d+$/)) {
-					const headers = data.shift();
+					const headers = data.shift()!;
 					newState.inputLayer.names = headers.slice(0, inps);
 					newState.outputLayer.names = headers.slice(
 						inps,

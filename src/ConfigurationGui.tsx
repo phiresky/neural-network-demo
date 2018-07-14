@@ -36,9 +36,19 @@ class BSFormGroup extends React.Component<
 		);
 	}
 }
+
+type BooleanConfigOptions = {
+	[k in keyof Configuration]: Configuration[k] extends boolean ? k : never
+}[keyof Configuration];
+
 /** small wrapper for bootstrap form checkboxes */
 class BSCheckbox extends React.Component<
-	{ conf: Configuration; label: string; id: string; onChange: () => void },
+	{
+		conf: Configuration;
+		label: string;
+		id: BooleanConfigOptions;
+		onChange: () => void;
+	},
 	{}
 > {
 	render() {

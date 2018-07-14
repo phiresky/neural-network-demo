@@ -23,7 +23,7 @@ export default class TransformNavigation {
 	};
 
 	/** position where the mouse press started (for dragging) */
-	private mousestart: { x: number; y: number } = null;
+	private mousestart: { x: number; y: number } | null = null;
 	/**
 	 * @param transformActive function that returns if the mouse transform should act on mouse dragging / scrolling events currently
 	 * @param transformChanged callback when the transform has changed (e.g. to redraw)

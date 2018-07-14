@@ -41,6 +41,7 @@ export default class TableEditor implements Visualization {
 			.click(e => this.sim.setState({ data: [] }, () => this.loadData()))
 			.appendTo(this.container);
 		const headerRenderer = function firstRowRenderer(
+			this: any,
 			instance: any,
 			td: HTMLTableCellElement
 		) {

@@ -54,7 +54,7 @@ namespace Util {
 			maxy: Math.max(...data.map(d => d.input[1]))
 		};
 	}
-	let _nextGaussian: double;
+	let _nextGaussian: double | undefined;
 	/** port of https://docs.oracle.com/javase/7/docs/api/java/util/Random.html#nextGaussian() */
 	export function randomGaussian(mean = 0, standardDeviation = 1) {
 		if (_nextGaussian !== undefined) {
@@ -82,15 +82,16 @@ namespace Util {
 	/**
 	 * parse hex color (#ff0000) to number array
 	 */
-	export function parseColor(input: string): [number, number, number] {
-		const m = input.match(/^#([0-9a-f]{6})$/i)[1];
-		if (m) {
-			return [
-				parseInt(m.substr(0, 2), 16),
-				parseInt(m.substr(2, 2), 16),
-				parseInt(m.substr(4, 2), 16)
-			];
-		}
+	export function parseColor(input: string): [number, number, number] | null {
+		const a = input.match(/^#([0-9a-f]{6})$/i);
+		if (!a) return null;
+		const m = a[1];
+		if (!m) return null;
+		return [
+			parseInt(m.substr(0, 2), 16),
+			parseInt(m.substr(2, 2), 16),
+			parseInt(m.substr(4, 2), 16)
+		];
 	}
 	/**
 	 * convert three numbers to hex color string

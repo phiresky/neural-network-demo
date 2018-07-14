@@ -64,8 +64,13 @@ export namespace Net {
 	 * if trainSingle is null, only batch training is possible
 	 */
 	export interface TrainingMethod {
-		trainAll: (net: NeuralNet, data: TrainingData[]) => WeightsStep[];
-		trainSingle: (net: NeuralNet, data: TrainingData) => WeightsStep;
+		trainAll: (
+			net: NeuralNet,
+			data: TrainingData[]
+		) => WeightsStep[] | null;
+		trainSingle:
+			| ((net: NeuralNet, data: TrainingData) => WeightsStep | null)
+			| null;
 	}
 
 	/** list of training methods for each Configuration#type */
@@ -86,7 +91,9 @@ export namespace Net {
 		perceptron: {
 			"Rosenblatt Perceptron": {
 				trainAll(net, data) {
-					return data.map(val => this.trainSingle(net, val));
+					return data.map(val =>
+						this.trainSingle!(net, val)
+					) as WeightsStep[];
 				},
 				trainSingle: (net, val) => {
 					// this algorithm is equivalent to what the neural network would do via net.train(data, true, true)
@@ -137,7 +144,7 @@ export namespace Net {
 								vars.u[i] += net.learnRate * y * vars.c * x[i];
 							}
 							if (storeWeightSteps)
-								weights.push({
+								weights!.push({
 									dataPoint: val,
 									weights: x.map(
 										(x, i) => vars.w[i] - vars.u[i] / vars.c
@@ -150,7 +157,7 @@ export namespace Net {
 						(conn, i) =>
 							(conn.weight = vars.w[i] - vars.u[i] / vars.c)
 					);
-					return weights;
+					return weights!;
 				},
 				trainSingle: null
 			},
@@ -159,7 +166,7 @@ export namespace Net {
 			 */
 			"Binary MIRA": {
 				trainAll(net, data) {
-					return data.map(d => this.trainSingle(net, d));
+					return data.map(d => this.trainSingle!(net, d)!);
 				},
 				trainSingle: (net, val) => {
 					net.setInputsAndCalculate(val.input);
@@ -189,8 +196,8 @@ export namespace Net {
 	 *
 	 * used to visualize the weights vector in the perceptron demo
 	 */
-	export class WeightsStep {
-		dataPoint: TrainingData;
+	export interface WeightsStep {
+		dataPoint: TrainingData | null;
 		weights: number[];
 	}
 
@@ -213,7 +220,7 @@ export namespace Net {
 			output: OutputLayerConfig,
 			public learnRate: number,
 			startWeight = () => Math.random() - 0.5,
-			public startWeights?: double[]
+			public startWeights?: double[] | null
 		) {
 			let nid = 0;
 			this.inputs = makeArray(
@@ -289,12 +296,13 @@ export namespace Net {
 			individual: boolean,
 			storeWeightSteps: boolean
 		) {
-			if (storeWeightSteps) var weights: WeightsStep[] = [];
+			let weights: WeightsStep[] | null = null;
+			if (storeWeightSteps) weights = [];
 			if (!individual)
 				for (const conn of this.connections) conn.zeroDeltaWeight();
 			for (const val of data) {
 				const step = this.train(val, individual, storeWeightSteps);
-				if (storeWeightSteps) weights.push(step);
+				if (weights) weights.push(step!);
 			}
 			if (!individual)
 				for (const conn of this.connections) conn.flushDeltaWeight();
@@ -315,13 +323,18 @@ export namespace Net {
 					}
 				}
 			}
-			if (storeWeightSteps)
-				var weights = this.connections.map(
-					conn => conn.weight + conn.deltaWeight
-				);
+
+			var w = storeWeightSteps
+				? {
+						weights: this.connections.map(
+							conn => conn.weight + conn.deltaWeight
+						),
+						dataPoint: val
+				  }
+				: null;
 			if (flush)
 				for (const conn of this.connections) conn.flushDeltaWeight();
-			return { weights, dataPoint: val };
+			return w;
 		}
 	}
 
@@ -385,7 +398,7 @@ export namespace Net {
 			public name: string,
 			constantOutput?: number
 		) {
-			super(null, id, layerIndex);
+			super(null!, id, layerIndex);
 			if (constantOutput !== undefined) {
 				this.output = constantOutput;
 				this.constant = true;
@@ -403,7 +416,7 @@ export namespace Net {
 	}
 	/** an output neuron (error calculated via target output */
 	export class OutputNeuron extends Neuron {
-		targetOutput: double;
+		targetOutput: double = 0;
 		constructor(
 			public activation: string,
 			id: int,

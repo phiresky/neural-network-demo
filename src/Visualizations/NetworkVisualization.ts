@@ -84,7 +84,7 @@ export default class NetworkVisualization implements Visualization {
 	) {
 		const tmp = NetworkVisualization.colors.multiClass;
 		tmp.bg = tmp.fg.map(c =>
-			Util.printColor(<any>Util.parseColor(c).map(x => (x * 1.3) | 0))
+			Util.printColor(Util.parseColor(c)!.map(x => (x * 1.3) | 0) as any)
 		);
 		this.canvas = <HTMLCanvasElement>$("<canvas class=fullsize>")[0];
 		this.canvas.width = 550;
@@ -149,20 +149,19 @@ export default class NetworkVisualization implements Visualization {
 			);
 			return;
 		}
-		const isSinglePerceptron = this.sim.state.type === "perceptron";
 		const separator =
-			isSinglePerceptron &&
+			this.sim.state.type === "perceptron" &&
 			this.getSeparator(
 				Util.toLinearFunction(this.sim.net.connections.map(
 					i => i.weight
 				) as any)
 			);
-		if (isSinglePerceptron) this.drawPolyBackground(separator);
+		if (separator) this.drawPolyBackground(separator);
 		else this.drawBackground();
 		if (this.sim.state.drawCoordinateSystem) this.drawCoordinateSystem();
 		if (this.sim.state.drawArrows) this.drawArrows();
 		this.drawDataPoints();
-		if (isSinglePerceptron) {
+		if (separator) {
 			const tor = this.trafo.toReal;
 			if (
 				this.sim.state.drawArrows &&
@@ -241,9 +240,9 @@ export default class NetworkVisualization implements Visualization {
 		);
 	}
 
-	drawPoint(x: number, y: number, color: string, highlight = false) {
+	drawPoint(x: number, y: number, color: string | null, highlight = false) {
 		(x = this.trafo.toCanvas.x(x)), (y = this.trafo.toCanvas.y(y));
-		this.ctx.fillStyle = color;
+		this.ctx.fillStyle = color!;
 		this.ctx.beginPath();
 		this.ctx.lineWidth = highlight ? 5 : 1;
 		this.ctx.strokeStyle = highlight ? "#000000" : "#000000";
@@ -498,7 +497,7 @@ export default class NetworkVisualization implements Visualization {
 			}
 		} else return;
 		this.sim.setState({ data, custom: true });
-		this.sim.lastWeights = undefined;
+		this.sim.lastWeights = undefined!;
 		this.onFrame();
 	}
 	onView(previouslyHidden: boolean, mode: int) {

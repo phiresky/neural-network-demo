@@ -21,10 +21,10 @@ export interface Visualization {
 	onFrame: (framenum: int) => void;
 }
 interface MultiVisState {
-	running?: boolean;
-	bodies?: Visualization[];
-	correct?: string;
-	stepNum?: number;
+	running: boolean;
+	bodies: (Visualization | null)[];
+	correct: string;
+	stepNum: number;
 }
 /** display multiple Visualizations */
 abstract class MultiVisDisplayer<T> extends React.Component<
@@ -46,7 +46,7 @@ abstract class MultiVisDisplayer<T> extends React.Component<
 		for (const body of this.state.bodies) if (body) body.onFrame(framenum);
 	}
 	/// hack to prevent overwriting from react because setState is called multiple times before it is done
-	bodiesTmp: Visualization[];
+	bodiesTmp: (Visualization | null)[] | undefined;
 	changeBody(i: int, vis: Visualization, aft: () => void) {
 		this.bodiesTmp = this.bodiesTmp || this.state.bodies.slice();
 		this.bodiesTmp[i] = vis;
@@ -57,11 +57,12 @@ abstract class MultiVisDisplayer<T> extends React.Component<
 	}
 	componentDidUpdate(prevProps: any, prevState: MultiVisState) {
 		for (let i = 0; i < prevState.bodies.length; i++) {
-			if (prevState.bodies[i] !== this.state.bodies[i]) {
+			const cur = this.state.bodies[i];
+			if (prevState.bodies[i] !== cur && cur) {
 				$(this.bodyDivs[i])
 					.children()
 					.detach();
-				$(this.bodyDivs[i]).append(this.state.bodies[i].container);
+				$(this.bodyDivs[i]).append(cur.container);
 			}
 		}
 	}
@@ -140,8 +141,8 @@ export class LRVis extends MultiVisDisplayer<{
 	leftVis: Visualization[];
 	rightVis: Visualization[];
 }> {
-	leftVis: TabSwitcher;
-	rightVis: TabSwitcher;
+	leftVis!: TabSwitcher;
+	rightVis!: TabSwitcher;
 	constructor(props: {
 		sim: Simulation;
 		leftVis: Visualization[];
@@ -180,7 +181,7 @@ export class LRVis extends MultiVisDisplayer<{
 					<div className={`col-sm-${leftSize}`}>
 						<div
 							className="visbody"
-							ref={b => (this.bodyDivs[0] = b)}
+							ref={b => (this.bodyDivs[0] = b!)}
 						/>
 						<ControlButtonBar
 							running={this.state.running}
@@ -191,7 +192,7 @@ export class LRVis extends MultiVisDisplayer<{
 					<div className={`col-sm-${rightSize}`}>
 						<div
 							className="visbody"
-							ref={b => (this.bodyDivs[1] = b)}
+							ref={b => (this.bodyDivs[1] = b!)}
 						/>
 						<div>
 							<StatusBar
@@ -221,7 +222,7 @@ interface TSProps {
 /** switch between multiple visualizations using a tabbed interface */
 class TabSwitcher extends React.Component<
 	TSProps,
-	{ modes?: _Mode[]; currentMode?: number }
+	{ modes: _Mode[]; currentMode: number }
 > {
 	constructor(props: TSProps) {
 		super(props);
@@ -232,7 +233,7 @@ class TabSwitcher extends React.Component<
 	}
 	render() {
 		const isDark = (color: string) =>
-			parseColor(color).reduce((a, b) => a + b) / 3 < 127;
+			parseColor(color)!.reduce((a, b) => a + b) / 3 < 127;
 		return (
 			<div>
 				<ul className="nav nav-pills">
@@ -295,6 +296,7 @@ class TabSwitcher extends React.Component<
 		if (!force && mode == this.state.currentMode) return;
 		const action = this.state.modes[mode];
 		const lastAction = this.state.modes[this.state.currentMode];
+		console.log("MODE", action.text);
 		this.setState({ currentMode: mode });
 		const currentVisualization = this.props.things[action.thing];
 		if (force || !lastAction || action.thing != lastAction.thing) {

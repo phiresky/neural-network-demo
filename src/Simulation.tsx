@@ -59,15 +59,15 @@ export default class Simulation extends React.Component<
 	/** current average error (see Net.NeuralNet#getLoss) */
 	averageError = 1;
 
-	net: Net.NeuralNet;
-	lrVis: LRVis;
-	exportModal: ExportModal;
+	net!: Net.NeuralNet;
+	lrVis!: LRVis;
+	exportModal!: ExportModal;
 
 	/** list of [stepNum, averageError] elements */
-	errorHistory: [number, number][];
+	errorHistory!: [number, number][];
 
 	/** data of the last training steps. first entry has .dataPoint set to undefined and contains the previous weights */
-	lastWeights: Net.WeightsStep[];
+	lastWeights!: Net.WeightsStep[];
 
 	/** current training method (one of Net.trainingMethods) */
 	get trainingMethod(): Net.TrainingMethod {
@@ -76,8 +76,7 @@ export default class Simulation extends React.Component<
 
 	constructor(props: { autoRun: boolean }) {
 		super(props);
-		if (Simulation.instance) throw Error("Already instantiated");
-		else Simulation.instance = this;
+		Simulation.instance = this;
 		this.netviz = new NetworkVisualization(
 			this,
 			p => p === this.state.data[this.currentTrainingDataPoint]
@@ -122,7 +121,13 @@ export default class Simulation extends React.Component<
 				}
 			];
 		const steps = this.trainingMethod.trainAll(this.net, this.state.data);
-		if (this.state.drawArrows) this.lastWeights.push(...steps);
+		if (this.state.drawArrows) {
+			if (!steps) {
+				console.error("training method did not return steps");
+				return;
+			}
+			this.lastWeights.push(...steps);
+		}
 	}
 
 	/** handle Train All button press */
@@ -171,12 +176,18 @@ export default class Simulation extends React.Component<
 				}
 			];
 		this.stepsCurrent++;
-
+		if (!this.trainingMethod.trainSingle) return;
 		const newWeights = this.trainingMethod.trainSingle(
 			this.net,
 			this.state.data[this.currentTrainingDataPoint]
 		);
-		if (this.state.drawArrows) this.lastWeights.push(newWeights);
+		if (this.state.drawArrows) {
+			if (!newWeights) {
+				console.error("training method did not return new weights");
+				return;
+			}
+			this.lastWeights.push(newWeights);
+		}
 	}
 
 	/** cache for all the steps that the [[NetGraph]] will go through for a single forward pass step */
@@ -189,7 +200,7 @@ export default class Simulation extends React.Component<
 		}
 		this.stop();
 		if (this.forwardPassEles.length > 0) {
-			this.netgraph.applyUpdate(this.forwardPassEles.shift());
+			this.netgraph.applyUpdate(this.forwardPassEles.shift()!);
 		} else {
 			if (this.currentTrainingDataPoint < this.state.data.length - 1) {
 				// start next
@@ -198,7 +209,7 @@ export default class Simulation extends React.Component<
 				this.forwardPassEles = this.netgraph.forwardPass(
 					this.state.data[this.currentTrainingDataPoint]
 				);
-				this.netgraph.applyUpdate(this.forwardPassEles.shift());
+				this.netgraph.applyUpdate(this.forwardPassEles.shift()!);
 				// redraw for highlighted data point
 				this.netviz.onFrame();
 			} else {
@@ -287,7 +298,7 @@ export default class Simulation extends React.Component<
 						this.reset();
 						this.run();
 					}, 100);
-				}, this.state.autoRestartTime);
+				}, this.state.autoRestartTime) as any;
 			}
 		} else {
 			if (this.restartTimeout != -1) {
@@ -363,7 +374,7 @@ export default class Simulation extends React.Component<
 			) ||
 			(cn.weights &&
 				(!co.weights ||
-					cn.weights.some((weight, i) => co.weights[i] !== weight)))
+					cn.weights.some((weight, i) => co.weights![i] !== weight)))
 		) {
 			this.initializeNet();
 		}

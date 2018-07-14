@@ -9,39 +9,41 @@ export interface TrainingData {
 }
 /** Configuration interface. Default preset must contain values for all these properties! */
 export interface Configuration {
-	name?: string;
+	name: string;
 	/** inherit all properties from the preset with this name */
-	parent?: string;
-	data?: TrainingData[];
+	parent: string;
+	data: TrainingData[];
 	/** is a custom configuration or a preset */
-	custom?: boolean;
-	inputLayer?: InputLayerConfig;
-	outputLayer?: OutputLayerConfig;
-	hiddenLayers?: LayerConfig[];
+	custom: boolean;
+	inputLayer: InputLayerConfig;
+	outputLayer: OutputLayerConfig;
+	hiddenLayers: LayerConfig[];
 	/** learning rate factor (gamma) between 0 and 1*/
-	learningRate?: number;
+	learningRate: number;
 	/** show the bias nodes */
-	bias?: boolean;
+	bias: boolean;
 	/** automatically restart when all data is correct */
-	autoRestart?: boolean;
+	autoRestart: boolean;
 	/** restart after x ms */
-	autoRestartTime?: int;
+	autoRestartTime: int;
 	/** number of steps to run per secon when animating */
-	stepsPerSecond?: int;
-	iterationsPerClick?: int;
+	stepsPerSecond: int;
+	iterationsPerClick: int;
 	/** show the class for every pixel in the background as a gradient instead of thresholded */
-	showGradient?: boolean;
+	showGradient: boolean;
 	/** preset start weights (random if not defined) */
-	weights?: double[];
+	weights: double[] | null;
 	/** training method (one of [[Simulation.trainingMethods]]) */
-	trainingMethod?: string;
-	drawCoordinateSystem?: boolean;
+	trainingMethod: string;
+	drawCoordinateSystem: boolean;
 	/** draw weight arrows (only possible when single perceptron) */
-	drawArrows?: boolean;
-	arrowScale?: int;
+	drawArrows: boolean;
+	arrowScale: int;
 	/** when animating, step through all data points on their own */
-	animationTrainSinglePoints?: boolean;
+	animationTrainSinglePoints: boolean;
 	/** show train single button. only used for neural network demo */
-	showTrainSingleButton?: boolean;
-	type?: ConfigurationType;
+	showTrainSingleButton: boolean;
+	type: ConfigurationType;
 }
+
+export type PartialConfiguration = Partial<Configuration> & { name: string };
