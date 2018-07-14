@@ -24,7 +24,7 @@ The compiled files are included in the `gh-pages` branch
 git checkout gh-pages # to set upstream
 git checkout master
 git worktree add bin gh-pages
-npm install
+yarn install
 ```
 
 Then build via `$ webpack`.
@@ -33,7 +33,7 @@ Use
 
 ```bash
 python3 -m http.server &
-webpack --watch &
+yarn run webpack --watch &
 ```
 
 for automatic compiling and deploying to <http://localhost:8000/bin>.
