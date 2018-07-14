@@ -516,13 +516,15 @@ export default class Simulation extends React.Component<
 										</li>
 									);
 									if (name === "Rosenblatt Perceptron")
-										return [
-											<li className="divider" />,
-											<li className="dropdown-header">
-												Perceptron
-											</li>,
-											ele
-										];
+										return (
+											<React.Fragment key={name}>
+												<li className="divider" />
+												<li className="dropdown-header">
+													Perceptron
+												</li>
+												{ele}
+											</React.Fragment>
+										);
 									else return ele;
 								})}
 							</ul>
