@@ -4,6 +4,7 @@ This repository contains the neural network and perceptron demonstration program
 
 This demo runs completely client-side in the browser. The `index.html` file in the `gh-pages` branch can be opened on a local webserver (`python3 -m http.server`). [A hosted version is available here](https://phiresky.github.io/neural-network-demo/).
 
+![screenshot](screenshot.png)
 
 ## Development
 
