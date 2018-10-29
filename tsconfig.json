@@ -24,6 +24,7 @@
 		"./src/ConfigurationGui.tsx",
 		"./src/Visualizations/ErrorGraph.ts",
 		"./src/Visualizations/NetworkGraph.ts",
+		"./src/Visualizations/TDNNGraph.ts",
 		"./src/Visualizations/NetworkVisualization.ts",
 		"./src/Visualizations/TableEditor.ts",
 		"./src/Visualizations/Visualization.tsx",

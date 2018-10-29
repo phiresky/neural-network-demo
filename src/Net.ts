@@ -1,7 +1,7 @@
 import { int, double } from "./main";
 import { InputLayerConfig, LayerConfig, OutputLayerConfig } from "./Presets";
 import { makeArray } from "./Util";
-import { Configuration, TrainingData } from "./Configuration";
+import { Configuration, TrainingData, TrainingDataEx } from "./Configuration";
 
 /**
  * Simple implementation of a neural network (multilayer perceptron)
@@ -49,6 +49,10 @@ export namespace Net {
 			f: x => Math.max(x, 0),
 			df: x => (x <= 0 ? 0 : 1)
 		},
+		lrelu: {
+			f: x => (x > 0 ? x : x * 0.1),
+			df: x => (x <= 0 ? 0 : 1)
+		},
 		// used for Rosenblatt Perceptron (df is fake and unimportant)
 		"threshold (≥ 0)": {
 			f: x => (x >= 0 ? 1 : 0),
@@ -66,7 +70,7 @@ export namespace Net {
 	export interface TrainingMethod {
 		trainAll: (
 			net: NeuralNet,
-			data: TrainingData[]
+			data: TrainingDataEx[]
 		) => WeightsStep[] | null;
 		trainSingle:
 			| ((net: NeuralNet, data: TrainingData) => WeightsStep | null)
@@ -212,6 +216,7 @@ export namespace Net {
 		/** actual input neurons */
 		inputs: InputNeuron[];
 		outputs: OutputNeuron[];
+		isTDNN: boolean = false;
 		/** a flat list of all the neuron connections */
 		connections: NeuronConnection[] = [];
 		constructor(
@@ -219,6 +224,7 @@ export namespace Net {
 			hidden: LayerConfig[],
 			output: OutputLayerConfig,
 			public learnRate: number,
+			timeDelayed?: number,
 			startWeight = () => Math.random() - 0.5,
 			public startWeights?: double[] | null
 		) {
@@ -227,12 +233,22 @@ export namespace Net {
 				input.neuronCount,
 				i => new InputNeuron(nid++, i, input.names[i])
 			);
+			// If timeDelayed -> TDNN
+			if (timeDelayed) this.isTDNN = true;
 			this.layers.push(this.inputs.slice());
 			for (var layer of hidden) {
 				this.layers.push(
 					makeArray(
 						layer.neuronCount,
-						i => new Neuron(layer.activation, nid++, i)
+						i =>
+							timeDelayed != undefined
+								? new TimeDelayedNeuron(
+										layer.activation,
+										nid++,
+										i,
+										timeDelayed
+								  )
+								: new Neuron(layer.activation, nid++, i)
 					)
 				);
 			}
@@ -276,6 +292,41 @@ export namespace Net {
 			for (const layer of this.layers.slice(1))
 				for (const neuron of layer) neuron.calculateOutput();
 		}
+
+		initTDNN(inputVals: double[][]) {
+			for (let i = 0; i < this.inputs.length; i++)
+				this.inputs[i].outputVector = inputVals[i];
+			for (const layer of this.layers.slice(1))
+				for (const neuron of layer) {
+					for (const conn of neuron.inputs) {
+						for (
+							var i = 0;
+							i <
+							conn.inp.outputVector.length - neuron.timeDelayed;
+							i++
+						) {
+							neuron.outputVector[i] = 0;
+						}
+					}
+				}
+			// for (let i = 0; i < this.inputs.length; i++)
+			// 	this.inputs[i].outputVector = inputVals[i];
+		}
+		setInputVectorsAndCalculate(inputVals: double[][]) {
+			for (let i = 0; i < this.inputs.length; i++)
+				this.inputs[i].outputVector = inputVals[i];
+			for (let layer of this.layers.slice(1, this.layers.length - 1)) { // Get output for TDNN Neuron
+				for (let neuron of layer) neuron.calculateOutput();
+			}
+			const lastHiddenLayer = this.layers[this.layers.length - 2];
+			const outputLayer = this.outputs;
+			for (let neuron of outputLayer) { //Get output for Output neuron
+				neuron.calculateOutputTDNN(
+					lastHiddenLayer[outputLayer.indexOf(neuron)].outputVector
+				);
+			}
+			this.outputs.map(output => output.output);
+		}
 		getOutput(inputVals: double[]) {
 			this.setInputsAndCalculate(inputVals);
 			return this.outputs.map(output => output.output);
@@ -292,7 +343,7 @@ export namespace Net {
 
 		/** if individual is true, train individually, else batch train */
 		trainAll(
-			data: TrainingData[],
+			data: TrainingDataEx[],
 			individual: boolean,
 			storeWeightSteps: boolean
 		) {
@@ -310,7 +361,7 @@ export namespace Net {
 		}
 
 		/** if flush is false, only calculate deltas but don't reset or add them */
-		train(val: TrainingData, flush = true, storeWeightSteps: boolean) {
+		train(val: TrainingDataEx, flush = true, storeWeightSteps: boolean) {
 			this.setInputsAndCalculate(val.input);
 			for (let i = 0; i < this.outputs.length; i++)
 				this.outputs[i].targetOutput = val.output[i];
@@ -363,6 +414,11 @@ export namespace Net {
 		public weightedInputs = 0;
 		public output = 0;
 		public error = 0;
+		/** Variable for TDNN */
+		public weightedInputsVector: double[] = [];
+		public weightVector?: number[];
+		public outputVector: double[] = [];
+		public timeDelayed: int = 0;
 		constructor(
 			public activation: string,
 			public id: int,
@@ -376,6 +432,21 @@ export namespace Net {
 		}
 		calculateOutput() {
 			this.calculateWeightedInputs();
+			this.output = NonLinearities[this.activation].f(
+				this.weightedInputs
+			);
+		}
+		calculateOutputTDNN(inputVals: number[]) {
+			this.weightedInputs = 0;
+			if (this.weightVector == undefined) {
+				this.weightVector = [];
+				for (let i = 0; i < inputVals.length; i++)
+					this.weightVector.push(Math.random() - 0.5);
+			}
+			for (const weight of this.weightVector!) {
+				for (const input of inputVals)
+					this.weightedInputs += weight * input;
+			}
 			this.output = NonLinearities[this.activation].f(
 				this.weightedInputs
 			);
@@ -435,6 +506,57 @@ export namespace Net {
 			//   -1 if (sign(w*x) = -1 and y =  1);
 			//    0 if (sign(w*x) = y)
 			//    where x = input vector, w = weight vector, y = output label (-1 or +1)
+		}
+	}
+
+	export class TimeDelayedNeuron extends Neuron {
+		constructor(
+			public activation: string,
+			public id: int,
+			public layerIndex: int,
+			public timeDelayed: int
+		) {
+			super(activation, id, layerIndex);
+		}
+		calculateWeightedInputs() {
+			this.weightedInputsVector = [];
+			if (!this.weightVector) {
+				this.weightVector = [];
+				for (let i = 0; i < this.timeDelayed; i++)
+					if (this.weightVector[i] == null)
+						this.weightVector[i] = Math.random() - 0.5;
+			}
+
+			for (const conn of this.inputs) {
+				for (
+					var i = 0;
+					i < conn.inp.outputVector.length - this.timeDelayed;
+					i++
+				) {
+					if (this.weightedInputsVector[i] == null)
+						this.weightedInputsVector[i] = 0;
+					for (var j = i; j < i + this.timeDelayed; j++) {
+						this.weightedInputsVector[i] +=
+							conn.inp.outputVector[j] * this.weightVector[j - i];
+					}
+				}
+			}
+		}
+		calculateOutput() {
+			this.calculateWeightedInputs();
+			for (var i = 0; i < this.weightedInputsVector.length; i++) {
+				this.outputVector[i] = NonLinearities[this.activation].f(
+					this.weightedInputsVector[i]
+				);
+			}
+		}
+		calculateError() {
+			var δ = 0;
+			for (const output of this.outputs) {
+				δ += output.out.error * output.weight;
+			}
+			this.error =
+				δ * NonLinearities[this.activation].df(this.weightedInputs);
 		}
 	}
 }
