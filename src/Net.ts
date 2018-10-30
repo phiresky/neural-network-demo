@@ -301,7 +301,7 @@ export namespace Net {
 					for (const conn of neuron.inputs) {
 						for (
 							var i = 0;
-							i <
+							i <=
 							conn.inp.outputVector.length - neuron.timeDelayed;
 							i++
 						) {
@@ -315,12 +315,14 @@ export namespace Net {
 		setInputVectorsAndCalculate(inputVals: double[][]) {
 			for (let i = 0; i < this.inputs.length; i++)
 				this.inputs[i].outputVector = inputVals[i];
-			for (let layer of this.layers.slice(1, this.layers.length - 1)) { // Get output for TDNN Neuron
+			for (let layer of this.layers.slice(1, this.layers.length - 1)) {
+				// Get output for TDNN Neuron
 				for (let neuron of layer) neuron.calculateOutput();
 			}
 			const lastHiddenLayer = this.layers[this.layers.length - 2];
 			const outputLayer = this.outputs;
-			for (let neuron of outputLayer) { //Get output for Output neuron
+			for (let neuron of outputLayer) {
+				//Get output for Output neuron
 				neuron.calculateOutputTDNN(
 					lastHiddenLayer[outputLayer.indexOf(neuron)].outputVector
 				);
@@ -530,7 +532,7 @@ export namespace Net {
 			for (const conn of this.inputs) {
 				for (
 					var i = 0;
-					i < conn.inp.outputVector.length - this.timeDelayed;
+					i <= conn.inp.outputVector.length - this.timeDelayed;
 					i++
 				) {
 					if (this.weightedInputsVector[i] == null)

@@ -120,6 +120,15 @@ export default class Simulation extends React.Component<
 					.inputVector!
 			);
 		}
+		if (this.net.isTDNN) {
+			this.tdnngraph.container.hidden = false;
+			this.lrVis.leftVis.setMode(1);
+			this.netgraph.container.hidden = true;
+		} else {
+			this.tdnngraph.container.hidden = true;
+			this.lrVis.leftVis.setMode(0);
+			this.netgraph.container.hidden = false;
+		}
 		this.lrVis.leftVis.onNetworkLoaded(this.net);
 		this.lrVis.rightVis.onNetworkLoaded(this.net);
 		this.currentTrainingDataPoint = -1;
@@ -179,7 +188,7 @@ export default class Simulation extends React.Component<
 				this.net.setInputsAndCalculate(
 					this.state.data[this._currentTrainingDataPoint].input
 				);
-			this.netgraph.drawGraph();
+			if (!this.net.isTDNN) this.netgraph.drawGraph();
 		}
 	}
 	/** train the next single data point */
@@ -261,7 +270,7 @@ export default class Simulation extends React.Component<
 				// );
 				//this.tdnngraph.applyUpdate(this.forwardPassEles.shift()!);
 				// redraw for highlighted data point
-				this.netviz.onFrame();
+				// this.netviz.onFrame();
 			}
 			this.tdnngraph.forwardPass(
 				this.state.data[this.currentTrainingDataPoint]
@@ -315,8 +324,10 @@ export default class Simulation extends React.Component<
 	calculateAverageError() {
 		this.averageError = 0;
 		for (const val of this.state.data) {
-			if (!this.net.initTDNN) this.net.setInputsAndCalculate(val.input);
-			this.averageError += this.net.getLoss(val.output);
+			if (!this.net.isTDNN) {
+				this.net.setInputsAndCalculate(val.input);
+				this.averageError += this.net.getLoss(val.output);
+			}
 		}
 		this.averageError /= this.state.data.length;
 		this.errorHistory.push([this.stepsCurrent, this.averageError]);

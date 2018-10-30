@@ -19,6 +19,9 @@ export interface TDNNGraphUpdate {
 	nodes: any[];
 	layerNumber?: number;
 	currentTime?: number;
+	timeDelayed?: number;
+	numberofneuron?: number;
+	previousIndex?: number;
 }
 /** show the network as a ordered left-to-right graph using arrow color, width and label to show weights */
 export default class TDNNGraph implements Visualization {
@@ -111,6 +114,9 @@ export default class TDNNGraph implements Visualization {
 			physics: {
 				stabilization: true
 			},
+			layout: {
+				improvedLayout: false
+			},
 			interaction: { dragNodes: false, hover: true }
 		};
 		if (this.graph) this.graph.destroy();
@@ -202,12 +208,14 @@ export default class TDNNGraph implements Visualization {
 		this.graph.stabilize();
 		this.graph.fit();
 	}
+	next = 0;
 	/** calculate the visualization of the individual calculation steps for a single forward pass */
 	forwardPass(data: TrainingDataEx) {
 		if (!this.calculatedNetwork || this.updates == undefined) {
-			this.updates = [{ nodes: [] }];
-			this.net.setInputVectorsAndCalculate(data.inputVector!);
+			this.next = 1;
 			this.calculatedNetwork = true;
+			// this.updates = [{ nodes: [] }];
+			this.net.setInputVectorsAndCalculate(data.inputVector!);
 			this.currentLayer = 1;
 			this.currentNeuron = 0;
 			this.parseData(this.net);
@@ -224,17 +232,89 @@ export default class TDNNGraph implements Visualization {
 		// 		this.currentNeuron=0;
 		// 	}
 		// }
-		this.applyUpdate(this.updates.shift()!);
+		console.log(this.updates, this.next);
+		if (this.next >= this.updates.length) {
+			this.onFrame();
+			this.next = 1;
+		} else {
+			this.applyUpdate(this.updates[this.next++]);
+		}
+
 		// this.graph.setData(this.parseData(this.net));
 	}
 	applyUpdate(update: TDNNGraphUpdate) {
+		this.graph.off("afterDrawing");
+		this.graph.redraw();
+		// console.log(update.nodes);
+		// console.log(update.nodes);
+		if (this.next != 0) {
+			let x1 = update.nodes[0].x - 30;
+			let y2 = update.nodes[update.nodes.length - 1].y - 30;
+			let h1 = 50 * update.numberofneuron! + 5; //update.nodes[0].y+30;
+			let previousLayer = this.updates[update.previousIndex!];
+			let isOutputLayer =
+				this.net.layers[update.layerNumber!][0] instanceof
+				Net.OutputNeuron;
+			let px1 = 0,
+				py2 = 0,
+				timeDelayed = 0,
+				width = 0,
+				height = 0;
+			if (!isOutputLayer) {
+				px1 = x1;
+				// px1=previousLayer.nodes[0].x-30;
+				// py1=previousLayer.nodes[0].y+30;
+				py2 =
+					previousLayer.nodes[previousLayer.nodes.length - 1].y - 30;
+				timeDelayed = update.timeDelayed!;
+				width = 50 * timeDelayed + 5;
+				height = 50 * previousLayer.numberofneuron! + 5;
+			} else {
+				h1 = 55;
+				// let minValue = 9999999999999;
+				// for (let i = 0; i < previousLayer.nodes.length; i++) {
+				// 	if (minValue > previousLayer.nodes[i].x-30)
+				// 		minValue = previousLayer.nodes[i].x-30;
+				// }
+				// px1=minValue;
+				let firstPreviousLayer = this.updates[
+					update.previousIndex! - previousLayer.currentTime!
+				];
+				px1 = firstPreviousLayer.nodes[0].x - 30;
+				// py1=previousLayer.nodes[0].y+30;
+				py2 = previousLayer.nodes[update.currentTime!].y - 30;
+				// py2=previousLayer.nodes[previousLayer.nodes.length-1].y-30;
+				timeDelayed = this.net.layers[previousLayer.layerNumber!][0]
+					.outputVector.length;
+				width = 50 * timeDelayed + 5;
+				height = 55;
+			}
+			console.log(x1, h1, y2);
+			console.log(px1, py2, width, height);
+			if (update.layerNumber != 0)
+				this.graph.on("afterDrawing", function(ctx: any) {
+					ctx.lineWidth = "6";
+					ctx.strokeStyle = "red";
+					ctx.rect(x1, y2, 55, h1);
+					ctx.stroke();
+					ctx.rect(px1, py2, width!, height!);
+					ctx.stroke();
+					ctx.beginPath();
+					ctx.moveTo(x1, y2 + h1);
+					ctx.lineTo(px1, py2);
+					ctx.moveTo(x1 + 55, y2 + h1);
+					ctx.lineTo(px1 + width!, py2);
+					ctx.stroke();
+				});
+		}
 		this.nodes.update(update.nodes);
 		this.nodes.flush();
+		this.graph.stabilize();
 	}
 	onView(previouslyHidden: boolean, action: int) {
 		// this.graph.redraw();
 		this.graph.fit();
-		this.graph.stabilize();
+		// this.graph.stabilize();
 	}
 	onHide() {}
 	/** parse network layout into weights graph ordering */
@@ -246,9 +326,11 @@ export default class TDNNGraph implements Visualization {
 		let maxy = 0;
 		let boxSize = 50;
 		let lastUpdate = 1;
-		if (!this.calculatedNetwork)
+		if (!this.calculatedNetwork) {
 			this.updates = [{ nodes: [], currentTime: 0, layerNumber: 0 }];
-		this.createForwardPassStep();
+			this.createForwardPassStep();
+		}
+
 		lastUpdate = 1;
 		this.maxHeight = Math.max.apply(
 			null,
@@ -305,12 +387,12 @@ export default class TDNNGraph implements Visualization {
 					maxy = Math.max(maxy, layerY + layer.length * boxSize);
 					// console.log(outN);
 					if (outN instanceof Net.OutputNeuron) {
-						const p = {
+						let p = {
 							x: outputNeuron * boxSize,
 							y: layerY + boxSize,
 							z: outN.output
 						};
-
+						if (!this.calculatedNetwork) p.z = 0;
 						if (this.maxHeight != layer.length * boxSize) {
 							// console.log(maxHeight);
 							// console.log(layer.length);
@@ -326,7 +408,9 @@ export default class TDNNGraph implements Visualization {
 							y: -p.y
 						};
 						if (!this.calculatedNetwork) {
+							console.log("Add node" + node.title);
 							this.nodes.add(node);
+							this.updates[0].nodes.push(node);
 						} else {
 							this.updates[lastUpdate + outputNeuron].nodes.push(
 								node
@@ -337,6 +421,14 @@ export default class TDNNGraph implements Visualization {
 							this.updates[
 								lastUpdate + outputNeuron
 							].layerNumber = outputLayer;
+							this.updates[
+								lastUpdate + outputNeuron
+							].numberofneuron =
+								layer.length;
+							this.updates[
+								lastUpdate + outputNeuron
+							].previousIndex =
+								lastUpdate - 1;
 							// if (outputLayer==this.currentLayer && outputNeuron<=this.currentNeuron)
 							// 	this.nodes.update([node]);
 						}
@@ -368,12 +460,16 @@ export default class TDNNGraph implements Visualization {
 								outN.outputVector[timeStep] == null
 									? 0
 									: outN.outputVector[timeStep];
-							const p = {
+							let p = {
 								x: timeStep * boxSize,
 								y: layerY + outputNeuron * boxSize,
 								z: output
 							};
-
+							if (
+								!this.calculatedNetwork &&
+								!(outN instanceof Net.InputNeuron)
+							)
+								p.z = 0;
 							if (this.maxHeight != layer.length) {
 								// console.log(maxHeight);
 								// console.log(layer.length);
@@ -402,17 +498,35 @@ export default class TDNNGraph implements Visualization {
 							};
 							data.push(p);
 							if (!this.calculatedNetwork) {
+								console.log("Add node" + node.title);
 								this.nodes.add(node);
+								this.updates[0].nodes.push(node);
 							} else {
-								this.updates[lastUpdate + timeStep].nodes.push(
-									node
-								);
-								this.updates[
-									lastUpdate + timeStep
-								].currentTime = timeStep;
-								this.updates[
-									lastUpdate + timeStep
-								].layerNumber = outputLayer;
+								if (outN instanceof Net.InputNeuron) {
+									this.updates[0].nodes.push(node);
+								} else {
+									this.updates[
+										lastUpdate + timeStep
+									].nodes.push(node);
+									this.updates[
+										lastUpdate + timeStep
+									].currentTime = timeStep;
+									this.updates[
+										lastUpdate + timeStep
+									].layerNumber = outputLayer;
+									this.updates[
+										lastUpdate + timeStep
+									].timeDelayed =
+										outN.timeDelayed;
+									this.updates[
+										lastUpdate + timeStep
+									].numberofneuron =
+										layer.length;
+									this.updates[
+										lastUpdate + timeStep
+									].previousIndex =
+										lastUpdate - 1;
+								}
 							}
 							// else
 							// {
@@ -427,13 +541,6 @@ export default class TDNNGraph implements Visualization {
 							// nodeID++;
 						}
 					}
-					// this.graph.on("afterDrawing", function (ctx: any) {
-					// 	console.log("haha");
-					// 	ctx.lineWidth="6";
-					// 	ctx.strokeStyle="red";
-					// 	ctx.rect(data[0].x,data[0].y,500,850);
-					// 	ctx.stroke();
-					// });
 				}
 				if (layer[0] instanceof Net.OutputNeuron)
 					lastUpdate += layer.length;
@@ -453,9 +560,10 @@ export default class TDNNGraph implements Visualization {
 		// 				ctx.rect(,data[0].y,500,850);
 		// 				ctx.stroke();
 		// 			});
-		if (!this.calculatedNetwork) this.updates[0].nodes.push(this.nodes);
+		// if (!this.calculatedNetwork) this.updates[0].nodes.push(this.nodes);
+		this.updates[0].numberofneuron = this.net.layers[0].length;
 		this.nodes.flush();
-		this.graph.stabilize();
+		// this.graph.stabilize();
 		this.graph.fit();
 		// this.ctx!.translate(1,1);
 		// this.ctx!.scale(10,10);
@@ -508,6 +616,9 @@ export default class TDNNGraph implements Visualization {
 	onFrame() {
 		console.log("On frame TDNN");
 		if (!this.net.isTDNN) return;
-		this.graph.setData(this.parseData(this.sim.net));
+		this.calculatedNetwork = false;
+		this.graph.off("afterDrawing");
+		this.parseData(this.sim.net);
+		this.graph.redraw();
 	}
 }
