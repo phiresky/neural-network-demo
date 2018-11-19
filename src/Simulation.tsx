@@ -101,7 +101,7 @@ export default class Simulation extends React.Component<
 			this.state.outputLayer,
 			this.state.learningRate,
 			this.state.name.indexOf("Time Delayed Neuron Network") != -1
-				? 3
+				? [3, 5]
 				: undefined,
 			undefined,
 			this.state.weights
@@ -326,8 +326,10 @@ export default class Simulation extends React.Component<
 		for (const val of this.state.data) {
 			if (!this.net.isTDNN) {
 				this.net.setInputsAndCalculate(val.input);
-				this.averageError += this.net.getLoss(val.output);
+			} else {
+				this.net.setInputVectorsAndCalculate(val.inputVector!);
 			}
+			this.averageError += this.net.getLoss(val.output);
 		}
 		this.averageError /= this.state.data.length;
 		this.errorHistory.push([this.stepsCurrent, this.averageError]);

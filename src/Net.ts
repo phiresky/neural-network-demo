@@ -224,7 +224,7 @@ export namespace Net {
 			hidden: LayerConfig[],
 			output: OutputLayerConfig,
 			public learnRate: number,
-			timeDelayed?: number,
+			timeDelayed?: number[],
 			startWeight = () => Math.random() - 0.5,
 			public startWeights?: double[] | null
 		) {
@@ -246,7 +246,7 @@ export namespace Net {
 										layer.activation,
 										nid++,
 										i,
-										timeDelayed
+										timeDelayed[hidden.indexOf(layer)]
 								  )
 								: new Neuron(layer.activation, nid++, i)
 					)
@@ -554,6 +554,14 @@ export namespace Net {
 		}
 		calculateError() {
 			var δ = 0;
+			if (this.outputs[0].out instanceof OutputNeuron) {
+				// If next layer is output layer
+				var sumerror = 0;
+				for (const output of this.outputs) {
+					sumerror += output.out.error;
+				}
+			} else {
+			}
 			for (const output of this.outputs) {
 				δ += output.out.error * output.weight;
 			}
