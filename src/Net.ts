@@ -430,6 +430,8 @@ export namespace Net {
 		/** cached delta weight for training */
 		deltaWeight = NaN;
 		deltaWeightVector: number[] = [];
+		momentum = 0.9;
+		velocityVector: number[] = [];
 		constructor(
 			/**Input neuron of this connection */ public inp: Neuron,
 			/**Output neuron of this connection */ public out: Neuron
@@ -454,6 +456,8 @@ export namespace Net {
 						var tmp1 = 0;
 						if (this.deltaWeightVector[time] == null)
 							this.deltaWeightVector[time] = 0;
+						if (this.velocityVector[time] == null)
+							this.velocityVector[time] = 0;
 						tmp1 =
 							learnRate *
 							this.out.errorVector[outputNeuronIndex] *
@@ -472,6 +476,9 @@ export namespace Net {
 					this.deltaWeightVector[
 						time
 					] /= this.out.outputVector!.length; // Average deltaWeight
+					this.velocityVector[time] =
+						this.momentum * this.velocityVector[time] +
+						this.deltaWeightVector[time];
 					// this.deltaWeightVector[time] *=learnRate;
 				}
 				// console.log("Average Delta weight: ");
@@ -483,7 +490,14 @@ export namespace Net {
 						learnRate *
 						this.out.error *
 						this.inp.outputVector![time];
+					if (this.deltaWeightVector[time] == null)
+						this.deltaWeightVector[time] = 0;
+					if (this.velocityVector[time] == null)
+						this.velocityVector[time] = 0;
 					this.deltaWeightVector[time] = tmp;
+					this.velocityVector[time] =
+						this.momentum * this.velocityVector[time] +
+						this.deltaWeightVector[time];
 				}
 				// console.log(this.deltaWeightVector);
 			} else
@@ -501,7 +515,7 @@ export namespace Net {
 					time < this.out.timeDelayed;
 					time++ // deltaWeight for each time step
 				) {
-					this.weightVector![time] += this.deltaWeightVector[time];
+					this.weightVector![time] += this.velocityVector[time]; //this.deltaWeightVector[time];
 				}
 				this.deltaWeightVector = [];
 				// console.log("After updated weight");
