@@ -223,11 +223,13 @@ export default class TDNNGraph implements Visualization {
 			this.next = 1;
 			this.calculatedNetwork = true;
 			// this.updates = [{ nodes: [] }];
+			console.log("Forward Pass");
 			this.minYofLayer = {};
 			this.net.setInputVectorsAndCalculate(data.inputVector!);
 			this.currentLayer = 1;
 			this.currentNeuron = 0;
 			this.parseData(this.net);
+			this.currentlyDisplayingForwardPass = true;
 		}
 		// else{
 
@@ -461,14 +463,17 @@ export default class TDNNGraph implements Visualization {
 							x: p.x,
 							y: -p.y
 						};
+						var updateIndex =
+							net.inputs[0].outputVector.length -
+							net.layers[1][0].timeDelayed +
+							outputNeuron +
+							1;
 						if (!this.calculatedNetwork) {
 							// console.log("Add node" + node.title);
 							this.nodes.add(node);
 							this.updates[0].nodes.push(node);
 						} else {
-							this.updates[lastUpdate + outputNeuron].nodes.push(
-								node
-							);
+							this.updates[updateIndex].nodes.push(node);
 							// this.updates[
 							// 	lastUpdate + outputNeuron
 							// ].currentTime = outputNeuron;
@@ -485,23 +490,23 @@ export default class TDNNGraph implements Visualization {
 							// 	lastUpdate - 1;
 							var tmpMinX, tmpMinY;
 							if (
-								this.updates[lastUpdate + outputNeuron]
-									.layersUpdate[outputLayer] == undefined
+								this.updates[updateIndex].layersUpdate[
+									outputLayer
+								] == undefined
 							) {
 								tmpMinX = 9999999999;
 							} else {
-								tmpMinX = this.updates[
-									lastUpdate + outputNeuron
-								].layersUpdate[outputLayer].maxX;
+								tmpMinX = this.updates[updateIndex]
+									.layersUpdate[outputLayer].maxX;
 							}
 							if (this.minYofLayer[outputLayer] == undefined)
 								tmpMinY = 99999999;
 							else tmpMinY = this.minYofLayer[outputLayer];
 							if (node.y < tmpMinY)
 								this.minYofLayer[outputLayer] = node.y;
-							this.updates[
-								lastUpdate + outputNeuron
-							].layersUpdate[outputLayer] = {
+							this.updates[updateIndex].layersUpdate[
+								outputLayer
+							] = {
 								boxSize: boxSize,
 								maxX: node.x < tmpMinX ? node.x : tmpMinX,
 								numberofNeuron: layer.length,
@@ -735,7 +740,7 @@ export default class TDNNGraph implements Visualization {
 	}
 	onFrame() {
 		console.log("On frame TDNN");
-		if (!this.net.isTDNN) return;
+		if (!this.net.isTDNN || !this.currentlyDisplayingForwardPass) return;
 		this.calculatedNetwork = false;
 		this.graph.off("afterDrawing");
 		this.parseData(this.sim.net);

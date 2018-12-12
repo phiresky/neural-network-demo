@@ -89,6 +89,10 @@ export namespace Net {
 			"Online Training": {
 				trainAll: (net, data) => net.trainAll(data, true, false),
 				trainSingle: (net, data) => net.train(data, true, false)
+			},
+			"Time Delayed Training": {
+				trainAll: (net, data) => net.trainAll(data, true, false),
+				trainSingle: (net, data) => net.train(data, true, false)
 			}
 		},
 		/** A Perceptron is a special type of NeuralNet that has an input layer with 3 neurons (incl. bias), an output layer with 1 neuron, and no hidden layers */
@@ -266,16 +270,34 @@ export namespace Net {
 			for (let i = 0; i < this.layers.length - 1; i++) {
 				const inLayer = this.layers[i];
 				const outLayer = this.layers[i + 1];
-				inLayer.push(new InputNeuron(nid++, -1, "Bias", 1));
-
-				for (const input of inLayer)
-					for (const output of outLayer) {
-						var conn = new Net.NeuronConnection(input, output);
+				if (timeDelayed == undefined)
+					inLayer.push(new InputNeuron(nid++, -1, "Bias", 1));
+				// If next layer is Output
+				if (
+					timeDelayed != undefined &&
+					outLayer[0] instanceof OutputNeuron
+				) {
+					for (let inputI = 0; inputI < inLayer.length; inputI++) {
+						const input = inLayer[inputI];
+						var conn = new Net.NeuronConnection(
+							input,
+							outLayer[inputI]
+						);
 						input.outputs.push(conn);
-						output.inputs.push(conn);
+						outLayer[inputI].inputs.push(conn);
 						this.connections.push(conn);
 					}
-				this.biases[i] = inLayer.pop() as InputNeuron;
+				} else {
+					for (const input of inLayer)
+						for (const output of outLayer) {
+							var conn = new Net.NeuronConnection(input, output);
+							input.outputs.push(conn);
+							output.inputs.push(conn);
+							this.connections.push(conn);
+						}
+				}
+				if (timeDelayed == undefined)
+					this.biases[i] = inLayer.pop() as InputNeuron;
 			}
 			if (!this.startWeights) {
 				this.startWeights = this.connections.map(
@@ -313,8 +335,12 @@ export namespace Net {
 			// 	this.inputs[i].outputVector = inputVals[i];
 		}
 		setInputVectorsAndCalculate(inputVals: double[][]) {
-			for (let i = 0; i < this.inputs.length; i++)
+			for (let i = 0; i < this.inputs.length; i++) {
 				this.inputs[i].outputVector = inputVals[i];
+				for (let j = 0; j < inputVals.length; j++) {
+					this.inputs[i].outputVector[j] = inputVals[i][j] /= 255;
+				}
+			}
 			for (let layer of this.layers.slice(1, this.layers.length - 1)) {
 				// Get output for TDNN Neuron
 				for (let neuron of layer) neuron.calculateOutput();
@@ -364,10 +390,16 @@ export namespace Net {
 
 		/** if flush is false, only calculate deltas but don't reset or add them */
 		train(val: TrainingDataEx, flush = true, storeWeightSteps: boolean) {
-			this.setInputsAndCalculate(val.input);
-			for (let i = 0; i < this.outputs.length; i++)
+			if (this.isTDNN) this.setInputVectorsAndCalculate(val.inputVector!);
+			else this.setInputsAndCalculate(val.input);
+			// console.log("Output length: " + this.outputs.length);
+			for (let i = 0; i < this.outputs.length; i++) {
+				// console.log(val.output[i]);
 				this.outputs[i].targetOutput = val.output[i];
+			}
+
 			for (let i = this.layers.length - 1; i > 0; i--) {
+				// console.log("Layer " + i);
 				for (const neuron of this.layers[i]) {
 					neuron.calculateError();
 					for (const conn of neuron.inputs) {
@@ -394,18 +426,90 @@ export namespace Net {
 	/** a weighted connection between two neurons */
 	export class NeuronConnection {
 		public weight = 0;
+		public weightVector?: number[];
 		/** cached delta weight for training */
 		deltaWeight = NaN;
-		constructor(public inp: Neuron, public out: Neuron) {}
+		deltaWeightVector: number[] = [];
+		constructor(
+			/**Input neuron of this connection */ public inp: Neuron,
+			/**Output neuron of this connection */ public out: Neuron
+		) {}
 		zeroDeltaWeight() {
 			this.deltaWeight = 0;
+			this.deltaWeightVector = [];
 		}
 		addDeltaWeight(learnRate: double) {
-			this.deltaWeight += learnRate * this.out.error * this.inp.output;
+			if (this.out instanceof TimeDelayedNeuron) {
+				var tmp = 0;
+				for (
+					var outputNeuronIndex = 0;
+					outputNeuronIndex < this.out.outputVector!.length;
+					outputNeuronIndex++
+				) {
+					for (
+						var time = 0;
+						time < this.out.timeDelayed;
+						time++ // deltaWeight for each time step
+					) {
+						var tmp1 = 0;
+						if (this.deltaWeightVector[time] == null)
+							this.deltaWeightVector[time] = 0;
+						tmp1 =
+							learnRate *
+							this.out.errorVector[outputNeuronIndex] *
+							this.inp.outputVector![outputNeuronIndex + time];
+						this.deltaWeightVector[time] += tmp1;
+						//tmp+=learnRate*this.out.errorVector[outputNeuronIndex]*this.inp.outputVector![outputNeuronIndex+time];
+					}
+				}
+				// console.log("Delta weight: ");
+				// console.log(this.deltaWeightVector);
+				for (
+					var time = 0;
+					time < this.out.timeDelayed;
+					time++ // deltaWeight for each time step
+				) {
+					this.deltaWeightVector[
+						time
+					] /= this.out.outputVector!.length; // Average deltaWeight
+					// this.deltaWeightVector[time] *=learnRate;
+				}
+				// console.log("Average Delta weight: ");
+				// console.log(this.deltaWeightVector);
+			} else if (this.inp instanceof TimeDelayedNeuron) {
+				for (let time = 0; time < this.weightVector!.length; time++) {
+					var tmp = 0;
+					tmp =
+						learnRate *
+						this.out.error *
+						this.inp.outputVector![time];
+					this.deltaWeightVector[time] = tmp;
+				}
+				// console.log(this.deltaWeightVector);
+			} else
+				this.deltaWeight +=
+					learnRate * this.out.error * this.inp.output;
 		}
 		flushDeltaWeight() {
-			this.weight += this.deltaWeight;
-			this.deltaWeight = NaN; // set to NaN to prevent flushing bugs
+			if (this.weightVector != undefined) {
+				// console.log("Before update weight");
+				// console.log(this.weightVector);
+				// console.log("---Deltaweight Vector---");
+				// console.log(this.deltaWeightVector);
+				for (
+					var time = 0;
+					time < this.out.timeDelayed;
+					time++ // deltaWeight for each time step
+				) {
+					this.weightVector![time] += this.deltaWeightVector[time];
+				}
+				this.deltaWeightVector = [];
+				// console.log("After updated weight");
+				// console.log(this.weightVector);
+			} else {
+				this.weight += this.deltaWeight;
+				this.deltaWeight = NaN; // set to NaN to prevent flushing bugs
+			}
 		}
 	}
 	/** a single Neuron / Perceptron */
@@ -418,7 +522,8 @@ export namespace Net {
 		public error = 0;
 		/** Variable for TDNN */
 		public weightedInputsVector: double[] = [];
-		public weightVector?: number[];
+		public errorVector: number[] = [];
+		//public weightVector?: number[];
 		public outputVector: double[] = [];
 		public timeDelayed: int = 0;
 		constructor(
@@ -439,15 +544,18 @@ export namespace Net {
 			);
 		}
 		calculateOutputTDNN(inputVals: number[]) {
+			this.timeDelayed = inputVals.length;
 			this.weightedInputs = 0;
-			if (this.weightVector == undefined) {
-				this.weightVector = [];
-				for (let i = 0; i < inputVals.length; i++)
-					this.weightVector.push(Math.random() - 0.5);
-			}
-			for (const weight of this.weightVector!) {
-				for (const input of inputVals)
-					this.weightedInputs += weight * input;
+			for (const conn of this.inputs) {
+				if (conn.weightVector == undefined) {
+					conn.weightVector = [];
+					for (let i = 0; i < inputVals.length; i++)
+						conn.weightVector.push(Math.random() - 0.5);
+				}
+				for (const weight of conn.weightVector!) {
+					for (const input of inputVals)
+						this.weightedInputs += weight * input;
+				}
 			}
 			this.output = NonLinearities[this.activation].f(
 				this.weightedInputs
@@ -460,6 +568,7 @@ export namespace Net {
 			}
 			this.error =
 				δ * NonLinearities[this.activation].df(this.weightedInputs);
+			// console.log("Error of neuron: %f",[this.error]);
 		}
 	}
 	/** an input neuron (no inputs, fixed output value, can't be trained) */
@@ -503,6 +612,11 @@ export namespace Net {
 			this.error =
 				NonLinearities[this.activation].df(this.weightedInputs) *
 				(this.targetOutput - this.output);
+			// console.log("Target: " +this.targetOutput);
+			// console.log("Output: " + this.output);
+			// console.log("Weighted inputs: " + this.weightedInputs);
+			// console.log("Derivative of function: " + NonLinearities[this.activation].df(this.weightedInputs))
+			// console.log("Error of output neuron: " + this.error);
 			// ⇔ for perceptron: (this.targetOutput - this.output)
 			// ⇔  1 if (sign(w*x) =  1 and y = -1);
 			//   -1 if (sign(w*x) = -1 and y =  1);
@@ -522,14 +636,14 @@ export namespace Net {
 		}
 		calculateWeightedInputs() {
 			this.weightedInputsVector = [];
-			if (!this.weightVector) {
-				this.weightVector = [];
-				for (let i = 0; i < this.timeDelayed; i++)
-					if (this.weightVector[i] == null)
-						this.weightVector[i] = Math.random() - 0.5;
-			}
 
 			for (const conn of this.inputs) {
+				if (!conn.weightVector) {
+					conn.weightVector = [];
+					for (let i = 0; i < this.timeDelayed; i++)
+						if (conn.weightVector[i] == null)
+							conn.weightVector[i] = Math.random() - 0.5;
+				}
 				for (
 					var i = 0;
 					i <= conn.inp.outputVector.length - this.timeDelayed;
@@ -539,7 +653,8 @@ export namespace Net {
 						this.weightedInputsVector[i] = 0;
 					for (var j = i; j < i + this.timeDelayed; j++) {
 						this.weightedInputsVector[i] +=
-							conn.inp.outputVector[j] * this.weightVector[j - i];
+							conn.inp.outputVector[j] *
+							conn.weightVector![j - i];
 					}
 				}
 			}
@@ -556,17 +671,80 @@ export namespace Net {
 			var δ = 0;
 			if (this.outputs[0].out instanceof OutputNeuron) {
 				// If next layer is output layer
-				var sumerror = 0;
 				for (const output of this.outputs) {
-					sumerror += output.out.error;
+					for (
+						var weightIndex = 0;
+						weightIndex < output.weightVector!.length;
+						weightIndex++
+					) {
+						var tmpδ = 0;
+						tmpδ +=
+							output.out.error *
+							output.weightVector![weightIndex];
+						// console.log("Error "+ output.out.error);
+						// console.log("Weight: "+ output.weightVector![weightIndex]);
+						// console.log("Tmp Delta "+ tmpδ);
+						// console.log("Weighted input vector: " + this.weightedInputsVector[weightIndex]);
+						this.errorVector[weightIndex] =
+							tmpδ *
+							NonLinearities[this.activation].df(
+								this.weightedInputsVector[weightIndex]
+							);
+					}
 				}
+				// console.log("Error of hidden layer next to output:");
+				// console.log(this.errorVector);
 			} else {
+				// Loop all output of the current neuron
+				var tmpδVector: number[] = [];
+				for (
+					var outputVectorIndex = 0;
+					outputVectorIndex < this.outputVector!.length;
+					outputVectorIndex++
+				) {
+					for (const conn of this.outputs) { // Loop all connection to next layer
+						var outputNeuron = conn.out;
+						for (
+							var outputIndexOfNextLayer =
+								outputVectorIndex -
+								outputNeuron.timeDelayed +
+								1;
+							outputIndexOfNextLayer <= outputVectorIndex &&
+							outputIndexOfNextLayer <
+								outputNeuron.outputVector!.length;
+							outputIndexOfNextLayer++ // Loop all time value connected to next layer
+						) {
+							if (outputIndexOfNextLayer >= 0) {
+								if (tmpδVector[outputVectorIndex] == undefined)
+									tmpδVector[outputVectorIndex] = 0;
+								// console.log("outputNeuronError " + outputNeuron.errorVector[outputIndexOfNextLayer]);
+								// console.log("+++++++++weightVector index : " + (outputVectorIndex-outputIndexOfNextLayer));
+								// console.log("---Weight vector " + conn.weightVector![outputVectorIndex-outputIndexOfNextLayer]);
+								tmpδVector[outputVectorIndex] +=
+									outputNeuron.errorVector[
+										outputIndexOfNextLayer
+									] *
+									conn.weightVector![
+										outputVectorIndex -
+											outputIndexOfNextLayer
+									];
+								// console.log("-------------TmpDelta Vector 2 - " + tmpδVector[outputVectorIndex]);
+							}
+						}
+					}
+					this.errorVector[outputVectorIndex] =
+						tmpδVector[outputVectorIndex] *
+						NonLinearities[this.activation].df(
+							this.weightedInputsVector[outputVectorIndex]
+						);
+				}
+				// console.log(this.errorVector);
+				// for (const output of this.outputs) {
+				// 	δ += output.out.error * output.weight;
+				// }
 			}
-			for (const output of this.outputs) {
-				δ += output.out.error * output.weight;
-			}
-			this.error =
-				δ * NonLinearities[this.activation].df(this.weightedInputs);
+			// this.error =
+			// 	δ * NonLinearities[this.activation].df(this.weightedInputs);
 		}
 	}
 }
