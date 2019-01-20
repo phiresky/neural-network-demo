@@ -338,7 +338,8 @@ export namespace Net {
 			for (let i = 0; i < this.inputs.length; i++) {
 				this.inputs[i].outputVector = inputVals[i];
 				for (let j = 0; j < inputVals.length; j++) {
-					this.inputs[i].outputVector[j] = inputVals[i][j] /= 255;
+					if (inputVals[i][j] > 1)
+						this.inputs[i].outputVector[j] = inputVals[i][j] /= 255;
 				}
 			}
 			for (let layer of this.layers.slice(1, this.layers.length - 1)) {
@@ -562,14 +563,17 @@ export namespace Net {
 			this.weightedInputs = 0;
 			for (const conn of this.inputs) {
 				if (conn.weightVector == undefined) {
+					console.log("Create weightVector");
 					conn.weightVector = [];
 					for (let i = 0; i < inputVals.length; i++)
 						conn.weightVector.push(Math.random() - 0.5);
 				}
-				for (const weight of conn.weightVector!) {
-					for (const input of inputVals)
-						this.weightedInputs += weight * input;
-				}
+				for (let i = 0; i < inputVals.length; i++)
+					this.weightedInputs += conn.weightVector![i] * inputVals[i];
+				// for (const weight of conn.weightVector!) {
+				// 	for (const input of inputVals)
+				// 		this.weightedInputs += weight * input;
+				// }
 			}
 			this.output = NonLinearities[this.activation].f(
 				this.weightedInputs
@@ -653,6 +657,7 @@ export namespace Net {
 
 			for (const conn of this.inputs) {
 				if (!conn.weightVector) {
+					console.log("Create weightVector");
 					conn.weightVector = [];
 					for (let i = 0; i < this.timeDelayed; i++)
 						if (conn.weightVector[i] == null)
@@ -716,7 +721,8 @@ export namespace Net {
 					outputVectorIndex < this.outputVector!.length;
 					outputVectorIndex++
 				) {
-					for (const conn of this.outputs) { // Loop all connection to next layer
+					for (const conn of this.outputs) {
+						// Loop all connection to next layer
 						var outputNeuron = conn.out;
 						for (
 							var outputIndexOfNextLayer =

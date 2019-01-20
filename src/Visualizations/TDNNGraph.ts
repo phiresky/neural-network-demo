@@ -43,6 +43,7 @@ export default class TDNNGraph implements Visualization {
 	currentlyDisplayingForwardPass = false;
 	biasBeforeForwardPass = false;
 
+	alreadySetNet = false;
 	offsetBetweenLayers = 2;
 	xyToConnectionTDNN: { [xcommay: string]: [int, int, double] } = {};
 	calculatedNetwork = false;
@@ -220,6 +221,7 @@ export default class TDNNGraph implements Visualization {
 	/** calculate the visualization of the individual calculation steps for a single forward pass */
 	forwardPass(data: TrainingDataEx) {
 		if (!this.calculatedNetwork || this.updates == undefined) {
+			console.log("First step");
 			this.next = 1;
 			this.calculatedNetwork = true;
 			// this.updates = [{ nodes: [] }];
@@ -244,16 +246,19 @@ export default class TDNNGraph implements Visualization {
 		// 	}
 		// }
 		// console.log(this.updates, this.next);
-		if (this.next >= this.updates.length) {
+		if (this.next >= this.updates.length - 1) {
 			this.onFrame();
 			this.next = 1;
 		} else {
 			this.applyUpdate(this.updates[this.next++]);
+			if (this.next == this.updates.length - 2)
+				this.alreadySetNet == false;
 		}
 
 		// this.graph.setData(this.parseData(this.net));
 	}
 	applyUpdate(update: TDNNGraphUpdate) {
+		console.log("ApplyUpdate");
 		this.graph.off("afterDrawing");
 		this.graph.redraw();
 		// console.log(update.nodes);
@@ -380,7 +385,7 @@ export default class TDNNGraph implements Visualization {
 		let maxy = 0;
 		let boxSize = 50;
 		let lastUpdate = 1;
-		if (!this.calculatedNetwork) {
+		if (!this.calculatedNetwork && !this.currentlyDisplayingForwardPass) {
 			this.updates = [
 				{ nodes: [], currentTime: 0, layerNumber: 0, layersUpdate: {} }
 			];
@@ -392,7 +397,8 @@ export default class TDNNGraph implements Visualization {
 			null,
 			net.layers.map(layer => layer.length * boxSize)
 		);
-		if (!this.calculatedNetwork) this.nodes.clear();
+		if (!this.calculatedNetwork && !this.currentlyDisplayingForwardPass)
+			this.nodes.clear();
 		try {
 			for (
 				let outputLayer = 0;
@@ -448,7 +454,11 @@ export default class TDNNGraph implements Visualization {
 							y: layerY + boxSize,
 							z: outN.output
 						};
-						if (!this.calculatedNetwork) p.z = 0;
+						if (
+							!this.calculatedNetwork &&
+							!this.currentlyDisplayingForwardPass
+						)
+							p.z = 0;
 						if (this.maxHeight != layer.length * boxSize) {
 							// console.log(maxHeight);
 							// console.log(layer.length);
@@ -468,7 +478,10 @@ export default class TDNNGraph implements Visualization {
 							net.layers[1][0].timeDelayed +
 							outputNeuron +
 							1;
-						if (!this.calculatedNetwork) {
+						if (
+							!this.calculatedNetwork &&
+							!this.currentlyDisplayingForwardPass
+						) {
 							// console.log("Add node" + node.title);
 							this.nodes.add(node);
 							this.updates[0].nodes.push(node);
@@ -550,6 +563,7 @@ export default class TDNNGraph implements Visualization {
 							};
 							if (
 								!this.calculatedNetwork &&
+								!this.currentlyDisplayingForwardPass &&
 								!(outN instanceof Net.InputNeuron)
 							)
 								p.z = 0;
@@ -580,7 +594,10 @@ export default class TDNNGraph implements Visualization {
 								y: -p.y
 							};
 							data.push(p);
-							if (!this.calculatedNetwork) {
+							if (
+								!this.calculatedNetwork &&
+								!this.currentlyDisplayingForwardPass
+							) {
 								// console.log("Add node" + node.title);
 								this.nodes.add(node);
 								this.updates[0].nodes.push(node);
@@ -731,19 +748,27 @@ export default class TDNNGraph implements Visualization {
 		if (!net.isTDNN) return;
 		console.log("On network loaded TDNN");
 		this.actions = ["TDNN Graph"];
+		// if (!this.alreadySetNet)
+		// {
+		// 	this.alreadySetNet=true;
+		// }
 		this.net = net;
-		this.calculatedNetwork = false;
+		this.parseData(net);
+		//this.calculatedNetwork = true;
+		this.next = 0;
+		this.applyUpdate(this.updates[this.next++]);
 		// let abc=[[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0]];
 		// this.net.initTDNN(abc);
-		this.parseData(net);
 		// this.graph.setData(this.parseData(net));
 	}
 	onFrame() {
 		console.log("On frame TDNN");
-		if (!this.net.isTDNN || !this.currentlyDisplayingForwardPass) return;
+		this.alreadySetNet = false;
+		if (!this.net.isTDNN) return;
+		console.log("OnFrame step 2");
 		this.calculatedNetwork = false;
 		this.graph.off("afterDrawing");
-		this.parseData(this.sim.net);
+		// this.parseData(this.net);
 		this.graph.redraw();
 	}
 }

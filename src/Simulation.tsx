@@ -261,29 +261,39 @@ export default class Simulation extends React.Component<
 			// if (!this.tdnngraph.completedForwardPass){//(this.forwardPassEles.length > 0) {
 			// 	this.tdnngraph.applyUpdate(this.forwardPassEles.shift()!);
 			// } else {
-			if (this.currentTrainingDataPoint < this.state.data.length - 1) {
-				// start next
-				this.lrVis.leftVis.setMode(1);
-				this.currentTrainingDataPoint++;
-				// this.tdnngraph.forwardPass(
-				// 	this.state.data[this.currentTrainingDataPoint]
-				// );
-				//this.tdnngraph.applyUpdate(this.forwardPassEles.shift()!);
-				// redraw for highlighted data point
-				// this.netviz.onFrame();
+
+			if (!this.tdnngraph.alreadySetNet) {
+				if (
+					this.currentTrainingDataPoint <
+					this.state.data.length - 1
+				) {
+					// start next
+					this.lrVis.leftVis.setMode(1);
+					this.currentTrainingDataPoint++;
+					// this.tdnngraph.forwardPass(
+					// 	this.state.data[this.currentTrainingDataPoint]
+					// );
+					//this.tdnngraph.applyUpdate(this.forwardPassEles.shift()!);
+					// redraw for highlighted data point
+					// this.netviz.onFrame();
+				} else this.currentTrainingDataPoint = -1;
+				// else {
+				// 	// end
+				// 	this.currentTrainingDataPoint = -1;
+				// 	// this clears the forward pass step
+				// 	this.tdnngraph.onFrame();
+				// 	// clear highlighted data point
+				// 	this.netviz.onFrame();
+				// }
+				// }
+				this.trainNext();
+				this.tdnngraph.onNetworkLoaded(this.net);
+				this.tdnngraph.alreadySetNet = true;
 			}
+			console.log(this.state.data);
 			this.tdnngraph.forwardPass(
 				this.state.data[this.currentTrainingDataPoint]
 			);
-			// else {
-			// 	// end
-			// 	this.currentTrainingDataPoint = -1;
-			// 	// this clears the forward pass step
-			// 	this.tdnngraph.onFrame();
-			// 	// clear highlighted data point
-			// 	this.netviz.onFrame();
-			// }
-			// }
 		}
 	}
 
