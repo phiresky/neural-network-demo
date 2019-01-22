@@ -220,12 +220,17 @@ export default class TDNNGraph implements Visualization {
 	next = 0;
 	/** calculate the visualization of the individual calculation steps for a single forward pass */
 	forwardPass(data: TrainingDataEx) {
-		if (!this.calculatedNetwork || this.updates == undefined) {
-			console.log("First step");
+		if (
+			!this.calculatedNetwork ||
+			this.updates == undefined ||
+			this.next == this.updates.length - 1
+		) {
+			this.onFrame();
+			console.log("First step of forward pass");
 			this.next = 1;
 			this.calculatedNetwork = true;
 			// this.updates = [{ nodes: [] }];
-			console.log("Forward Pass");
+			// console.log("Forward Pass");
 			this.minYofLayer = {};
 			this.net.setInputVectorsAndCalculate(data.inputVector!);
 			this.currentLayer = 1;
@@ -247,18 +252,20 @@ export default class TDNNGraph implements Visualization {
 		// }
 		// console.log(this.updates, this.next);
 		if (this.next >= this.updates.length - 1) {
-			this.onFrame();
-			this.next = 1;
+			// this.onFrame();
+			// this.next = 1;
 		} else {
+			if (this.next == this.updates.length - 2) {
+				// console.log("Last step");
+				this.alreadySetNet = false;
+			}
 			this.applyUpdate(this.updates[this.next++]);
-			if (this.next == this.updates.length - 2)
-				this.alreadySetNet == false;
 		}
 
 		// this.graph.setData(this.parseData(this.net));
 	}
 	applyUpdate(update: TDNNGraphUpdate) {
-		console.log("ApplyUpdate");
+		// console.log("ApplyUpdate");
 		this.graph.off("afterDrawing");
 		this.graph.redraw();
 		// console.log(update.nodes);
@@ -379,7 +386,7 @@ export default class TDNNGraph implements Visualization {
 	/** parse network layout into weights graph ordering */
 	maxHeight = 0;
 	parseData(net: Net.NeuralNet) {
-		console.log(this.nodes);
+		// console.log(this.nodes);
 		this.xyToConnectionTDNN = {};
 		const data: Point3d[] = [];
 		let maxy = 0;
@@ -763,9 +770,9 @@ export default class TDNNGraph implements Visualization {
 	}
 	onFrame() {
 		console.log("On frame TDNN");
-		this.alreadySetNet = false;
+		// this.alreadySetNet = false;
 		if (!this.net.isTDNN) return;
-		console.log("OnFrame step 2");
+		// console.log("OnFrame step 2");
 		this.calculatedNetwork = false;
 		this.graph.off("afterDrawing");
 		// this.parseData(this.net);

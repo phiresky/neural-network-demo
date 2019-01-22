@@ -218,6 +218,7 @@ export default class Simulation extends React.Component<
 
 	/** cache for all the steps that the [[NetGraph]] will go through for a single forward pass step */
 	forwardPassEles: NetGraphUpdate[] = [];
+	currentTrainingForwardPassDataPoint = -2;
 	/** do a single forward pass step, start the stepthrough if not already running */
 	forwardPassStep() {
 		if (!this.net.isTDNN) {
@@ -252,7 +253,6 @@ export default class Simulation extends React.Component<
 				}
 			}
 		} else {
-			console.log("this is TDNN graph");
 			if (!this.tdnngraph.currentlyDisplayingForwardPass) {
 				this.forwardPassEles = [];
 				this.currentTrainingDataPoint = -1;
@@ -262,7 +262,13 @@ export default class Simulation extends React.Component<
 			// 	this.tdnngraph.applyUpdate(this.forwardPassEles.shift()!);
 			// } else {
 
-			if (!this.tdnngraph.alreadySetNet) {
+			if (
+				!this.tdnngraph.alreadySetNet ||
+				this.currentTrainingForwardPassDataPoint == -2 ||
+				this.currentTrainingDataPoint !=
+					this.currentTrainingForwardPassDataPoint
+			) {
+				// console.log(this.tdnngraph.alreadySetNet);
 				if (
 					this.currentTrainingDataPoint <
 					this.state.data.length - 1
@@ -289,8 +295,9 @@ export default class Simulation extends React.Component<
 				this.trainNext();
 				this.tdnngraph.onNetworkLoaded(this.net);
 				this.tdnngraph.alreadySetNet = true;
+				this.currentTrainingForwardPassDataPoint = this.currentTrainingDataPoint;
 			}
-			console.log(this.state.data);
+			// console.log(this.state.data);
 			this.tdnngraph.forwardPass(
 				this.state.data[this.currentTrainingDataPoint]
 			);
