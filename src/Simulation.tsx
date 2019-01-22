@@ -275,7 +275,7 @@ export default class Simulation extends React.Component<
 				) {
 					// start next
 					this.lrVis.leftVis.setMode(1);
-					this.currentTrainingDataPoint++;
+					// this.currentTrainingDataPoint++;
 					// this.tdnngraph.forwardPass(
 					// 	this.state.data[this.currentTrainingDataPoint]
 					// );
