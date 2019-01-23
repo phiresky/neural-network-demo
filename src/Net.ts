@@ -355,6 +355,7 @@ export namespace Net {
 				);
 			}
 			this.outputs.map(output => output.output);
+			return this.outputs.map(output => output.output);
 		}
 		getOutput(inputVals: double[]) {
 			this.setInputsAndCalculate(inputVals);

@@ -216,6 +216,10 @@ export default class Simulation extends React.Component<
 		}
 	}
 
+	nextPattern() {
+		this.tdnngraph.alreadySetNet = false;
+		this.forwardPassStep();
+	}
 	/** cache for all the steps that the [[NetGraph]] will go through for a single forward pass step */
 	forwardPassEles: NetGraphUpdate[] = [];
 	currentTrainingForwardPassDataPoint = -2;
