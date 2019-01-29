@@ -564,7 +564,7 @@ export namespace Net {
 			this.weightedInputs = 0;
 			for (const conn of this.inputs) {
 				if (conn.weightVector == undefined) {
-					console.log("Create weightVector");
+					// console.log("Create weightVector");
 					conn.weightVector = [];
 					for (let i = 0; i < inputVals.length; i++)
 						conn.weightVector.push(Math.random() - 0.5);

@@ -100,7 +100,7 @@ export default class Simulation extends React.Component<
 			this.state.hiddenLayers,
 			this.state.outputLayer,
 			this.state.learningRate,
-			this.state.name.indexOf("Time Delayed Neuron Network") != -1
+			this.state.name.indexOf("Time Delayed Neural Network") != -1
 				? [3, 5]
 				: undefined,
 			undefined,
@@ -217,8 +217,9 @@ export default class Simulation extends React.Component<
 	}
 
 	nextPattern() {
-		this.tdnngraph.alreadySetNet = false;
+		this.tdnngraph.showOutput = true;
 		this.forwardPassStep();
+		this.tdnngraph.showOutput = false;
 	}
 	/** cache for all the steps that the [[NetGraph]] will go through for a single forward pass step */
 	forwardPassEles: NetGraphUpdate[] = [];
@@ -278,7 +279,7 @@ export default class Simulation extends React.Component<
 					this.state.data.length - 1
 				) {
 					// start next
-					this.lrVis.leftVis.setMode(1);
+					this.lrVis.leftVis.setMode(0);
 					// this.currentTrainingDataPoint++;
 					// this.tdnngraph.forwardPass(
 					// 	this.state.data[this.currentTrainingDataPoint]

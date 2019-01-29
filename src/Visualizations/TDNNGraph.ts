@@ -58,51 +58,6 @@ export default class TDNNGraph implements Visualization {
 		// this.container.appendChild(this.canvas);
 		//this.instantiateGraph1();
 	}
-	instantiateGraph1() {
-		// hack to get grayscale colors
-		vis.Graph3d.prototype._hsv2rgb = (h: double, s: double, v: double) => {
-			h = Math.min(h, 250) | 0;
-			return "rgb(" + [h, h, h] + ")";
-		};
-		// hack to disable axis drawing
-		vis.Graph3d.prototype._redrawAxis = function() {};
-		this.graph = new vis.Graph3d(this.container, undefined, {
-			style: "bar",
-			showPerspective: false,
-			cameraPosition: { horizontal: -0.001, vertical: Math.PI / 2 },
-			width: "100%",
-			height: "100%",
-			xLabel: "Layer",
-			yLabel: "Neuron",
-			zLabel: "",
-			showGrid: true,
-			axisColor: "red",
-			xBarWidth: 0.9,
-			yBarWidth: 0.9,
-			xCenter: "50%",
-			legendLabel: "Weight",
-			//zMin: 0,
-			//zMax: 5,
-			tooltip: (point: Point3d) => {
-				const [neuron, time, value] = this.xyToConnectionTDNN[
-					point.x + "," + point.y
-				];
-				let inStr: string, outStr: string;
-				return (
-					"ID : " +
-					neuron +
-					" - Time Delay: +" +
-					time +
-					" (" +
-					value.toFixed(2) +
-					")"
-				);
-			},
-			//xValueLabel: (x: int) => this.xToLayer[x] || "",
-			yValueLabel: (y: int) => ((y | 0) == y ? y + 1 : ""),
-			zValueLabel: (z: int) => ""
-		});
-	}
 	instantiateGraph() {
 		this.nodes = new vis.DataSet([], { queue: true });
 		this.edges = new vis.DataSet([], { queue: true });
@@ -131,14 +86,6 @@ export default class TDNNGraph implements Visualization {
 		if (this.graph) this.graph.destroy();
 		this.graph = new vis.Network(this.container, graphData, options);
 		let thisVar = this;
-		// this.graph.on("afterDrawing", function (ctx: any) {
-		// 	console.log("after drawing");
-		// 	console.log(thisVar);
-		// 	ctx.lineWidth="10";
-		// 	ctx.strokeStyle="red";
-		// 	ctx.rect(thisVar.nodes[0].x,thisVar.nodes[0].y,500,850);
-		// 	ctx.stroke();
-		// });
 	}
 	private edgeId(conn: Net.NeuronConnection) {
 		return conn.inp.id * this.net.connections.length + conn.out.id;
@@ -218,6 +165,7 @@ export default class TDNNGraph implements Visualization {
 		this.graph.fit();
 	}
 	next = 0;
+	showOutput=false;
 	/** calculate the visualization of the individual calculation steps for a single forward pass */
 	forwardPass(data: TrainingDataEx) {
 		if (
@@ -226,7 +174,7 @@ export default class TDNNGraph implements Visualization {
 			this.next == this.updates.length - 1
 		) {
 			this.onFrame();
-			console.log("First step of forward pass");
+			// console.log("First step of forward pass");
 			this.next = 1;
 			this.calculatedNetwork = true;
 			// this.updates = [{ nodes: [] }];
@@ -238,19 +186,14 @@ export default class TDNNGraph implements Visualization {
 			this.parseData(this.net);
 			this.currentlyDisplayingForwardPass = true;
 		}
-		// else{
-
-		// 	this.currentNeuron++;
-		// 	if (this.currentNeuron>=this.net.layers[this.currentLayer].length)
-		// 	{
-		// 		this.currentLayer++;
-		// 		if (this.currentLayer>=this.net.layers.length){
-		// 			this.currentLayer=1;
-		// 		}
-		// 		this.currentNeuron=0;
-		// 	}
-		// }
-		// console.log(this.updates, this.next);
+		if (this.showOutput)
+		{
+			var tmp=this.next;
+			this.next=this.updates.length - 2;
+			for (var i=tmp;i<=this.next;i++)
+				this.applyUpdate(this.updates[i]);
+			this.showOutput=false;
+		}
 		if (this.next >= this.updates.length - 1) {
 			// this.onFrame();
 			// this.next = 1;
@@ -269,7 +212,6 @@ export default class TDNNGraph implements Visualization {
 		this.graph.off("afterDrawing");
 		this.graph.redraw();
 		// console.log(update.nodes);
-		// console.log(update.nodes);
 		if (this.next != 0) {
 			// let x1 = update.nodes[0].x - 30;
 			// let y2 = update.nodes[update.nodes.length - 1].y - 30;
@@ -286,37 +228,6 @@ export default class TDNNGraph implements Visualization {
 				timeDelayed = 0,
 				width = 0,
 				height = 0;
-			// if (!isOutputLayer) {
-			// 	px1 = x1;
-			// 	// px1=previousLayer.nodes[0].x-30;
-			// 	// py1=previousLayer.nodes[0].y+30;
-			// 	py2 =
-			// 		previousLayer.nodes[previousLayer.nodes.length - 1].y - 30;
-			// 	timeDelayed = update.timeDelayed!;
-			// 	width = 50 * timeDelayed + 5;
-			// 	height = 50 * previousLayer.numberofneuron! + 5;
-			// } else {
-			// 	h1 = 55;
-			// 	// let minValue = 9999999999999;
-			// 	// for (let i = 0; i < previousLayer.nodes.length; i++) {
-			// 	// 	if (minValue > previousLayer.nodes[i].x-30)
-			// 	// 		minValue = previousLayer.nodes[i].x-30;
-			// 	// }
-			// 	// px1=minValue;
-			// 	let firstPreviousLayer = this.updates[
-			// 		update.previousIndex! - previousLayer.currentTime!
-			// 	];
-			// 	px1 = firstPreviousLayer.nodes[0].x - 30;
-			// 	// py1=previousLayer.nodes[0].y+30;
-			// 	py2 = previousLayer.nodes[update.currentTime!].y - 30;
-			// 	// py2=previousLayer.nodes[previousLayer.nodes.length-1].y-30;
-			// 	timeDelayed = this.net.layers[previousLayer.layerNumber!][0]
-			// 		.outputVector.length;
-			// 	width = 50 * timeDelayed + 5;
-			// 	height = 55;
-			// }
-			// console.log(x1, h1, y2);
-			// console.log(px1, py2, width, height);
 			var thisVar = this;
 			if (update.layerNumber != 0)
 				this.graph.on("afterDrawing", function(ctx: any) {
@@ -727,7 +638,7 @@ export default class TDNNGraph implements Visualization {
 		) {
 			this.updates.push({ nodes: [], layersUpdate: {} });
 		}
-		console.log(this.updates);
+		// console.log(this.updates);
 		// for (let i = 1; i < this.net.layers.length; i++) {
 		// 	const layer = this.net.layers[i];
 		// 	if (layer[0] instanceof Net.OutputNeuron) {
@@ -752,8 +663,12 @@ export default class TDNNGraph implements Visualization {
 	}
 
 	onNetworkLoaded(net: Net.NeuralNet) {
-		if (!net.isTDNN) return;
-		console.log("On network loaded TDNN");
+		// console.log("On network loaded TDNN");
+		if (!net.isTDNN)
+		{
+			this.actions = [];
+			return;
+		}
 		this.actions = ["TDNN Graph"];
 		// if (!this.alreadySetNet)
 		// {
@@ -769,7 +684,7 @@ export default class TDNNGraph implements Visualization {
 		// this.graph.setData(this.parseData(net));
 	}
 	onFrame() {
-		console.log("On frame TDNN");
+		// console.log("On frame TDNN");
 		// this.alreadySetNet = false;
 		if (!this.net.isTDNN) return;
 		// console.log("OnFrame step 2");

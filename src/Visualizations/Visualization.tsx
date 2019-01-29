@@ -125,7 +125,7 @@ class ControlButtonBar extends React.Component<
 						className="btn btn-default"
 						onClick={sim.nextPattern.bind(sim)}
 					>
-						Next Pattern
+						Show Outputs
 					</button>
 				) : (
 					""

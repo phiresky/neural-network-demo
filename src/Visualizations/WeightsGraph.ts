@@ -38,6 +38,7 @@ export default class WeightsGraph implements Visualization {
 			xLabel: "Layer",
 			yLabel: "Neuron",
 			zLabel: "",
+			zStep: 0.1,
 			showGrid: true,
 			axisColor: "red",
 			xBarWidth: 0.9,
@@ -60,7 +61,7 @@ export default class WeightsGraph implements Visualization {
 				else
 					outStr = `Hidden(${outputLayer + 1},${outN.layerIndex +
 						1})`;
-				return inStr + " to " + outStr + ": " + conn.weight.toFixed(2);
+				return inStr + " to " + outStr + ": " + point.z.toFixed(2); //conn.weight.toFixed(2);
 			},
 			//xValueLabel: (x: int) => this.xToLayer[x] || "",
 			yValueLabel: (y: int) => ((y | 0) == y ? y + 1 : ""),
@@ -71,8 +72,86 @@ export default class WeightsGraph implements Visualization {
 		this.graph.redraw();
 	}
 	onHide() {}
+	parseDataTDNN(net: Net.NeuralNet) {
+		this.xyToConnection = {};
+		const data: Point3d[] = [];
+		let maxx = 0;
+		let maxy = 0;
+		let lastUpdate = 1;
+		const maxHeight = Math.max.apply(
+			null,
+			net.layers.map(layer => layer.length)
+		);
+		for (
+			let outputLayer = 1;
+			outputLayer < net.layers.length;
+			outputLayer++
+		) {
+			const layer = net.layers[outputLayer];
+			const layerY = maxy + this.offsetBetweenLayers;
+
+			for (
+				let outputNeuron = 0;
+				outputNeuron < layer.length;
+				outputNeuron++
+			) {
+				let layerX = 0;
+				const outN = layer[outputNeuron];
+				maxy = Math.max(maxy, layerY + layer.length);
+				for (
+					let inputNeuron = 0;
+					inputNeuron < outN.inputs.length;
+					inputNeuron++
+				) {
+					const conn = outN.inputs[inputNeuron];
+					const inN = conn.inp;
+					layerX = (conn.weightVector!.length + 1) * inputNeuron;
+					maxx = Math.max(maxx, layerX + conn.weightVector!.length);
+					if (
+						!this.sim.state.bias &&
+						inN instanceof Net.InputNeuron &&
+						inN.constant
+					) {
+						continue;
+					}
+					for (
+						let timeDelayWeight = 0;
+						timeDelayWeight < conn.weightVector!.length;
+						timeDelayWeight++
+					) {
+						const p = {
+							x: layerX + timeDelayWeight,
+							y: layerY + outputNeuron,
+							z: conn.weightVector![timeDelayWeight]
+						};
+						if (maxHeight != layer.length)
+							p.y += (maxHeight - layer.length) / 2;
+						data.push(p);
+						this.xyToConnection[p.x + "," + p.y] = [
+							conn,
+							outputLayer
+						];
+					}
+				}
+			}
+		}
+		return data;
+	}
 	/** parse network layout into weights graph ordering */
 	parseData(net: Net.NeuralNet) {
+		console.log(this.sim.tdnngraph.alreadySetNet);
+		if (net.isTDNN) {
+			let data1: Point3d[] = [{ x: 1, y: 1, z: 0 }];
+			try {
+				data1 = this.parseDataTDNN(net);
+				console.log(data1);
+				return data1;
+			} catch {
+				console.log(data1);
+				return data1;
+			}
+		}
+
 		this.xyToConnection = {};
 		const data: Point3d[] = [];
 		let maxx = 0;
@@ -125,9 +204,12 @@ export default class WeightsGraph implements Visualization {
 	onNetworkLoaded(net: Net.NeuralNet) {
 		if (this.sim.state.type == "perceptron") this.actions = [];
 		else this.actions = ["Weights"];
+		this.xyToConnection = {};
 		this.graph.setData(this.parseData(net));
 	}
 	onFrame() {
+		this.xyToConnection = {};
+		this.graph.redraw();
 		this.graph.setData(this.parseData(this.sim.net));
 	}
 }
