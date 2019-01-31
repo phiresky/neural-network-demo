@@ -192,7 +192,6 @@ export default class TDNNGraph implements Visualization {
 			this.next=this.updates.length - 2;
 			for (var i=tmp;i<=this.next;i++)
 				this.applyUpdate(this.updates[i]);
-			this.showOutput=false;
 		}
 		if (this.next >= this.updates.length - 1) {
 			// this.onFrame();
@@ -204,7 +203,7 @@ export default class TDNNGraph implements Visualization {
 			}
 			this.applyUpdate(this.updates[this.next++]);
 		}
-
+		this.showOutput=false;
 		// this.graph.setData(this.parseData(this.net));
 	}
 	applyUpdate(update: TDNNGraphUpdate) {
@@ -229,7 +228,7 @@ export default class TDNNGraph implements Visualization {
 				width = 0,
 				height = 0;
 			var thisVar = this;
-			if (update.layerNumber != 0)
+			if (update.layerNumber != 0 && !this.showOutput)
 				this.graph.on("afterDrawing", function(ctx: any) {
 					ctx.lineWidth = "6";
 					ctx.strokeStyle = "red";

@@ -83,34 +83,34 @@ export default class WeightsGraph implements Visualization {
 			net.layers.map(layer => layer.length)
 		);
 		for (
-			let outputLayer = 1;
-			outputLayer < net.layers.length;
-			outputLayer++
+			let inputLayer = 0;
+			inputLayer < net.layers.length - 1;
+			inputLayer++
 		) {
-			const layer = net.layers[outputLayer];
+			const layer = net.layers[inputLayer];
 			const layerY = maxy + this.offsetBetweenLayers;
 
 			for (
-				let outputNeuron = 0;
-				outputNeuron < layer.length;
-				outputNeuron++
+				let inputNeuron = 0;
+				inputNeuron < layer.length;
+				inputNeuron++
 			) {
 				let layerX = 0;
-				const outN = layer[outputNeuron];
+				const inN = layer[inputNeuron];
 				maxy = Math.max(maxy, layerY + layer.length);
 				for (
-					let inputNeuron = 0;
-					inputNeuron < outN.inputs.length;
-					inputNeuron++
+					let outputNeuron = 0;
+					outputNeuron < inN.outputs.length;
+					outputNeuron++
 				) {
-					const conn = outN.inputs[inputNeuron];
-					const inN = conn.inp;
-					layerX = (conn.weightVector!.length + 1) * inputNeuron;
+					const conn = inN.outputs[outputNeuron];
+					const outN = conn.out;
+					layerX = (conn.weightVector!.length + 1) * outputNeuron;
 					maxx = Math.max(maxx, layerX + conn.weightVector!.length);
 					if (
 						!this.sim.state.bias &&
-						inN instanceof Net.InputNeuron &&
-						inN.constant
+						outN instanceof Net.InputNeuron &&
+						outN.constant
 					) {
 						continue;
 					}
@@ -121,7 +121,7 @@ export default class WeightsGraph implements Visualization {
 					) {
 						const p = {
 							x: layerX + timeDelayWeight,
-							y: layerY + outputNeuron,
+							y: layerY + inputNeuron,
 							z: conn.weightVector![timeDelayWeight]
 						};
 						if (maxHeight != layer.length)
@@ -129,7 +129,7 @@ export default class WeightsGraph implements Visualization {
 						data.push(p);
 						this.xyToConnection[p.x + "," + p.y] = [
 							conn,
-							outputLayer
+							inputLayer
 						];
 					}
 				}
