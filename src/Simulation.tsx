@@ -9,7 +9,8 @@ import {
 	LRVis,
 	NetworkVisualization,
 	NetworkGraph,
-	NetGraphUpdate
+	NetGraphUpdate,
+	TDNNGraph
 } from "./Visualizations";
 import Net from "./Net";
 import Presets from "./Presets";
@@ -33,6 +34,7 @@ export default class Simulation extends React.Component<
 
 	netviz: NetworkVisualization;
 	netgraph: NetworkGraph;
+	tdnngraph: TDNNGraph;
 	table: TableEditor;
 	errorGraph: ErrorGraph;
 	weightsGraph: WeightsGraph;
@@ -82,6 +84,7 @@ export default class Simulation extends React.Component<
 			p => p === this.state.data[this.currentTrainingDataPoint]
 		);
 		this.netgraph = new NetworkGraph(this);
+		this.tdnngraph = new TDNNGraph(this);
 		this.errorGraph = new ErrorGraph(this);
 		this.table = new TableEditor(this);
 		this.weightsGraph = new WeightsGraph(this);
@@ -97,12 +100,35 @@ export default class Simulation extends React.Component<
 			this.state.hiddenLayers,
 			this.state.outputLayer,
 			this.state.learningRate,
+			this.state.name.indexOf("Time Delayed Neural Network") != -1
+				? [3, 5]
+				: undefined,
 			undefined,
 			this.state.weights
 		);
 		this.stepsWanted = this.stepsCurrent = 0;
 		this.errorHistory = [];
 		this.lastWeights = [];
+		this.currentTrainingDataPoint = -1;
+		if (
+			this.net.isTDNN &&
+			this.state.data &&
+			this.currentTrainingDataPoint
+		) {
+			this.net.initTDNN(
+				this.state.data![this.currentTrainingDataPoint! + 1]
+					.inputVector!
+			);
+		}
+		if (this.net.isTDNN) {
+			this.tdnngraph.container.hidden = false;
+			this.lrVis.leftVis.setMode(1);
+			this.netgraph.container.hidden = true;
+		} else {
+			this.tdnngraph.container.hidden = true;
+			this.lrVis.leftVis.setMode(0);
+			this.netgraph.container.hidden = false;
+		}
 		this.lrVis.leftVis.onNetworkLoaded(this.net);
 		this.lrVis.rightVis.onNetworkLoaded(this.net);
 		this.currentTrainingDataPoint = -1;
@@ -158,11 +184,11 @@ export default class Simulation extends React.Component<
 			}
 			this._currentTrainingDataPoint = val;
 			this.table.hot.render();
-			if (this._currentTrainingDataPoint >= 0)
+			if (this._currentTrainingDataPoint >= 0 && !this.net.isTDNN)
 				this.net.setInputsAndCalculate(
 					this.state.data[this._currentTrainingDataPoint].input
 				);
-			this.netgraph.drawGraph();
+			if (!this.net.isTDNN) this.netgraph.drawGraph();
 		}
 	}
 	/** train the next single data point */
@@ -190,36 +216,96 @@ export default class Simulation extends React.Component<
 		}
 	}
 
+	nextPattern() {
+		this.tdnngraph.showOutput = true;
+		this.forwardPassStep();
+		this.tdnngraph.showOutput = false;
+	}
 	/** cache for all the steps that the [[NetGraph]] will go through for a single forward pass step */
 	forwardPassEles: NetGraphUpdate[] = [];
+	currentTrainingForwardPassDataPoint = -2;
 	/** do a single forward pass step, start the stepthrough if not already running */
 	forwardPassStep() {
-		if (!this.netgraph.currentlyDisplayingForwardPass) {
-			this.forwardPassEles = [];
-			this.currentTrainingDataPoint = -1;
-		}
-		this.stop();
-		if (this.forwardPassEles.length > 0) {
-			this.netgraph.applyUpdate(this.forwardPassEles.shift()!);
-		} else {
-			if (this.currentTrainingDataPoint < this.state.data.length - 1) {
-				// start next
-				this.lrVis.leftVis.setMode(0);
-				this.currentTrainingDataPoint++;
-				this.forwardPassEles = this.netgraph.forwardPass(
-					this.state.data[this.currentTrainingDataPoint]
-				);
-				this.netgraph.applyUpdate(this.forwardPassEles.shift()!);
-				// redraw for highlighted data point
-				this.netviz.onFrame();
-			} else {
-				// end
+		if (!this.net.isTDNN) {
+			if (!this.netgraph.currentlyDisplayingForwardPass) {
+				this.forwardPassEles = [];
 				this.currentTrainingDataPoint = -1;
-				// this clears the forward pass step
-				this.netgraph.onFrame(0);
-				// clear highlighted data point
-				this.netviz.onFrame();
 			}
+			this.stop();
+			if (this.forwardPassEles.length > 0) {
+				this.netgraph.applyUpdate(this.forwardPassEles.shift()!);
+			} else {
+				if (
+					this.currentTrainingDataPoint <
+					this.state.data.length - 1
+				) {
+					// start next
+					this.lrVis.leftVis.setMode(0);
+					this.currentTrainingDataPoint++;
+					this.forwardPassEles = this.netgraph.forwardPass(
+						this.state.data[this.currentTrainingDataPoint]
+					);
+					this.netgraph.applyUpdate(this.forwardPassEles.shift()!);
+					// redraw for highlighted data point
+					this.netviz.onFrame();
+				} else {
+					// end
+					this.currentTrainingDataPoint = -1;
+					// this clears the forward pass step
+					this.netgraph.onFrame(0);
+					// clear highlighted data point
+					this.netviz.onFrame();
+				}
+			}
+		} else {
+			if (!this.tdnngraph.currentlyDisplayingForwardPass) {
+				this.forwardPassEles = [];
+				this.currentTrainingDataPoint = -1;
+			}
+			this.stop();
+			// if (!this.tdnngraph.completedForwardPass){//(this.forwardPassEles.length > 0) {
+			// 	this.tdnngraph.applyUpdate(this.forwardPassEles.shift()!);
+			// } else {
+
+			if (
+				!this.tdnngraph.alreadySetNet ||
+				this.currentTrainingForwardPassDataPoint == -2 ||
+				this.currentTrainingDataPoint !=
+					this.currentTrainingForwardPassDataPoint
+			) {
+				// console.log(this.tdnngraph.alreadySetNet);
+				if (
+					this.currentTrainingDataPoint <
+					this.state.data.length - 1
+				) {
+					// start next
+					this.lrVis.leftVis.setMode(0);
+					// this.currentTrainingDataPoint++;
+					// this.tdnngraph.forwardPass(
+					// 	this.state.data[this.currentTrainingDataPoint]
+					// );
+					//this.tdnngraph.applyUpdate(this.forwardPassEles.shift()!);
+					// redraw for highlighted data point
+					// this.netviz.onFrame();
+				} else this.currentTrainingDataPoint = -1;
+				// else {
+				// 	// end
+				// 	this.currentTrainingDataPoint = -1;
+				// 	// this clears the forward pass step
+				// 	this.tdnngraph.onFrame();
+				// 	// clear highlighted data point
+				// 	this.netviz.onFrame();
+				// }
+				// }
+				this.trainNext();
+				this.tdnngraph.onNetworkLoaded(this.net);
+				this.tdnngraph.alreadySetNet = true;
+				this.currentTrainingForwardPassDataPoint = this.currentTrainingDataPoint;
+			}
+			// console.log(this.state.data);
+			this.tdnngraph.forwardPass(
+				this.state.data[this.currentTrainingDataPoint]
+			);
 		}
 	}
 
@@ -260,7 +346,11 @@ export default class Simulation extends React.Component<
 	calculateAverageError() {
 		this.averageError = 0;
 		for (const val of this.state.data) {
-			this.net.setInputsAndCalculate(val.input);
+			if (!this.net.isTDNN) {
+				this.net.setInputsAndCalculate(val.input);
+			} else {
+				this.net.setInputVectorsAndCalculate(val.inputVector!);
+			}
 			this.averageError += this.net.getLoss(val.output);
 		}
 		this.averageError /= this.state.data.length;
@@ -382,7 +472,20 @@ export default class Simulation extends React.Component<
 			history.replaceState({}, "", "?" + $.param({ preset: cn.name }));
 		if (this.net) {
 			if (co.bias != cn.bias) {
-				this.netgraph.onNetworkLoaded(this.net);
+				if (!this.net.isTDNN) this.netgraph.onNetworkLoaded(this.net);
+				else {
+					if (
+						this.net.isTDNN &&
+						this.state.data &&
+						this.currentTrainingDataPoint
+					) {
+						this.net.initTDNN(
+							this.state.data![this.currentTrainingDataPoint!]
+								.inputVector!
+						);
+					}
+					this.tdnngraph.onNetworkLoaded(this.net);
+				}
 			}
 			if (co.type !== cn.type) {
 				// gui layout may change, trigger resize
@@ -539,6 +642,7 @@ export default class Simulation extends React.Component<
 						ref={(e: LRVis) => (this.lrVis = e)}
 						leftVis={[
 							this.netgraph,
+							this.tdnngraph,
 							this.errorGraph,
 							this.weightsGraph
 						]}

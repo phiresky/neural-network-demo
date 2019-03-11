@@ -7,12 +7,15 @@ export interface TrainingData {
 	input: double[];
 	output: double[];
 }
+export interface TrainingDataEx extends TrainingData {
+	inputVector?: double[][];
+}
 /** Configuration interface. Default preset must contain values for all these properties! */
 export interface Configuration {
 	name: string;
 	/** inherit all properties from the preset with this name */
 	parent: string;
-	data: TrainingData[];
+	data: TrainingDataEx[];
 	/** is a custom configuration or a preset */
 	custom: boolean;
 	inputLayer: InputLayerConfig;

@@ -50,8 +50,9 @@ export default class TableEditor implements Visualization {
 			td.style.background = "#CCC";
 		};
 		const mergeCells: {}[] = [];
-		const ic = net.inputs.length,
+		const ic = net.isTDNN ? 0 : net.inputs.length,
 			oc = net.outputs.length;
+		console.log(ic);
 		//console.log(`creating new table (${ic}, ${oc})`);
 		if (ic > 1)
 			mergeCells.push({ row: 0, col: 0, rowspan: 1, colspan: ic });
@@ -136,12 +137,14 @@ export default class TableEditor implements Visualization {
 		if (Date.now() - this.lastUpdate < 500) return;
 		this.lastUpdate = Date.now();
 		const xOffset =
-			sim.state.inputLayer.neuronCount +
+			(sim.net.isTDNN ? 0 : sim.state.inputLayer.neuronCount) +
 			sim.state.outputLayer.neuronCount;
 		const vals: [number, number, number][] = [];
 		for (let y = 0; y < sim.state.data.length; y++) {
 			const p = sim.state.data[y];
-			const op = sim.net.getOutput(p.input);
+			const op = sim.net.isTDNN
+				? sim.net.setInputVectorsAndCalculate(p.inputVector!)
+				: sim.net.getOutput(p.input);
 			for (let x = 0; x < op.length; x++) {
 				vals.push([y + this.headerCount, xOffset + x, op[x]]);
 			}
@@ -153,12 +156,13 @@ export default class TableEditor implements Visualization {
 		const sim = this.sim;
 		const data: (number | string)[][] = [
 			[],
-			sim.state.inputLayer.names
+			(sim.net.isTDNN ? [] : sim.state.inputLayer.names)
 				.concat(sim.state.outputLayer.names)
 				.concat(sim.state.outputLayer.names)
 		];
-		const ic = sim.state.inputLayer.neuronCount,
+		const ic = sim.net.isTDNN ? 0 : sim.state.inputLayer.neuronCount,
 			oc = sim.state.outputLayer.neuronCount;
+		console.log(ic);
 		data[0][0] = "Inputs";
 		data[0][ic] = "Expected Output";
 		data[0][ic + oc + oc - 1] = " ";

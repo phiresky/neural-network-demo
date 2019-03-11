@@ -56,6 +56,11 @@ export default class NetworkGraph implements Visualization {
 		return conn.inp.id * this.net.connections.length + conn.out.id;
 	}
 	onNetworkLoaded(net: Net.NeuralNet, forceRedraw = false) {
+		if (net.isTDNN) {
+			this.actions = [];
+			return;
+		}
+		this.actions = ["Network Graph"];
 		if (
 			!forceRedraw &&
 			this.net &&
